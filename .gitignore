@@ -1,0 +1,62 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+MANIFEST
+
+# Pytest
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+
+# Basedpyright / Pyright
+.pyright/
+
+# --- Virtual Environments ---
+.env*
+.venv
+env/
+venv/
+!.env.example
+
+# --- Local Secrets & Config (NEVER commit secrets!) ---
+*.env
+local_settings.py
+.secrets
+secrets.json
+
+# --- IDEs / Editors ---
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+.zed/
+.history/
+
+# --- OS Specific ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+*~
+.swp
+.swo
+
+# --- Logs ---
+*.log
+
+# Mise local overrides
+mise.local.toml
+
+# Claude Code
+.claude/

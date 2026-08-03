@@ -1,0 +1,49 @@
+# =============================================================================
+# Field Monitoring Pipeline — Task Runner
+# =============================================================================
+#
+# SETUP    setup, install
+# QUALITY  check, lint, format, typecheck, test
+
+[settings]
+python.uv_venv_auto = true
+
+[tools]
+python = "3.13"
+
+[tasks.setup]
+description = "First-time project setup (installs deps, installs git hooks)"
+run = [
+    "uv sync",
+    # pre-commit is consumed via `uvx` (uv tool) rather than a project
+    # dependency, so contributors don't need it added to pyproject.toml.
+    "uvx pre-commit install --hook-type pre-commit --hook-type pre-push --hook-type commit-msg",
+]
+
+[tasks.install]
+description = "Sync dependencies (includes dev dependencies)"
+run = "uv sync"
+
+# =============================================================================
+# QUALITY
+# =============================================================================
+
+[tasks.check]
+description = "Quality gate: format + lint + typecheck + test"
+depends = ["format", "lint", "typecheck", "test"]
+
+[tasks.test]
+description = "Run test suite"
+run = "uv run pytest -n auto"
+
+[tasks.lint]
+description = "Lint and fix issues"
+run = "uv run ruff check . --fix"
+
+[tasks.format]
+description = "Format codebase"
+run = "uv run ruff format ."
+
+[tasks.typecheck]
+description = "Run type checking with basedpyright"
+run = "uv run basedpyright src tests"

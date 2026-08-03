@@ -1,0 +1,64 @@
+[project]
+name = "field-monitoring-pipeline"
+version = "0.1.0"
+description = "Field monitoring data pipeline."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/field_monitoring_pipeline"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "pep440"
+version_provider = "uv"
+update_changelog_on_bump = true
+major_version_zero = true
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.31.4",
+    "commitizen>=4.9.1",
+    "pytest>=8.4.2",
+    "pytest-xdist>=3.6.0",
+    "ruff>=0.13.0",
+]
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.13"
+extraPaths = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+# Ruff 0.16's expanded default ruleset (413 rules) is preview-gated in 0.16;
+# enabling preview adopts it. Ruff is version-pinned in the lockfile, so the
+# ruleset only shifts on a deliberate, reviewed bump.
+preview = true
+
+[tool.ruff.lint]
+# Inherit Ruff 0.16's curated default ruleset (no `select` override) and layer
+# on agent-oriented guardrails the default omits.
+extend-select = [
+    "S",    # flake8-bandit — security anti-patterns
+    "ARG",  # flake8-unused-arguments — dead parameters
+    "FBT",  # flake8-boolean-trap — boolean positional arguments
+    "SLF",  # flake8-self — private-member access across boundaries
+    "TC",   # flake8-type-checking — import-placement hygiene
+    "N",    # pep8-naming
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test code is not a security or interface surface: asserts are the point,
+# fixtures carry unused params, tests reach into private members and embed
+# magic values.
+"tests/**" = ["S", "ARG", "SLF001", "PLR2004"]
