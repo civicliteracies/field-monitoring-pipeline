@@ -6,7 +6,7 @@
 mise run setup
 ```
 
-Installs dependencies and git hooks (pre-commit lint/format, pre-push tests, commit-msg linting).
+Installs dependencies and git hooks (pre-commit lint/format, pre-push tests, commit-msg linting). See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the dependency setup, pre-commit hooks, and commit conventions.
 
 ## Common tasks
 
