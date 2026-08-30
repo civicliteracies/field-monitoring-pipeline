@@ -215,3 +215,44 @@ Prompt's list of what ships, and the Constitution says not to invent scope. Unde
 the threshold rule this is an ordinary scope call, so it is recorded here rather
 than as a decision record. Not to be confused with `CODEOWNERS`, which Cédric
 declined separately (ADR-0014).
+
+**Built PR 1 and opened it as a draft: pull request #1.** Nineteen files, both CI
+jobs green on GitHub in 23 seconds.
+
+Four things came out of building it that were not in the plan:
+
+- **`pip-audit --strict` fails on our own package**, because a local editable
+  install is not on PyPI and can never be audited. `--skip-editable` without
+  `--strict` reports the skip and still fails on a real vulnerability, which is
+  what was actually wanted.
+- **Ruff does not apply `D100` to a module whose name starts with an
+  underscore**, treating it as private. Both files used to test the rule happened
+  to be named that way, so the first demonstration produced a false pass.
+  Retested with a normal name and it fires correctly. Recorded as a known limit
+  in `AGENTS.md` with the instruction not to name modules that way here.
+- **Sixteen parallel test workers each warn that they collected no coverage
+  data**, which buried the output that matters. Silenced with coverage's
+  `disable_warnings` for that one slug rather than by suppressing warnings
+  generally.
+- **`.gitattributes` was missing and needed.** The build machine is Windows and
+  CI is Linux, and the Stop hook is a shell script. Committed with CRLF endings
+  it would have failed on Linux with a confusing interpreter error. Everything is
+  now stored as LF, and the hook script carries its executable bit in the index.
+
+**Proved the guards catch things**, which is the actual deliverable rather than
+the files. A file under `src/` with no docstring fails linting. A file containing
+a private-key header is blocked by the pre-commit hook before a commit exists,
+verified with a fake key that was never committed. `pip-audit` reports the
+dependency tree clean. The full gate is green locally and in CI, and the CI log
+confirms every step ran rather than being skipped.
+
+The documentation guard could not be demonstrated in this pull request, because
+the only change under `src/` is adding the package docstring. It gets exercised
+for real at PR 2.
+
+**Six items remain, and four of them need a repository admin:** branch protection,
+secret scanning with push protection, Dependabot alerts, and the access fix that
+removes Richard's write access through the `interns` team. The exact steps are in
+the pull request description. Until branch protection is on, the gate reports but
+does not enforce, so PR 1 is not finished when it merges; it is finished when
+those settings are applied.

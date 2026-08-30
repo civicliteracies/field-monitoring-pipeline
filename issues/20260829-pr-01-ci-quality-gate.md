@@ -254,7 +254,7 @@ Every item PR 1 must produce, derived from the Build Prompt's PR 1 entry, the
 Rulebook's Book B and Stage 0, ADR-0004, and the decisions taken during this
 build. Each line names its source so the list is auditable. Tick as built.
 
-**State as of 2026-08-30: 9 of 39 done.**
+**State as of 2026-08-30: 33 of 39 done. PR 1 is open as a draft at pull request #1 with both CI jobs green.**
 
 ### A. Repository settings (a founder with admin applies these; the builder has push only)
 
@@ -265,36 +265,36 @@ build. Each line names its source so the list is auditable. Tick as built.
 
 ### B. CI workflows
 
-- [ ] `.github/workflows/ci.yml`: runs `mise run check` on pull request and push, installs from `uv.lock` only, every action pinned to a commit SHA, token `contents: read` — *Build Prompt PR 1; requirements 1 to 5*
-- [ ] Documentation guard: fails a pull request that changes `src/` without changing `docs/ARCHITECTURE.md`, with a `docs: n/a` opt-out. A job inside `ci.yml` — *Build Prompt section 2; requirements 7 and 8*
-- [ ] `pip-audit` step in CI — *ADR-0004; requirement 12*
-- [ ] `.github/workflows/scorecard.yml`: OpenSSF Scorecard — *ADR-0008*
+- [x] `.github/workflows/ci.yml`: runs `mise run check` on pull request and push, installs from `uv.lock` only, every action pinned to a commit SHA, token `contents: read` — *Build Prompt PR 1; requirements 1 to 5* — **done 2026-08-30**
+- [x] Documentation guard: fails a pull request that changes `src/` without changing `docs/ARCHITECTURE.md`, with a `docs: n/a` opt-out. A job inside `ci.yml` — *Build Prompt section 2; requirements 7 and 8* — **done 2026-08-30**
+- [x] `pip-audit` step in CI — *ADR-0004; requirement 12* — **done 2026-08-30**
+- [x] `.github/workflows/scorecard.yml`: OpenSSF Scorecard — *ADR-0008* — **done 2026-08-30**
 
 ### C. Configuration edits
 
-- [ ] `pyproject.toml`: enable ruff `D100`, module docstring required under `src/` — *Build Prompt section 2 and 3; requirement 6*
-- [ ] `pyproject.toml`: complexity cap, ruff `C901` — *ADR-0004; requirement 9*
-- [ ] `pyproject.toml`: no bare or blind except, ruff `E722` and `BLE` — *ADR-0004; requirement 10*
-- [ ] `pyproject.toml`: coverage configuration and the 80 per cent new-code floor — *ADR-0004; requirement 11*
-- [ ] `pyproject.toml` and `uv.lock`: add `pytest-cov` — *approved by founder 2026-08-29*
-- [ ] `pyproject.toml` and `uv.lock`: add `pip-audit` — *approved by founder 2026-08-29*
-- [ ] File-size budget, Python files 150 to 500 lines, split into a package near 500 — *ADR-0004. Not expressible in ruff; needs a small CI check or a pre-commit hook*
-- [ ] `.pre-commit-config.yaml`: add `detect-private-key` — *Build Prompt PR 1; requirement 16*
-- [ ] `.pre-commit-config.yaml`: add `check-added-large-files` — *Build Prompt PR 1; requirement 17*
-- [ ] `.gitignore`: replace the blanket `.claude/` with `.claude/settings.local.json` — *ADR-0015*
+- [x] `pyproject.toml`: enable ruff `D100`, module docstring required under `src/` — *Build Prompt section 2 and 3; requirement 6* — **done 2026-08-30**
+- [x] `pyproject.toml`: complexity cap, ruff `C901` — *ADR-0004; requirement 9* — **done 2026-08-30**
+- [x] `pyproject.toml`: no bare or blind except, ruff `E722` and `BLE` — *ADR-0004; requirement 10* — **done 2026-08-30**
+- [x] `pyproject.toml`: coverage configuration and the 80 per cent new-code floor — *ADR-0004; requirement 11* — **done 2026-08-30**
+- [x] `pyproject.toml` and `uv.lock`: add `pytest-cov` — *approved by founder 2026-08-29* — **done 2026-08-30**
+- [x] `pyproject.toml` and `uv.lock`: add `pip-audit` — *approved by founder 2026-08-29* — **done 2026-08-30**
+- [x] File-size budget, Python files 150 to 500 lines, split into a package near 500 — *ADR-0004. Not expressible in ruff; needs a small CI check or a pre-commit hook* — **done 2026-08-30**
+- [x] `.pre-commit-config.yaml`: add `detect-private-key` — *Build Prompt PR 1; requirement 16* — **done 2026-08-30**
+- [x] `.pre-commit-config.yaml`: add `check-added-large-files` — *Build Prompt PR 1; requirement 17* — **done 2026-08-30**
+- [x] `.gitignore`: replace the blanket `.claude/` with `.claude/settings.local.json` — *ADR-0015* — **done 2026-08-30**
 
 ### D. Governance files
 
-- [ ] `constitution.md`: the six non-negotiables — *ADR-0006*
-- [ ] `AGENTS.md`: the canonical, tool-neutral agent instructions — *ADR-0007*
-- [ ] `CLAUDE.md`: the Build Prompt committed, importing `@AGENTS.md`, with build-machine paths stripped — *Build Prompt, start-here box*
-- [ ] `.claude/settings.json`: the Stop hook running `mise run check`, plus deny rules — *ADR-0009, ADR-0015; requirements 19 to 21*
-- [ ] `.github/dependabot.yml`: delayed version updates — *ADR-0008; requirement 18*
+- [x] `constitution.md`: the six non-negotiables — *ADR-0006* — **done 2026-08-30**
+- [x] `AGENTS.md`: the canonical, tool-neutral agent instructions — *ADR-0007* — **done 2026-08-30**
+- [x] `CLAUDE.md`: the Build Prompt committed, importing `@AGENTS.md`, with build-machine paths stripped — *Build Prompt, start-here box* — **done 2026-08-30**
+- [x] `.claude/settings.json`: the Stop hook running `mise run check`, plus deny rules — *ADR-0009, ADR-0015; requirements 19 to 21* — **done 2026-08-30**
+- [x] `.github/dependabot.yml`: delayed version updates — *ADR-0008; requirement 18* — **done 2026-08-30**
 - [x] ~~`.github/CODEOWNERS`~~ — **declined by the founder**, ADR-0014
 
 ### E. The records
 
-- [ ] `docs/ARCHITECTURE.md`: the living plain-language map, seeded — *Build Prompt section 2; the docs guard has nothing to check without it*
+- [x] `docs/ARCHITECTURE.md`: the living plain-language map, seeded — *Build Prompt section 2; the docs guard has nothing to check without it* — **done 2026-08-30**
 - [x] `docs/DECISIONS.md`: seeded, ADR-0001 to ADR-0017 with an index — *done 2026-08-30*
 - [x] `docs/BUGS.md`: seeded, BUG-001 and BUG-002 with the failing-test rule — *done 2026-08-30, ADR-0017*
 - [x] `docs/ACTIVITY.md`: the journal — *done 2026-08-29, ADR-0016*
@@ -310,10 +310,10 @@ build. Each line names its source so the list is auditable. Tick as built.
 
 ### G. Proving it works (the deliverable is the demonstration, not the files)
 
-- [ ] A trivial pull request shows the gate and goes green
-- [ ] A file under `src/` with no docstring fails on `D100`
+- [x] A trivial pull request shows the gate and goes green — **done 2026-08-30**
+- [x] A file under `src/` with no docstring fails on `D100` — **done 2026-08-30**
 - [ ] A change under `src/` without an `ARCHITECTURE.md` update fails the docs guard, then passes once the entry is added
-- [ ] A test private key is blocked by the pre-commit hook
+- [x] A test private key is blocked by the pre-commit hook — **done 2026-08-30**
 - [ ] `main` cannot be merged to without a green check and one approval
 
 ### Deliberately deferred, recorded so they are not lost
