@@ -1,0 +1,122 @@
+# The quality gate.
+#
+# Runs the same checks a contributor runs locally, so a green tick here means the
+# same thing as a green `mise run check` on a laptop. Nothing broken and nothing
+# undocumented reaches main without someone deliberately overriding it.
+#
+# Every action is pinned to a commit SHA rather than a tag. A tag can be moved to
+# point at different code; a commit SHA cannot.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege: the gate only ever reads the code.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install mise and the pinned Python
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      # --frozen fails if the lockfile and pyproject.toml disagree, so CI can
+      # never quietly resolve a different version from the one committed.
+      - name: Install dependencies from the lockfile only
+        run: uv sync --frozen
+
+      - name: Run the gate (format, lint, types, tests, coverage)
+        run: mise run check
+
+      # --skip-editable leaves out this project itself, which is installed
+      # editable and is not on PyPI, so it can never be audited. Without --strict
+      # that skip is reported rather than treated as a failure, while a real
+      # vulnerability in any dependency still fails the job.
+      - name: Audit dependencies for known vulnerabilities
+        run: uv run pip-audit --skip-editable
+
+      # ADR-0004's file-size budget. A file over 500 lines should be split into a
+      # package. There is no ruff rule for this, so it is a plain line count.
+      - name: Check the file-size budget
+        run: |
+          set -euo pipefail
+          over=0
+          while IFS= read -r -d '' f; do
+            lines=$(wc -l < "$f")
+            if [ "$lines" -gt 500 ]; then
+              echo "::error file=$f::$f is $lines lines, over the 500-line budget. Split it into a package."
+              over=1
+            fi
+          done < <(find src -name '*.py' -print0 2>/dev/null)
+          exit "$over"
+
+  docs-guard:
+    name: Documentation guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check out the full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # The pull request body is untrusted text written by whoever opened it, so
+      # it reaches the script through an environment variable and never through
+      # the run line itself. Interpolating it directly would let a crafted title
+      # run commands in this job.
+      - name: Require an ARCHITECTURE.md update alongside any src/ change
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if printf '%s' "$PR_BODY" | grep -qiE '^[[:space:]]*docs:[[:space:]]*n/a[[:space:]]*$'; then
+            echo "Pull request body opts out with 'docs: n/a'. Guard skipped."
+            exit 0
+          fi
+
+          changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+
+          if ! printf '%s\n' "$changed" | grep -q '^src/'; then
+            echo "No files under src/ changed. Nothing to document."
+            exit 0
+          fi
+
+          if printf '%s\n' "$changed" | grep -qx 'docs/ARCHITECTURE.md'; then
+            echo "src/ changed and docs/ARCHITECTURE.md was updated with it."
+            exit 0
+          fi
+
+          echo "::error::This pull request changes files under src/ but does not update docs/ARCHITECTURE.md."
+          echo ""
+          echo "Every file carries a plain-language explanation, and the map moves with the code."
+          echo "Add or update this file's entry in docs/ARCHITECTURE.md, in this same pull request."
+          echo ""
+          echo "If the change genuinely needs no documentation, such as a typo or a formatting-only"
+          echo "edit, put a line reading exactly 'docs: n/a' in the pull request body. Use it sparingly."
+          echo ""
+          echo "Files changed under src/:"
+          printf '%s\n' "$changed" | grep '^src/' | sed 's/^/  /'
+          exit 1

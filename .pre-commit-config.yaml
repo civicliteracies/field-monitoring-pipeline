@@ -1,4 +1,17 @@
 repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    # A committed private key cannot be un-published from a public repository,
+    # so this blocks it before the commit exists rather than after.
+    -   id: detect-private-key
+        stages: [pre-commit]
+    # The repository is the database, so it must stay clonable. A large binary
+    # is almost always a mistake here: the store is plain text.
+    -   id: check-added-large-files
+        args: [--maxkb=1024]
+        stages: [pre-commit]
+
 -   repo: local
     hooks:
     -   id: pytest

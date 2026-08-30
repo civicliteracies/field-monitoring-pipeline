@@ -1,0 +1,56 @@
+# The OpenSSF Scorecard grades this repository's own security posture: whether
+# actions are pinned, whether branch protection is on, whether dependencies are
+# updated, and so on.
+#
+# It matters more here than in most projects because this repository is both
+# public and the database, so its posture is part of the product rather than
+# incidental to it.
+#
+# See ADR-0008 in docs/DECISIONS.md.
+
+name: Scorecard
+
+on:
+  branch_protection_rule:
+  schedule:
+    # Weekly, Monday morning. Posture drifts slowly, so weekly is enough.
+    - cron: "17 6 * * 1"
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      # Needed to upload the result to the code-scanning dashboard.
+      security-events: write
+      # Needed by the action to read the repository's own settings.
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run the Scorecard analysis
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Publishing the score to the public OpenSSF dashboard. The repository
+          # is public and its posture is public information, so this costs
+          # nothing and lets anyone check the claim rather than take our word.
+          publish_results: true
+
+      - name: Keep the raw result for 5 days
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 5

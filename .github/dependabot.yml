@@ -1,0 +1,35 @@
+# Watch for updates to libraries and GitHub Actions, and raise each as a pull
+# request a person reviews.
+#
+# Updates arrive on a delay rather than the day they are published. A compromised
+# release is usually caught and pulled within days, so waiting is a cheap and
+# effective guard, and it is what the 2025 supply-chain attacks argue for.
+#
+# See ADR-0008 in docs/DECISIONS.md.
+
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Wait for a release to have been public for a week before proposing it.
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    cooldown:
+      default-days: 7

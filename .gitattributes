@@ -1,0 +1,26 @@
+# Normalise line endings.
+#
+# The build machine is Windows and CI is Linux. Without this, files committed
+# from Windows carry CRLF endings, and a shell script with CRLF fails on Linux
+# with a confusing "bad interpreter" error. Storing everything as LF in the
+# repository removes a whole class of works-on-my-machine problem.
+#
+# It matters more here than usual because this repository is the database: the
+# stored cards are text files, and their diffs should stay clean and comparable
+# whatever machine wrote them.
+
+* text=auto eol=lf
+
+# Always LF, regardless of platform: these are read by Linux tooling.
+*.sh   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
+
+# Never touched: binary formats git must not try to normalise.
+*.png  binary
+*.jpg  binary
+*.pdf  binary
+*.ico  binary
