@@ -3,7 +3,7 @@
 # =============================================================================
 #
 # SETUP    setup, install
-# QUALITY  check, lint, format, typecheck, test
+# QUALITY  verify (the gate), check, lint, format, typecheck, test
 
 [settings]
 python.uv_venv_auto = true
@@ -29,8 +29,22 @@ run = "uv sync"
 # =============================================================================
 
 [tasks.check]
-description = "Quality gate: format + lint + typecheck + test"
+description = "Quality gate: format + lint + typecheck + test. Fixes as it goes."
 depends = ["format", "lint", "typecheck", "test"]
+
+# The same four checks as `check`, with nothing fixed. A gate must report rather
+# than repair, or it can pass by quietly editing the code it is judging. This is
+# what the pre-push hook and the advisory Linux run both call. Nothing else
+# belongs here: uv already refuses to run when the dependency files disagree, so
+# there is no need to check that separately.
+[tasks.verify]
+description = "The gate, read-only: reports rather than fixes. What the push hook runs."
+run = [
+    "uv run ruff format --check .",
+    "uv run ruff check .",
+    "uv run basedpyright src tests",
+    "uv run pytest -n auto",
+]
 
 [tasks.test]
 description = "Run test suite"

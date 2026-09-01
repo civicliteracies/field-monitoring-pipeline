@@ -1,0 +1,53 @@
+# The advisory Linux run.
+#
+# Every check runs on the maintainer's machine before a push, and that is where
+# enforcement lives. This adds the one thing a local gate cannot see: Linux. The
+# build machine is Windows, the scheduled run executes on Linux, and that gap has
+# already produced a real fault, the line endings that made `.gitattributes`
+# necessary.
+#
+# It is advisory. No status check is required to merge, so a red tick here is a
+# reason to look rather than a block. Nothing else belongs in this file: the
+# dependency checks, the vulnerability scan, and the documentation guard were all
+# considered and removed. See ADR-0022 and ADR-0023.
+#
+# Every action is pinned to a commit SHA rather than a tag. A tag can be moved to
+# point at different code; a commit SHA cannot.
+
+name: CI
+
+on:
+  pull_request:
+
+# Least privilege: this only ever reads the code.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Quality gate on Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install mise and the pinned Python
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+
+      # --frozen fails if the lockfile and pyproject.toml disagree, which is the
+      # same refusal uv makes locally.
+      - name: Install dependencies from the lockfile only
+        run: uv sync --frozen
+
+      # The same task the pre-push hook runs, so a green tick here means what a
+      # clean push means, on a different operating system.
+      - name: Run the gate
+        run: mise run verify

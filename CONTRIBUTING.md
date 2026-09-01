@@ -51,7 +51,8 @@ The package uses a `src/` layout: code lives under `src/field_monitoring_pipelin
 
 | Command | Description |
 | --- | --- |
-| `mise run check` | Quality gate: format + lint + typecheck + test — run this before opening a PR |
+| `mise run check` | Quality gate: format + lint + typecheck + test. Fixes as it goes — run this while working |
+| `mise run verify` | The whole gate, read-only: reports rather than fixes. This is what the push hook runs |
 | `mise run lint` | Lint and auto-fix with ruff |
 | `mise run format` | Format with ruff |
 | `mise run typecheck` | Type-check with basedpyright (strict mode) |
@@ -65,13 +66,13 @@ Without mise, the underlying commands are `uv run ruff check . --fix`, `uv run r
 
 * **On `git commit`** — `ruff check --fix` and `ruff format` run against the files you're committing. If either one modifies a file, the commit is aborted so you can review the change and re-stage it.
 * **On `git commit` (commit-msg)** — `commitizen` checks your commit message matches [Conventional Commits](https://www.conventionalcommits.org/) (`type(scope): summary`, e.g. `feat(pipeline): add CSV ingest step`). Common types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
-* **On `git push`** — the full `pytest` suite runs. A failing test blocks the push.
+* **On `git push`** — the whole quality gate runs, via `mise run verify`: formatting is checked, ruff lints, basedpyright type-checks in strict mode, and the tests run. Anything failing blocks the push. It reports rather than fixes, so pushing never rewrites your files under you.
 
 Run any of them by hand without committing/pushing:
 
 ```sh
 uvx pre-commit run --all-files          # lint + format hooks only
-uvx pre-commit run --all-files --hook-stage pre-push   # tests
+uvx pre-commit run --all-files --hook-stage pre-push   # the full gate
 ```
 
 Writing a commit message interactively (handles the Conventional Commits format for you):
@@ -79,6 +80,24 @@ Writing a commit message interactively (handles the Conventional Commits format 
 ```sh
 uvx --from commitizen cz commit
 ```
+
+## Fixing a bug
+
+**A fix must come with a test that fails on the old behaviour.** Write the test
+first, watch it fail, then change the code and watch it pass. Without that step
+"fixed" is a claim rather than a fact, and nothing stops the bug coming back
+later.
+
+Where the record of it goes:
+
+* **While it is open** — the repository's issue tracker.
+* **Once it is fixed** — an entry in [`docs/BUGS.md`](docs/BUGS.md) with the
+  symptom, the cause, the fix, and the test that now guards it.
+* **If a user would notice the difference** — a line under `### Fixed` in
+  [`CHANGELOG.md`](CHANGELOG.md).
+* **If the fix settles a lasting rule** — a numbered record in
+  [`docs/decisions/`](docs/decisions/), linked to and from the bug entry, so the
+  reasoning survives beyond the incident.
 
 ## FAQ
 

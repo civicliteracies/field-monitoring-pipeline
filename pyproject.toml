@@ -22,12 +22,16 @@ update_changelog_on_bump = true
 major_version_zero = true
 
 [dependency-groups]
+# Exact versions, not ranges. A version only changes when someone changes it
+# deliberately, which arrives as a pull request and gets discussed there. That
+# conversation is the control, rather than a scanner run on a schedule.
 dev = [
-    "basedpyright>=1.31.4",
-    "commitizen>=4.9.1",
-    "pytest>=8.4.2",
-    "pytest-xdist>=3.6.0",
-    "ruff>=0.13.0",
+    "basedpyright==1.39.9",
+    "commitizen==4.17.0",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "pytest-xdist==3.8.0",
+    "ruff==0.16.1",
 ]
 
 [tool.basedpyright]
@@ -37,6 +41,22 @@ extraPaths = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src/field_monitoring_pipeline"]
+branch = true
+# Tests run in parallel, so most workers measure nothing and each one warns about
+# it. That is an artefact of the parallelism rather than a real signal, and 16
+# copies of it buries the output that matters. Silencing this one slug only.
+disable_warnings = ["no-data-collected"]
+
+[tool.coverage.report]
+# ADR-0004's floor. Note this measures the whole project, not only the lines
+# changed in a pull request. True diff coverage needs another dependency, so
+# this is the boring approximation until it proves inadequate.
+fail_under = 80
+show_missing = true
 
 [tool.ruff]
 line-length = 120
@@ -55,10 +75,18 @@ extend-select = [
     "SLF",  # flake8-self — private-member access across boundaries
     "TC",   # flake8-type-checking — import-placement hygiene
     "N",    # pep8-naming
+    "D100", # module docstring required - the documentation rule, enforced
+    "C901", # cyclomatic complexity cap
+    "BLE",  # no blind `except Exception`
+    "E722", # no bare `except`
 ]
+
+[tool.ruff.lint.mccabe]
+# A function past this is doing too much to review in one sitting. ADR-0004.
+max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 # Test code is not a security or interface surface: asserts are the point,
 # fixtures carry unused params, tests reach into private members and embed
 # magic values.
-"tests/**" = ["S", "ARG", "SLF001", "PLR2004"]
+"tests/**" = ["S", "ARG", "SLF001", "PLR2004", "D100"]

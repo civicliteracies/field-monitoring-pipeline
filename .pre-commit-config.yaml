@@ -1,16 +1,33 @@
 repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    # A committed private key cannot be un-published from a public repository,
+    # so this blocks it before the commit exists rather than after.
+    -   id: detect-private-key
+        stages: [pre-commit]
+    # The repository is the database, so it must stay clonable. A large binary
+    # is almost always a mistake here: the store is plain text.
+    -   id: check-added-large-files
+        args: [--maxkb=1024]
+        stages: [pre-commit]
+
 -   repo: local
     hooks:
-    -   id: pytest
-        name: Run tests with pytest
-        entry: uv run pytest -n auto
+    # One definition of the gate, not two that drift: the hook runs the same
+    # mise task a reviewer would. `verify` rather than `check` because a hook
+    # must not rewrite files mid-push.
+    -   id: gate
+        name: Quality gate (mise run verify)
+        entry: mise run verify
         language: system
         stages: [pre-push]
         pass_filenames: false
         always_run: true
 
 -   repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.9.1
+    # Keep in lockstep with the pinned commitizen in pyproject.toml.
+    rev: v4.17.0
     hooks:
     -   id: commitizen
         stages: [commit-msg]
@@ -18,7 +35,7 @@ repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version — keep in lockstep with the pinned ruff in uv.lock so the
     # hook lints with the same ruleset (0.16 preview default) as `mise run lint`.
-    rev: v0.16.0
+    rev: v0.16.1
     hooks:
     # Run the linter.
       - id: ruff-check

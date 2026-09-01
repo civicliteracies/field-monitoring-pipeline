@@ -1,0 +1,5 @@
+# ADR-0012 — The dashboard front end is built by the team, not the agent [decision]
+**Status:** Accepted (2026-08-29). **Owner:** build.
+**Context.** CLI wants to own the look and feel of the public-facing dashboard, and the store is plain card files that any front end can read directly.
+**Decision.** Claude Code builds the data pipeline, the RSS feed, and everything except the dashboard front end (PR 12); the dashboard (`site/`) is built by the team, reading `data/calls/<id>.md` client-side and matching CLI's existing visual identity, which is public at `civicliteraci.es`. Claude Code builds through PR 11, pauses while the team builds PR 12, then continues at PR 13 — the step is built by a human, not skipped — and keeps the card files and the feed a stable contract for the front end.
+**Consequences.** The front end decouples cleanly from the pipeline (files-as-store makes this free); the agent's surface work ends at the feed, and the team owns the dashboard. Recorded so the split is unambiguous.
