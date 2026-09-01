@@ -74,8 +74,9 @@ all. Checks live on the maintainer's machine rather than on GitHub, per
     runs before every push instead. See [ADR-0021](../docs/decisions/0021-every-check-runs-on-the-maintainers-machine.md).)
 15. WHEN the repository is checked out, THE SYSTEM SHALL carry a seeded
     `docs/ARCHITECTURE.md`, a seeded `docs/decisions/` holding ADR-0001 through
-    ADR-0025 as one numbered file per record with an index beside them, and a
-    `CHANGELOG.md` opening with an `Unreleased` section.
+    ADR-0025 as one numbered file per record with an index beside them, a
+    `docs/BUGS.md` holding the defects found so far, and a `CHANGELOG.md`
+    opening with an `Unreleased` section.
 
 ### The supply chain
 
@@ -93,11 +94,13 @@ Requirements 19 to 21 are stated in the Stop-hook section below, and 22 in the
 journal section below. These two complete the set.
 
 23. WHEN a bug is fixed, THE SYSTEM SHALL NOT accept the fix without a test that
-    fails on the pre-change behaviour, and SHALL record the fix under `Fixed` in
-    `CHANGELOG.md`. An open defect belongs in the repository's issue tracker.
+    fails on the pre-change behaviour, and SHALL record it in `docs/BUGS.md` with
+    its symptom, its cause, its fix and that test, plus a line under `Fixed` in
+    `CHANGELOG.md` when someone using Fieldbook would notice the difference. An
+    open defect belongs in the repository's issue tracker.
 24. WHEN fixing a bug also establishes a lasting rule, THE SYSTEM SHALL record
-    that rule as a numbered record in `docs/decisions/`, so the reasoning
-    survives beyond the one changelog line. See
+    that rule as a numbered record in `docs/decisions/`, linked to and from the
+    bug entry, so the reasoning survives beyond the incident. See
     [ADR-0025](../docs/decisions/0025-conventional-file-layout.md).
 
 ### The advisory run
@@ -116,6 +119,7 @@ journal section below. These two complete the set.
 - `AGENTS.md`, `CLAUDE.md`, `constitution.md`, `CHANGELOG.md` (new, repository root)
 - `CONTRIBUTING.md` (the rule that a bug fix carries a failing test)
 - `docs/ARCHITECTURE.md` (new, seeded)
+- `docs/BUGS.md` (new: the two defects found before any code existed)
 - `docs/decisions/` (new: ADR-0001 to ADR-0025, one file per record, plus the index)
 - `specs/001-quality-gate.md` (this file)
 - `uv.lock` (regenerated when the dev group was pinned)

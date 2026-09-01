@@ -26,6 +26,8 @@ language. **Why** a choice was made, and what it cost, belongs in
   [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Numbered decision records in [`docs/decisions/`](docs/decisions/), ADR-0001 to
   ADR-0025, one file per record with an index.
+- A bug history in [`docs/BUGS.md`](docs/BUGS.md): what broke, what caused it,
+  what fixed it, and the test that now guards it, one entry per defect.
 - One specification per pull request in [`specs/`](specs/), written and approved
   before any code exists.
 - An advisory run of the gate on Linux for every pull request. It reports and

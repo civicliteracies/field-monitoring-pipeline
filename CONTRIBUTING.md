@@ -91,10 +91,13 @@ later.
 Where the record of it goes:
 
 * **While it is open** — the repository's issue tracker.
-* **Once it is fixed** — a line under `### Fixed` in [`CHANGELOG.md`](CHANGELOG.md).
+* **Once it is fixed** — an entry in [`docs/BUGS.md`](docs/BUGS.md) with the
+  symptom, the cause, the fix, and the test that now guards it.
+* **If a user would notice the difference** — a line under `### Fixed` in
+  [`CHANGELOG.md`](CHANGELOG.md).
 * **If the fix settles a lasting rule** — a numbered record in
-  [`docs/decisions/`](docs/decisions/), so the reasoning survives beyond the one
-  changelog line.
+  [`docs/decisions/`](docs/decisions/), linked to and from the bug entry, so the
+  reasoning survives beyond the incident.
 
 ## FAQ
 

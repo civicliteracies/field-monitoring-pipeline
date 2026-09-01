@@ -371,23 +371,28 @@ Published guidance is to keep an agent context file under two hundred lines,
 because a longer one is followed less reliably, and what actually loads is the
 three of them together.
 
-### `docs/decisions/` and `CHANGELOG.md`
+### `docs/decisions/`, `docs/BUGS.md` and `CHANGELOG.md`
 
-The two records. `docs/decisions/` answers why the system is built this way, one
+The three records. `docs/decisions/` answers why the system is built this way, one
 numbered file per record, never rewritten, only superseded, with a `README.md`
 beside them as the index. The filenames follow the usual `NNNN-title-with-dashes`
 convention, and they are permanent, because the links between records are how the
-supersession chain is read. `CHANGELOG.md` answers what changed for anyone using
+supersession chain is read. `docs/BUGS.md` answers what broke and how it was
+fixed, one entry per defect with its symptom, its cause, its fix and the test
+that now guards it, so the same problem is not rediscovered later and a
+maintainer can see how the system behaves under stress without opening closed
+issues one at a time. `CHANGELOG.md` answers what changed for anyone using
 Fieldbook, in the Keep a Changelog format, opening with an `Unreleased` section
 that fills up between releases.
 
-Both are prose rather than mechanism, so they get no entry of their own here, but
-they are covered by the same discipline: written as the work happens, not
-reconstructed later. There is deliberately no third record of what was done and
-when: the commit history is that, and a journal of how the work was made is not
-published. See ADR-0024. There is no separate bug log either; an open defect goes
-in the repository's issue tracker, a fixed one gets a changelog line, and a defect
-whose fix sets a lasting rule earns a decision record. See ADR-0025.
+All three are prose rather than mechanism, so they get no entry of their own
+here, but they are covered by the same discipline: written as the work happens,
+not reconstructed later. A defect sits in the repository's issue tracker while it
+is open and moves to the history once it is fixed; where its fix also sets a
+lasting rule, the rule becomes a decision record and the two link to each other.
+See ADR-0025. There is deliberately no fourth record of what was done and when:
+the commit history is that, and a journal of how the work was made is not
+published. See ADR-0024.
 
 ### `specs/`
 

@@ -84,6 +84,7 @@ Extraction, and nothing else.
 | File | What goes in it |
 |---|---|
 | `docs/decisions/` | Why a choice was made, and what it costs. One numbered file per record, immutable, superseded rather than rewritten. |
+| `docs/BUGS.md` | What broke, what caused it, what fixed it, and the test that now guards it. One entry per defect, newest first. |
 | `CHANGELOG.md` | What changed for anyone using Fieldbook, grouped under `Added`, `Changed`, `Fixed` and the rest. |
 
 A full decision record is required when a change touches the item schema, the
@@ -91,9 +92,13 @@ extraction step, a source route, or the cron cadence, or when a member of CLI ma
 call with real alternatives. An ordinary slice needs no record; its commit is the
 history. A journal of how the work was done is not published: see ADR-0024.
 
-**Defects.** An open one belongs in the repository's issue tracker, and a fixed
-one gets a line under `Fixed` in the changelog. A defect whose fix establishes a
-lasting rule earns a decision record as well. See ADR-0025.
+**Defects.** An open one belongs in the repository's issue tracker. A fixed one
+gets an entry in `docs/BUGS.md` carrying its symptom, its cause, its fix and its
+guarding test, plus a line under `Fixed` in the changelog when someone using
+Fieldbook would notice the difference. A defect whose fix establishes a lasting
+rule earns a decision record as well, and the two link to each other rather than
+repeating each other. The history records defects in behaviour, not corrections
+to wording and not the removal of code nothing used. See ADR-0025.
 
 **A bug fix must add a test that fails on the pre-change behaviour.** Without it,
 "fixed" is a claim rather than a fact.
