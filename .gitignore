@@ -59,4 +59,7 @@ secrets.json
 mise.local.toml
 
 # Claude Code
-.claude/
+# The shared team configuration at .claude/settings.json IS committed: it carries
+# the quality-gate Stop hook and the permission rules, and deny/ask rules bind on
+# any clone with no trust step. Only personal overrides stay out. See ADR-0015.
+.claude/settings.local.json
