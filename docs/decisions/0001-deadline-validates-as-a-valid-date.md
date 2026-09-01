@@ -1,0 +1,5 @@
+# ADR-0001 — Deadline validates as a *valid* date, not a *future* date [correctness]
+**Status:** Accepted (2026-08-26). **Owner:** build.
+**Context.** Validation required a dated call's deadline to parse as a *future* date and re-ran on every push, so the day a deadline passed the retained call would fail the check and the rebuild step would reject every expired call. This breaks a stated goal: keep closed calls (find the January report in July; count past activity in the quarterly read).
+**Decision.** Whether a deadline still lies ahead is a *derived, surfacing* property, used to order and flag calls, not a stored-record invariant. The permanent checks are: required fields present, each value's quote a real substring of the source, and the deadline parses as a *valid* date. Open-versus-closed is computed from the date at display time.
+**Consequences.** Standard temporal-data practice (Hiflylabs, *Temporal Data Validity Management*); matches the agreed framing of timeliness as "is the deadline still open?".

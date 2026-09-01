@@ -1,0 +1,5 @@
+# ADR-0013 — The repository is public from the start of the build [decision]
+**Status:** Accepted (2026-08-29). **Owner:** CLI.
+**Context.** The build began with the repository private on a free-plan organisation. Verified against the API: rulesets returned `403 Upgrade to GitHub Pro or make this repository public`, so branch protection, secret scanning with push protection, the OpenSSF Scorecard, GitHub Pages, and CODEOWNERS were all unavailable. PR 1 exists to make the quality gate binding, and none of the binding mechanisms were available.
+**Decision.** Make the repository public immediately rather than at launch. The design's end state was public in any case, and GitHub Pages is needed for the dashboard at PR 12, well before launch.
+**Consequences.** The gate can enforce rather than only report. Actions minutes become unlimited. All collected data is public activity from organisations' own publications, and the one model key is an encrypted secret that never enters the repository. The full history was scanned before the change: eleven files, no credential ever committed.
