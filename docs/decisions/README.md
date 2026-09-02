@@ -67,6 +67,11 @@ context, or consequence was altered.** Recorded on the same reasoning.
 | [ADR-0023](0023-one-advisory-linux-run.md) | `[decision]` | One advisory Linux run, not required to merge |
 | [ADR-0024](0024-build-journal-is-not-published.md) | `[decision]` | The build journal is not published; it lives with the team |
 | [ADR-0025](0025-conventional-file-layout.md) | `[decision]` | The conventional layout for decision records and specifications |
+| [ADR-0026](0026-item-names-are-always-hashed.md) | `[decision]` | Item names are always hashed, never taken from a source |
+| [ADR-0027](0027-run-owned-state-lives-in-data-state.md) | `[decision]` | Run-owned state lives in `data/state/`, apart from configuration |
+| [ADR-0028](0028-a-name-identifies-one-sources-capture.md) | `[decision]` | A name identifies one source's capture; matching one call across sources moves to the card |
+| [ADR-0029](0029-the-archive-records-the-item-not-the-run.md) | `[decision]` | The archive records facts about the item, never about the run |
+| [ADR-0030](0030-the-response-is-the-capture.md) | `[decision]` | The response is the capture; items are derived from it, never instead of it |
 
 ---
 

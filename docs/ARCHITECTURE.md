@@ -171,7 +171,9 @@ this version", and resolved into exact versions in the lockfile. The linter runs
 with a wide default rule set plus rules chosen for this project: security
 anti-patterns, unused arguments, boolean traps, private-member access, import
 hygiene, naming, a required explanation at the top of every file, a complexity
-cap, and a ban on catching errors blindly. Test files are exempted from the rules
+cap, a ban on catching errors blindly, and a check that a function does not
+return a value on one path and fall off the end on another. Test files are
+exempted from the rules
 that only make sense for production code. The type checker runs in strict mode.
 Tests run with coverage measured, and the run fails if coverage falls below eighty
 per cent.
@@ -421,23 +423,274 @@ here would run it on every import of any module, which is a common source of
 surprising behaviour. It carries a docstring because every file must, and because
 without one the linter fails the build.
 
-### `tests/__init__.py` and `tests/test_placeholder.py`
+### `config/sources.toml`
 
-**What they are.** The test package marker, and one trivial test.
+**What it is.** The watch list: which sources the run reaches, and how.
 
-**What the code inside does.** `test_placeholder` asserts something true.
+**What the code inside does.** It is data rather than code. One block per source,
+each carrying a short identifier, a name, whether it publishes funding calls or
+project reports, how it is reached, its address, and a first-run cutoff date.
 
-**How it does it.** It exists so the test runner has something to run.
+**How it does it.** The run reads it and never writes to it. That separation is
+the point: people edit this file by hand, in the web editor or through a pull
+request, and the run owns `data/`. Neither touches the other's files, so a hand
+edit and a scheduled run can never collide.
 
-**In and out.** In: nothing. Out: a pass.
+**In and out.** In: edited by CLI. Out: read at the start of every run.
 
-**How it fits.** It keeps the gate meaningful before any real code exists. Without
-at least one test, the test step would report nothing and the coverage floor would
-have no data.
+**How it fits.** It is the only place that decides what the system watches.
+Changing what is monitored is a text edit here, never a code change.
 
-**What a reviewer must know.** It protects no behaviour and should be deleted as
-soon as the first real test exists. Tests are explained here by the behaviour they
-protect, so future entries will name that rather than describing the assertions.
+**What a reviewer must know.** A malformed block stops the run before any network
+request, and the error names the block it sits in, so a typo is reported rather
+than half a run being carried out. The
+`since` date bounds the first look at a source, so adding one does not pull in
+years of back catalogue. Only `feed` is implemented so far; page and PDF routes
+arrive with the libraries that read them.
+
+### `src/field_monitoring_pipeline/models.py`
+
+**What it is.** The typed shapes each step of the run hands to the next.
+
+**What the code inside does.** Defines a source on the watch list and one
+captured item, and reads the watch list from disk.
+
+**How it does it.** Both are Pydantic models, so a malformed watch list is
+rejected where it is read rather than failing somewhere further down.
+
+**In and out.** In: the watch-list file. Out: typed objects every other module
+takes as arguments.
+
+**How it fits.** It sits under everything else in the run. Keeping the shapes in
+one file means no step has to guess what another gives it.
+
+**What a reviewer must know.** `source_item_id` is the identifier a source
+published for an item. It is text from the open web and is only ever hashed,
+never used as a name. See ADR-0026. A source identifier used twice in the watch
+list is refused by name, because that identifier is what a source's bookmark is
+filed under and two entries sharing one would read each other's.
+
+### `src/field_monitoring_pipeline/normalize.py`
+
+**What it is.** The step that reduces a link to one canonical form.
+
+**What the code inside does.** Lowercases the scheme and host, drops the
+fragment, removes tracking parameters, and sorts what remains.
+
+**How it does it.** By splitting the address, filtering the query parameters
+against a list of tracking names and prefixes, and reassembling it.
+
+**In and out.** In: a link as the source published it. Out: the form used to
+recognise the same page again.
+
+**How it fits.** It runs before an item is named, because the name is derived
+from this address.
+
+**What a reviewer must know.** Without it, the same call arriving from one
+source by a newsletter link, a shared link and a direct link would be captured
+three times. It works within a source and cannot work across them: a source that
+republishes a call links to its own page, so two sources do not produce one
+address for one call. See ADR-0028.
+It works on the text of a link and makes no network request, so a link that
+redirects is left pointing at the redirector. Resolving those costs one request
+per item on every run, and a feed almost always publishes its own identifier
+for an item, which takes precedence over the link when naming it, so that work
+is deferred to the slice that hardens canonicalisation.
+
+### `src/field_monitoring_pipeline/fetch.py`
+
+**What it is.** The only part of the system that reaches the open internet.
+
+**What the code inside does.** Reaches one source and brings back what it served,
+unread. Handles it being slow, down, unchanged, too large, or at an address the
+watch list never chose. Reading a response into items is a separate function in
+the same file, which runs after the response has been written down.
+
+**How it does it.** It sends back the validator the source gave last time, so an
+unchanged source can answer in one short exchange. Every address is checked
+before it is reached, and redirects are followed here rather than by the network
+library, so each hop is checked too. A timeout or a fault at the far end is
+retried three times with a widening pause. An answer that the request was wrong
+is permanent and is not retried, and so is an address off the open internet. The
+body is read in chunks and abandoned if it passes the size cap or the reading
+deadline.
+
+**In and out.** In: a source from the watch list and its stored validator. Out:
+exactly one of three things, unchanged, fetched, or failed. A fetch carries the
+response exactly as served, not items, because the run writes it down before
+anything reads it.
+
+**How it fits.** It is the first step of the run and the only one that can be
+affected by anything outside the repository.
+
+**What a reviewer must know.** It takes a source drawn from the watch list and
+never a bare address, so reaching somewhere not on the list cannot be expressed
+in the code. Items published before the source's cutoff are dropped here. A
+source that fails is reported and the run carries on: one broken website must
+never stop the others, and that now covers a site that answers with something
+unreadable as well as one that does not answer. An unreadable body skips its
+own source without a retry, because reading it again would fail the same way.
+Not every server honours a conditional request; the item-name gate is what
+actually prevents a second capture.
+
+Two things here are load bearing and easy to undo by accident. **A response that
+names no feed format is refused**, which is what tells a source behind a gate
+apart from a source that is merely quiet: both give no items, and only a real
+feed announces its format. Without it a blocked source keeps its bookmark and
+reports unchanged for ever, so a dead source looks healthy. And **every address
+is checked, including each redirect**, which is why the client is told not to
+follow them: a redirect names an address the watch list never chose, and the run
+commits what it captures to a public repository. A name that resolves to a
+private address is not caught; catching that means intercepting the connection
+rather than reading the address, which is more machinery than this project needs
+against something nobody here has faced. See ADR-0030.
+
+### `src/field_monitoring_pipeline/store.py`
+
+**What it is.** The `data/` directory, and the only way anything writes into it.
+
+**What the code inside does.** Two jobs. It writes every file, and it answers
+whether an item was already captured.
+
+**How it does it.** Every write joins a path onto a fixed root and refuses
+anything that would land outside it. The names already captured are read once
+when the store is opened.
+
+**In and out.** In: bytes and a path inside the store. Out: files on disk, and
+the answer to whether a name is new. Three folders live under it: `raw/` for the
+items, `responses/` for what each source actually served, and `state/` for the
+bookmarks the run keeps for itself.
+
+**How it fits.** Everything the run writes goes through here.
+
+**What a reviewer must know.** Reading the existing names once, at opening, is
+what makes the ordering rule safe: the raw body is written before anything asks
+whether the item was known, and the answer still reflects the state before the
+run began. Writing an item cannot change the answer for that item.
+
+### `src/field_monitoring_pipeline/archive.py`
+
+**What it is.** The step that writes down what a source served, and names and
+writes each item read out of it.
+
+**What the code inside does.** Works out an item's permanent name, then writes
+the body and a companion record of where it came from.
+
+**How it does it.** The name is a hash of the source together with one of three
+things, in order of preference: the source's own identifier for the item, the
+canonical link, or the body. Every one of them is hashed, and every one of them
+carries the source.
+
+**In and out.** In: one item and the store. Out: two files, and the name the item
+now has for good. Capturing the same item again writes the same bytes, so a day
+when nothing changed leaves the archive untouched and there is nothing to commit.
+The time the record carries is when the item first entered the archive, not when
+the run last looked, because a value that changes every run would make the
+archive's history meaningless. See ADR-0029.
+
+**How it fits.** It runs before anything asks whether the item was already known,
+which is the rule the whole archive rests on.
+
+**What a reviewer must know.** Hashing is not decoration. One of the three inputs
+is an identifier a source published, which is text from the open web, and the
+name becomes part of a file path. Hashing means a name can never contain a
+separator and so can never address anything outside the archive. See ADR-0026.
+Every rule also carries the source, so a name identifies one source's capture
+and nothing can overwrite what another source captured. Which rule applies
+depends on what a publisher includes, so leaving any of them without the source
+would make that protection depend on a publisher's habits. A name therefore
+cannot say that two captures are the same call, and does not try: the canonical
+link is recorded un-namespaced as the evidence for deciding that at the card.
+See ADR-0028. Writing before checking means the worst case is a duplicate rather
+than an item lost with no record that it was ever seen. The order of the two files follows
+the same reasoning: the origin record first and the body second, because
+whether an item is known is read from the bodies, so a run cut short between
+them leaves an item that will be written again rather than one taken for known
+for ever.
+
+### `src/field_monitoring_pipeline/calls.py`
+
+**What it is.** One run of the funding-call capture. This is what the workflow
+executes.
+
+**What the code inside does.** Reads the watch list, and for each call source
+fetches, writes down what came back, reads items out of it, archives those, and
+counts what was new.
+
+**How it does it.** It sequences the other modules and does nothing else itself,
+so the order of the run reads in one place.
+
+**In and out.** In: the watch-list path, the store, and a network client. Out: a
+report of what happened to each source, printed for the run log.
+
+**How it fits.** It is the top of the run. Every other module is called from
+here.
+
+**What a reviewer must know.** The order in this file is the design's central
+rule made literal: the response is written down before anything reads it, so a
+later slice can re-derive from what the source actually said rather than from
+what one version of one function made of it. See ADR-0030. A source whose
+response cannot be read is skipped and keeps no bookmark, so tomorrow looks
+again rather than believing a holding page. A source that fails is reported and
+the run continues. The run only fails as a whole if the watch list itself cannot be read,
+because that is a mistake in the repository rather than a website having a bad
+day. The first successful look at a source, recognised by the absence of a
+stored validator, archives the backlog without counting it as new: those items
+are new to the archive rather than new in the world. `FIELDBOOK_DATA` says
+where the archive is, because on GitHub it is checked out from its own branch
+rather than sitting beside the code.
+
+### `.github/workflows/calls.yml`
+
+**What it is.** The scheduled run that captures funding calls each morning.
+
+**What the code inside does.** Checks out the code and the archive separately,
+installs the project, runs the capture, and commits anything new.
+
+**How it does it.** The archive lives on the `data` branch and is checked out
+into its own folder, so code and data never share a working tree.
+
+**In and out.** In: fires on a schedule and on demand. Out: commits to the `data`
+branch.
+
+**How it fits.** It is the only thing that runs unattended.
+
+**What a reviewer must know.** It commits to `data` and never to `main`. The
+branch rules require a pull request for every change to `main` and that binds
+automation as well as people, so routing the run to its own branch means it never
+has to get past those rules and no bypass or extra credential is needed. See
+ADR-0018. The token is read-only except on the job that commits. The schedule
+runs a few minutes past the hour, because jobs scheduled on the hour are the ones
+most often delayed. The commit step runs whatever happened before it, so a run
+that falls over partway down the watch list still commits what the earlier
+sources gave it instead of discarding that work.
+
+### `tests/__init__.py` and the test files
+
+**What they are.** The test package marker, and one test file beside each
+module under `src/`.
+
+**What the code inside does.** Each file protects the behaviour its module
+promises: a link reduced to one canonical form, a write that cannot leave the
+store, a name that is always a hash, a broken source that does not stop the
+run, and the whole run from feed body to files on disk.
+
+**How it does it.** A test that needs a website gets a stand-in one: a client
+whose answers the test itself decides. No test touches the network.
+
+**In and out.** In: nothing. Out: a pass or a failure, and the coverage figure
+the gate's floor is measured against.
+
+**How it fits.** The gate runs the suite before every push, and the advisory
+Linux run repeats it on the operating system the schedule uses.
+
+**What a reviewer must know.** Because the tests decide every answer the
+network would give, the suite proves the code's behaviour rather than any
+website's availability, and it cannot fail because a site had a bad day. The
+placeholder test from the first slice is gone: it protected no behaviour and
+existed only so the gate had something to run before real code arrived. Tests
+are explained by the behaviour they protect, and each module's entry above
+carries that behaviour.
 
 ---
 
@@ -448,11 +701,7 @@ into the sections above, with a full entry, in the pull request that creates it.
 
 | File | What it will do | Arrives at |
 |---|---|---|
-| `models.py` | The typed contracts every module passes: a raw item in, a call or report out | PR 3 |
-| `fetch.py` | Reaches each source by its freshest route, skipping a broken one rather than failing | PR 2 |
-| `normalize.py` | Cleans a link into one canonical form before it is used as a key | PR 2 |
-| `archive.py` | Works out an item's stable name and commits the raw text before anything reads it | PR 2 |
-| `store.py` | Skips an item already captured, so the same call arriving three ways is stored once | PR 2 |
+| `models.py` additions | The call and report shapes join the source and raw-item shapes already there | PR 3 |
 | `extract.py` | The one AI step: the model writes a command, a deterministic builder makes the record | PR 3 |
 | `validate.py` | Checks a record against its rules before filing, holding anything that fails twice | PR 4 |
 | `write.py` | Writes the record as a Markdown card that renders on github.com | PR 4 |
@@ -461,8 +710,7 @@ into the sections above, with a full entry, in the pull request that creates it.
 | `rebuild.py` | Re-derives every card from the raw archive. Recovery and migration | PR 10 |
 | `sandbox.py` | Runs a real fetch and extract on one pasted link, storing nothing | PR 15 |
 | `direction.py` | The quarterly rollup, by plain counting, with no AI | PR 19 |
-| `calls.yml` | The scheduled run that fetches, extracts, and commits each morning | PR 2 |
-| `config/sources.toml` | The watch-list CLI edits to change what is monitored | PR 2, 5 |
+| `config/sources.toml` additions | The full source list, once the pipeline is proven on one | PR 5 |
 | `config/tags.toml` | The fixed topic list, each marked primary or secondary | PR 8 |
 | `config/strings.toml` | The card and feed wording, so changing copy needs no code | PR 11 |
 | **A card file** | One funding call as a text file: typed fields at the top, the source quotes below. Explained once as a type, never one entry per card | PR 4 |
