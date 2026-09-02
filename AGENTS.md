@@ -26,9 +26,24 @@ result. A few hundred changed lines at most. If it grows past that, split it.
 - **Capture, then derive.** The raw fetched body is committed to `data/raw/`
   **before** anything reads it. The archive is the source of truth; cards are
   derived from it and can be rebuilt at any time.
-- **The stable key is the filename.** `item_id` is the source's own id if it has
-  one, else the SHA of the canonical link, else a hash of the normalised body.
-  Deduplication is done by the filesystem, not by an index.
+- **The stable key is the filename. It is always a hash, and it always carries
+  the source.** `item_id` hashes the source together with, in order of
+  preference, the source's own id for the item, else the canonical link, else
+  the body. It always hashes, because one of those is text from the open web and
+  the name becomes a file path: hashing means a name can never contain a
+  separator (ADR-0026). It always carries the source, because a name identifies
+  one source's capture, so nothing can overwrite what another source captured,
+  whichever rule applied (ADR-0028). Deduplication within a source is done by
+  the filesystem, not by an index.
+- **A name cannot say that two captures are the same call, and does not try.**
+  A source republishing a call links to its own page, and canonicalisation
+  resolves no redirects, so two sources do not produce one address for one call.
+  The canonical link is recorded un-namespaced as the evidence, and matching
+  happens at the card, where the funder, the title and the deadline are better
+  evidence than two strings being equal. See ADR-0028.
+- **People write `config/`, the run writes `data/`, and neither writes the
+  other's.** Every write in the run goes through one function rooted at `data/`,
+  so a hand edit and a scheduled run can never collide. See ADR-0027.
 - Never commit a database, a query index, or a derived cache.
 
 ## The one AI step

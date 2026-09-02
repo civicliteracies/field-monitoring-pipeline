@@ -1,0 +1,79 @@
+name: Capture funding calls
+
+# The funding-call run. It reaches each source on the watch list, writes what it
+# finds into the archive, and commits the result.
+#
+# It commits to the `data` branch and never to `main`. The branch rules require
+# a pull request for every change to `main`, and that applies to automation as
+# well as to people, so routing the run to its own branch means it never has to
+# get past those rules and no bypass or extra credential is needed. See ADR-0018.
+#
+# The schedule is here rather than in a later slice because a schedule that has
+# never fired is untested. It runs a few minutes past the hour, because jobs
+# scheduled on the hour are the ones most often delayed.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+# Least privilege by default. Only the job that commits is allowed to write.
+permissions:
+  contents: read
+
+concurrency:
+  group: capture-calls
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    name: Reach every source and archive what it publishes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # The code comes from the default branch. The archive lives on `data`, so
+      # the two are checked out separately and never share a working tree.
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check out the archive
+        id: archive
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: data
+          path: .archive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Install the project
+        run: uv sync --frozen
+
+      - name: Capture
+        run: uv run python -m field_monitoring_pipeline.calls
+        env:
+          FIELDBOOK_DATA: ${{ github.workspace }}/.archive/data
+
+      # Runs even when the capture step failed. A run that dies partway down the
+      # watch list has already archived what the earlier sources gave it, and
+      # that work is real. Without this the runner is torn down and it is lost.
+      #
+      # But only when the archive is actually there. If its checkout failed
+      # there is nothing captured to save and nowhere to stand while trying, and
+      # a bare `always()` turns one failure into two, which buries the real one.
+      - name: Commit whatever was captured
+        if: always() && steps.archive.outcome == 'success'
+        working-directory: .archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet && git diff --cached --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "Nothing new to commit."
+            exit 0
+          fi
+          git add data
+          git commit -m "chore(data): capture $(date -u +%Y-%m-%d)"
+          git push origin data

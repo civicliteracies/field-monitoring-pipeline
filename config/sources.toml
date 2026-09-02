@@ -1,0 +1,35 @@
+# config/sources.toml : the watch list. CLI owns this file.
+#
+# One block per source. The run reads this file and never writes to it, so it
+# can be edited by hand at any time, in GitHub's web editor or through a pull
+# request, without ever colliding with a scheduled run.
+#
+#   id    a short name used in file names and logs. Never changed once set.
+#   name  what to call the source in writing.
+#   kind  "call" for funding opportunities, "report" for project reports.
+#         Calls and reports run on separate schedules.
+#   how   how the source is reached. Only "feed" is implemented so far.
+#   url   where to reach it.
+#   since the first-run cutoff. On the first look at a source, anything
+#         published before this date is left alone, so a feed's whole back
+#         catalogue is not pulled in. Roughly 90 days back is the default.
+
+# One source to begin with. The list grows once the pipeline is proven.
+#
+# TAI Weekly was the source named in the original plan, reached as a feed. It
+# publishes no feed: every usual address answers 404, the page path in the plan
+# is gone, and the site advertises no alternate link. It can only be reached as
+# a web page, which needs a library this slice does not carry, so it waits.
+#
+# Hewlett is a real funder in this sector with a working feed, so it proves the
+# capture end to end. Its feed is the foundation's own writing rather than a
+# calls-only feed, and CLI approved it on that basis. The full watch list is
+# settled at PR 5. This file is CLI's to edit at any time.
+
+[[source]]
+id = "hewlett"
+name = "Hewlett Foundation"
+kind = "call"
+how = "feed"
+url = "https://hewlett.org/feed/"
+since = "2026-06-01"

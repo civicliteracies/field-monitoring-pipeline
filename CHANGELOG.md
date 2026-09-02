@@ -26,8 +26,6 @@ language. **Why** a choice was made, and what it cost, belongs in
   [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Numbered decision records in [`docs/decisions/`](docs/decisions/), ADR-0001 to
   ADR-0025, one file per record with an index.
-- A bug history in [`docs/BUGS.md`](docs/BUGS.md): what broke, what caused it,
-  what fixed it, and the test that now guards it, one entry per defect.
 - One specification per pull request in [`specs/`](specs/), written and approved
   before any code exists.
 - An advisory run of the gate on Linux for every pull request. It reports and
@@ -38,6 +36,27 @@ language. **Why** a choice was made, and what it cost, belongs in
   check every commit message against
   [Conventional Commits](https://www.conventionalcommits.org/).
 - This changelog.
+- Capture of funding calls from one source: the run reaches it, cleans the link,
+  gives each item a permanent name, and writes the body and a record of where it
+  came from into `data/raw/`. An item already captured is recognised and not
+  written twice, and a source's first look archives its backlog without
+  announcing it as new.
+- A scheduled run each morning, which can also be started by hand. It commits to
+  the `data` branch and never to `main`.
+- `config/sources.toml`, the watch list. It decides what the system looks at, and
+  changing that is a text edit rather than a code change.
+- A bug history in [`docs/BUGS.md`](docs/BUGS.md): what broke, what caused it,
+  what fixed it, and the test that now guards it, one entry per defect.
+- Each captured item is named for the source that captured it, so two sources
+  carrying one funding call each keep their own copy and neither is lost.
+- A day on which nothing at a source changed leaves the archive untouched, so its
+  history shows when items actually changed rather than when the run last looked.
+- What a source served is archived whole, before anything reads it, so nothing a
+  later step needs can have been thrown away by an earlier one.
+- The run reaches only addresses on the open internet, including where a source
+  redirects it, and refuses anything on a private or local network.
+- A source behind a gate is reported as skipped rather than as quiet, and keeps
+  no bookmark, so the next run looks again instead of believing it.
 
 ### Changed
 
