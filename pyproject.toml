@@ -4,7 +4,14 @@ version = "0.1.0"
 description = "Field monitoring data pipeline."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+# Pinned to exact versions rather than ranges, so a version moves only when a
+# person moves it and that change arrives as a pull request where it can be
+# questioned. Constitution rule 4.
+dependencies = [
+    "feedparser==6.0.14",
+    "httpx==0.28.1",
+    "pydantic==2.13.5",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -79,7 +86,15 @@ extend-select = [
     "C901", # cyclomatic complexity cap
     "BLE",  # no blind `except Exception`
     "E722", # no bare `except`
+    "RET",  # flake8-return — a function must not return a value on one path
+            # and fall off the end on another
 ]
+
+[tool.ruff.lint.flake8-type-checking]
+# Pydantic reads a model's annotations at run time to build its validators, so
+# a field's type cannot be hidden inside a type-checking block. This is Ruff's
+# documented setting for that, not a workaround.
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
 
 [tool.ruff.lint.mccabe]
 # A function past this is doing too much to review in one sitting. ADR-0004.
