@@ -55,15 +55,34 @@ Extraction, and nothing else.
   never in the provider.
 - **Forbidden:** provider structured outputs, function calling, `Instructor` or
   any schema-constrained decoding wrapper, and raw JSON emitted by the model.
-- **Every field is a value and a quote.** A value cannot be stored without a
-  supporting quote, and the quote must be a real substring of the source text,
-  checked deterministically. Anything absent is the first-class value
-  **"not stated"**, never invented.
+- **A claim drawn from the source's prose is a value and a quote.** Five fields
+  on a call store both: budget, summary, eligibility, area and timing, where a
+  timing is a closing date with the sentence it was read from, or an open basis
+  with the sentence that says so. The quote must be a real substring of the
+  source text, checked deterministically, and it must carry no email address or
+  telephone number, because a stored quote is published and contact details stay
+  in the raw archive. A quote is refused rather than edited, since an edited
+  quote is no longer a substring. Title, type, topics and the source link are
+  grounded by other means. Funder is deliberately ungrounded in phase one.
+  See ADR-0031 and ADR-0032.
+- **Anything absent is the first-class value "not stated"**, never invented. The
+  model says so out loud with its own flag, and the record stores an empty field.
+  Leaving a field out is not the same thing and is refused. Which fields may be
+  absent is settled by the record shape itself. See ADR-0033.
+- **These checks catch invention, not misattribution.** They prove a quote was
+  copied from the page rather than made up. A real sentence attached to a value
+  it does not support is caught for the timing, the budget, the type and the
+  topics, each of which can be read back or checked against a list. For the
+  summary, the eligibility and the area it is not caught, and the guard pass at
+  PR 9 is what addresses it. Do not write that a checked quote means a correct
+  value.
 - Free-text flag values are JSON-encoded, so a stray quote or comma cannot break
   parsing.
 - **Fail safe.** A malformed command returns an error the model reads and
   retries. Anything failing twice is held and logged, never published as a guess.
-  Every record stores its `prompt_version` and `model_id`.
+  Every record stores three things about how it was made: the `prompt_version`,
+  the `model_id`, and the version of the deterministic code that built it, so a
+  value is attributable to the exact logic behind it. See ADR-0034.
 - **The model is untrusted.** It reads attacker-influenced web text. Its output is
   never executed, never reaches a shell, and is always validated against the
   schema. Route any scraped value through an `env:` variable, never a `run:` line.

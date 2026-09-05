@@ -72,6 +72,9 @@ context, or consequence was altered.** Recorded on the same reasoning.
 | [ADR-0028](0028-a-name-identifies-one-sources-capture.md) | `[decision]` | A name identifies one source's capture; matching one call across sources moves to the card |
 | [ADR-0029](0029-the-archive-records-the-item-not-the-run.md) | `[decision]` | The archive records facts about the item, never about the run |
 | [ADR-0030](0030-the-response-is-the-capture.md) | `[decision]` | The response is the capture; items are derived from it, never instead of it |
+| [ADR-0031](0031-timing-carries-its-supporting-quote.md) | `[decision]` | Timing carries its supporting quote; a stored quote holds no personal data |
+| [ADR-0032](0032-what-the-checks-catch.md) | `[decision]` | Which fields carry evidence, and what the checks actually catch |
+| [ADR-0033](0033-absence-is-spoken-and-stored-empty.md) | `[decision]` | Absence is spoken out loud by the model and stored as an empty field |
 | [ADR-0034](0034-the-derived-text-and-the-builder-version.md) | `[decision]` | The text the model reads is derived, and the deterministic side carries its own version |
 | [ADR-0036](0036-the-extraction-step-arrives-in-three-parts.md) | `[decision]` | The extraction step arrives in three parts, and still exceeds the size the plan asks for |
 

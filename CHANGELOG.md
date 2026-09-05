@@ -57,6 +57,10 @@ language. **Why** a choice was made, and what it cost, belongs in
 - The words a model will read. A captured page becomes one readable string, with
   markup removed and a sentence kept whole across a link or a bold word. That same
   string is what every quote will later be checked against.
+- A record built from one line of flags, with every claim checked against the page
+  it came from. Five fields on a call carry the sentence that supports them, a
+  closing date is read back out of its own sentence rather than trusted, and a
+  claim the page does not support is refused with a reason.
 - A quality gate as one command, `mise run verify`: formatting checked, ruff
   lint, a strict type-check with basedpyright, and the test suite. It reports
   rather than repairs, and the pre-push hook runs it, so nothing failing leaves

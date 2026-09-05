@@ -662,29 +662,39 @@ rather than sitting beside the code.
 
 ### `src/field_monitoring_pipeline/extract.py`
 
-**What it is.** The step that turns a captured page into the words a model will
-read. The rest of that step, the reading and the checking, arrives with the two
-slices after this one.
+**What it is.** The one step where a machine reads meaning out of a page's words.
+Everything else in the run is deterministic.
 
-**What the code inside does.** Takes one captured item and produces a single
-readable string: markup removed, escaped characters decoded, script and style
-content dropped, a page's own menus and footers left out, and invisible
-characters settled.
+**What the code inside does.** Turns a captured item into one readable string,
+finds the single command line a model writes, parses it, checks every claim against that same string, and builds
+the record.
 
-**How it does it.** With the standard library only. A real parser rather than a
-pattern, so malformed markup on a real site does not stop it, and a sentence with
-a bold word in the middle comes out as one run of characters rather than three.
+**How it does it.** The model is asked for a command line rather than for
+structured data, so the record's shape stays in code this project owns and the
+model reasons in prose before committing to an answer. Provider structured
+outputs, function calling and raw JSON from the model are forbidden. A free-text
+value is written as a JSON string, so a funder's own quotation marks cannot break
+the parse. Markup is removed with the standard library only.
 
-**In and out.** In: one captured item. Out: one string. It writes no file.
+**In and out.** In: one captured item, a model to ask, and an instruction. Out: a
+record together with the prompt version, the model name and the version of this
+file's own logic. It writes no file.
 
-**How it fits.** It sits between the archive and everything that reads meaning
-out of a page. Nothing calls it yet.
+**How it fits.** It sits between the archive and the card. It is not called by
+the scheduled run and does not join it until its guards and the readiness note
+are done. See ADR-0010.
 
-**What a reviewer must know.** This string is later both what the model reads and
-what every quote is checked against, and nothing else would be sound: a sentence
-carrying a link or a bold word is not one run of characters in the page's own
-markup. That makes this derivation part of the record's contract rather than a
-convenience, which is why it carries a version of its own. See ADR-0034.
+**What a reviewer must know.** The same derived string is both what the model
+reads and what quotes are checked against, and nothing else would be sound: a
+sentence with a bold word in the middle is not one run of characters in the
+source. That derivation is therefore part of the record's contract and carries
+its own version. See ADR-0034. The checks catch a quote that was invented; they
+do not catch a real sentence attached to a value it does not support, except
+where the value can be read back out of its quote, which is the timing and the
+budget. A page's declared furniture is dropped before the model sees it, because
+a menu on a funder's site lists that funder's other programmes and a sentence
+from one of those is a real substring of this page. Headers are kept, because one
+of the two test pages puts its own heading inside one.
 
 **Three things here are load bearing rather than tidy.** The end of a block of
 text is kept as a boundary a quote cannot cross, because collapsing it into a
