@@ -16,12 +16,17 @@ steps.
 from __future__ import annotations
 
 import json
+import os
 import re
+import time
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from html.parser import HTMLParser
 from typing import TYPE_CHECKING, Protocol, TypeIs, get_args
+
+import httpx
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from field_monitoring_pipeline.models import (
     Call,
@@ -53,6 +58,18 @@ MAX_REPLY = 60_000
 MAX_LINE = 8_000
 MIN_QUOTE = 10
 MAX_QUOTE = 400
+READ_SECONDS = 180.0
+CONNECT_SECONDS = 20.0
+"""How long one model request may take, split by which part is waiting.
+
+The reading limit is measured rather than guessed: a six thousand character page
+with this instruction, answered with a few thousand characters of reasoning, took
+long enough to pass sixty seconds at least once. Reaching the far end is a
+different matter and gets the same twenty seconds the fetch step allows, because
+a name that will not resolve should fail quickly rather than at the pace of a
+long answer. Both bound one request and neither is a limit on a whole run, which
+the project rules out.
+"""
 
 FENCE = "-----BEGIN SOURCE TEXT-----"
 FENCE_END = "-----END SOURCE TEXT-----"
@@ -64,6 +81,15 @@ class MalformedCommandError(Exception):
 
 class UngroundedClaimError(Exception):
     """A claim is not supported by the source text. Also worth one attempt more."""
+
+
+class TransientFailureError(Exception):
+    """A failure worth one more try, because the request never reached the model.
+
+    Kept apart from the refusals that are permanent for this run. Nothing outside
+    the model client sees this: by the time it leaves, it is either an answer or
+    a model that could not be reached.
+    """
 
 
 class ModelUnreachableError(Exception):
@@ -1079,3 +1105,215 @@ def describe(extraction: Extraction) -> str:
         f"builder     {extraction.builder_version}",
     ]
     return "\n".join(lines)
+
+
+# ------------------------------------------------------------- reaching a model
+
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+"""The small free-tier model, pinned to an exact name rather than a moving alias.
+
+An alias that points at a changing model would make a stored model name a label
+rather than a thing, which removes the only reason for storing it.
+"""
+
+PROMPT_VERSION = "v2"
+"""Which instruction to send. The file in `prompts/` named for it holds the words.
+
+Version one worked on both test pages and read the browser tab line as the title,
+copied a sentence in place of a summary on one page, and answered not stated for
+a field a sentence did support. Version two says what to do about each.
+"""
+
+KEY_NAME = "GEMINI_API_KEY"
+ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+OK = 200
+TOO_MANY_REQUESTS = 429
+SERVER_ERROR = 500
+TRANSIENT_TRIES = 3
+TRANSIENT_PAUSES = (2.0, 8.0)
+"""How often a request that never reached the model is sent again, and the wait.
+
+Three kinds of failure look alike from here and must not be treated alike.
+
+A refusal for quota or rate is permanent for this run: asking again cannot make
+the account fuller, and every later item will meet the same wall, so it consumes
+no attempt and ends the pass.
+
+A wrong key or a wrong model name is permanent full stop, and repeating it only
+wastes time.
+
+A dropped connection or a fault at the far end is neither. The request never
+reached the model, so nothing was spent, and one more try a moment later usually
+succeeds. Without this a single blip loses the item, which happened on the first
+end to end run of this step: one page failed with a dropped connection and the
+same page succeeded immediately afterwards.
+
+This is the same shape `fetch.py` already uses for sources, with a shorter ladder
+because a model call is expensive in time and a source fetch is not.
+
+Three rather than two, measured. Three calls in a row on this provider's free
+tier gave two answers and one refusal with a server error, each taking around a
+minute, and a page needs one good answer. At that rate two attempts lose roughly
+one item in nine, and a third attempt takes that to about one in twenty seven for
+the cost of a couple of minutes on an item that was going to be lost anyway. The
+pauses widen the way the fetch step's do, because a provider having a bad moment
+is more likely to have recovered after eight seconds than after two.
+"""
+
+
+class _Part(BaseModel):
+    """One piece of the model's answer, as the provider sends it."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    text: str = ""
+
+
+class _Content(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    parts: list[_Part] = []
+
+
+class _Candidate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    content: _Content = _Content()
+
+
+class _Answer(BaseModel):
+    """What the provider sends back, in the only shape this code reads.
+
+    Written as a shape rather than navigated with casts, because a cast asserts
+    without checking: a body carrying the right keys with the wrong kinds of
+    value would have passed four of them and then raised a kind of error the
+    caller does not expect. Anything unfamiliar is ignored rather than refused,
+    so the provider can add fields without breaking this.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    candidates: list[_Candidate] = []
+
+
+class _Trouble(BaseModel):
+    """What the provider says went wrong, when it says anything.
+
+    Worth relaying rather than swallowing. "This model is currently experiencing
+    high demand" tells a maintainer to wait. A bare 503 sends them looking at
+    their own code, which is the misdiagnosis this error type exists to prevent.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    message: str = ""
+
+
+class _Refusal(BaseModel):
+    """A reply that carries a refusal rather than an answer."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    error: _Trouble = _Trouble()
+
+
+def _what_it_said(answer: httpx.Response) -> str:
+    """The provider's own explanation, shortened, or nothing if it gave none."""
+    try:
+        return _Refusal.model_validate(answer.json()).error.message[:200]
+    except (ValueError, ValidationError):
+        return ""
+
+
+class MissingKeyError(Exception):
+    """No key is available, said before any item is read rather than partway through."""
+
+
+def read_key(root: Path) -> str:
+    """The model key, from the environment or from an ignored file beside the code.
+
+    Never committed, never printed, and never written into a record or a log.
+    """
+    from_env = os.environ.get(KEY_NAME, "").strip()
+    if from_env:
+        return from_env
+    env_file = root / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            name, _, value = line.partition("=")
+            if name.strip() == KEY_NAME:
+                return value.strip().strip("'\"")
+    msg = (
+        f"no model key. Put {KEY_NAME}=your-key in a file called .env at the root of "
+        "this project, which git already ignores, or set it in the environment."
+    )
+    raise MissingKeyError(msg)
+
+
+@dataclass(frozen=True, slots=True)
+class Gemini:
+    """The one place this system talks to a model.
+
+    It sends text and returns text. It knows nothing about commands, flags or
+    records, so moving to another provider means writing another of these and
+    changing nothing else.
+    """
+
+    key: str = field(repr=False)
+    client: httpx.Client
+    model_id: str = DEFAULT_MODEL
+
+    def _ask(self, prompt: str) -> httpx.Response:
+        """One request, or a refusal that says which kind of failure it was."""
+        try:
+            answer = self.client.post(
+                ENDPOINT.format(model=self.model_id),
+                headers={"x-goog-api-key": self.key, "content-type": "application/json"},
+                json={"contents": [{"parts": [{"text": prompt}]}]},
+                timeout=httpx.Timeout(READ_SECONDS, connect=CONNECT_SECONDS, write=CONNECT_SECONDS),
+            )
+        except httpx.HTTPError as error:
+            msg = f"the model could not be reached, {type(error).__name__}"
+            raise TransientFailureError(msg) from error
+
+        if answer.status_code == TOO_MANY_REQUESTS:
+            msg = "the model refused the request, the free tier is spent or the rate is capped"
+            raise ModelUnreachableError(msg)
+        if answer.status_code >= SERVER_ERROR:
+            msg = f"the model answered {answer.status_code}, which is its own trouble and not ours"
+            said = _what_it_said(answer)
+            raise TransientFailureError(f"{msg}. It said: {said}" if said else msg)
+        if answer.status_code != OK:
+            msg = f"the model answered {answer.status_code}, check the key and the model name"
+            raise ModelUnreachableError(msg)
+        return answer
+
+    def _asked(self, prompt: str) -> httpx.Response:
+        """The reply, trying again only when the request never reached the model."""
+        last: TransientFailureError | None = None
+        for attempt in range(1, TRANSIENT_TRIES + 1):
+            try:
+                return self._ask(prompt)
+            except TransientFailureError as error:
+                last = error
+                if attempt < TRANSIENT_TRIES:
+                    time.sleep(TRANSIENT_PAUSES[attempt - 1])
+        raise ModelUnreachableError(str(last)) from last
+
+    def __call__(self, prompt: str) -> str:
+        """Ask, and turn whatever comes back into the model's own words."""
+        answer = self._asked(prompt)
+
+        try:
+            body = _Answer.model_validate(answer.json())
+        except (ValueError, ValidationError) as error:
+            msg = "the model answered with something that is not readable as an answer"
+            raise ModelUnreachableError(msg) from error
+        if not body.candidates:
+            msg = "the model returned no answer at all"
+            raise ModelUnreachableError(msg)
+        text = "".join(part.text for part in body.candidates[0].content.parts)
+        if not text.strip():
+            msg = "the model returned an empty answer"
+            raise ModelUnreachableError(msg)
+        return text

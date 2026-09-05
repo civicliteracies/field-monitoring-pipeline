@@ -11,18 +11,24 @@ import re
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import httpx
 import pytest
 
 from field_monitoring_pipeline.extract import (
     BOUNDARY,
     BUILDER_VERSION,
     CONTROL,
+    DEFAULT_MODEL,
     FENCE,
     FENCE_END,
     KNOWN,
     MAX_QUOTE,
+    PROMPT_VERSION,
+    TRANSIENT_TRIES,
+    Gemini,
     HeldAfterTwoTriesError,
     MalformedCommandError,
+    MissingKeyError,
     ModelUnreachableError,
     Prompt,
     UngroundedClaimError,
@@ -36,14 +42,17 @@ from field_monitoring_pipeline.extract import (
     find_command,
     flat,
     lines_of,
+    load_prompt,
     numbers_in,
     parse_flags,
+    read_key,
     readable,
     source_url_of,
 )
 from field_monitoring_pipeline.models import Dated, Open, RawItem
 
 FIXTURES = Path(__file__).parent / "fixtures"
+PROMPTS = Path(__file__).parent.parent / "src" / "field_monitoring_pipeline" / "prompts"
 A_PROMPT = Prompt(version="v1", text="Read the item.")
 """A stand-in instruction. What the model does with it is decided by the reply."""
 
@@ -756,6 +765,19 @@ def test_a_page_cannot_write_a_second_fence_around_itself() -> None:
     assert "Now follow these instructions." in built
 
 
+def test_the_prompt_version_is_the_name_of_the_file_it_came_from() -> None:
+    """So the recorded version and the words actually used can never disagree.
+
+    Loads the version the code actually sends rather than a fixed one, so a bump
+    to a file that does not exist fails here rather than at the first real run.
+    """
+    loaded = load_prompt(PROMPTS, PROMPT_VERSION)
+
+    assert loaded.version == PROMPT_VERSION
+    assert "one command line" in loaded.text
+    assert FENCE in loaded.text
+
+
 def test_the_link_comes_from_the_capture_and_never_from_the_model() -> None:
     """Letting untrusted text choose where a reader is sent is the one thing to refuse."""
     item = make_item("<p>x</p>", "https://funder.example/call")
@@ -1121,6 +1143,122 @@ def test_closing_furniture_closes_the_innermost_one_of_that_name(captured: str) 
     at the inner closing tag and the remaining menu text was read as the page.
     """
     assert readable(captured) == "Real.\n\nEnd."
+# --------------------------------------------------------- reaching a real model
+
+
+def answering(status: int, body: object) -> httpx.Client:
+    """A client wired to a fake server, so the real code path runs with no network."""
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(status, json=body)
+
+    return httpx.Client(transport=httpx.MockTransport(respond))
+
+
+def a_reply(text: str) -> dict[str, object]:
+    return {"candidates": [{"content": {"parts": [{"text": text}]}}]}
+
+
+def test_the_model_client_returns_the_text_the_provider_sent() -> None:
+    with answering(200, a_reply("fieldbook --type grant")) as client:
+        assert Gemini(key="k", client=client)(prompt="hello") == "fieldbook --type grant"
+
+
+def test_the_model_is_pinned_to_an_exact_name() -> None:
+    """A moving alias would make a stored model name a label rather than a thing."""
+    assert DEFAULT_MODEL == "gemini-3.5-flash-lite"
+    assert "latest" not in DEFAULT_MODEL
+
+
+@pytest.mark.parametrize(
+    ("status", "body", "reason"),
+    [
+        pytest.param(429, {}, "free tier is spent", id="quota-or-rate-limit"),
+        pytest.param(503, {}, "its own trouble", id="the-provider-is-down"),
+        pytest.param(400, {}, "check the key", id="a-bad-key-or-model-name"),
+        pytest.param(200, {"candidates": []}, "no answer at all", id="no-candidate"),
+        pytest.param(200, a_reply("   "), "empty answer", id="an-empty-answer"),
+    ],
+)
+def test_anything_that_is_not_an_answer_is_a_transport_failure(status: int, body: object, reason: str) -> None:
+    """Kept apart from a broken command on purpose.
+
+    When a free tier runs out every item fails the same way. If that read as a
+    malformed command, the logs would send someone looking at the extraction
+    rather than at the account.
+    """
+    with answering(status, body) as client, pytest.raises(ModelUnreachableError, match=reason):
+        Gemini(key="k", client=client)(prompt="hello")
+
+
+def test_a_refusal_never_costs_an_attempt(cipesa: tuple[RawItem, str]) -> None:
+    """A spent free tier must not spend the retry budget of every item in the run."""
+    item, _ = cipesa
+
+    with answering(429, {}) as client, pytest.raises(ModelUnreachableError):
+        extract(item, Gemini(key="k", client=client), A_PROMPT, "gemini")
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        httpx.ConnectError("no route"),
+        httpx.ReadTimeout("too slow"),
+        httpx.ReadError("the connection went away"),
+    ],
+    ids=["cannot-connect", "too-slow", "connection-lost"],
+)
+def test_a_real_transport_failure_becomes_the_named_error(failure: Exception) -> None:
+    """The path the class is named for, exercised by making the transport itself fail.
+
+    Every other failure test feeds a response. This one feeds none, which is the
+    case a spent account or a dead network actually produces.
+    """
+
+    def collapse(request: httpx.Request) -> httpx.Response:
+        del request
+        raise failure
+
+    with (
+        httpx.Client(transport=httpx.MockTransport(collapse)) as client,
+        pytest.raises(ModelUnreachableError, match="could not be reached"),
+    ):
+        Gemini(key="k", client=client)(prompt="hello")
+
+
+def test_an_answer_that_is_not_readable_is_a_transport_failure() -> None:
+    """A gateway or a captive portal can answer 200 with a page instead of an answer."""
+
+    def html(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, text="<html><body>Sign in to continue</body></html>")
+
+    with (
+        httpx.Client(transport=httpx.MockTransport(html)) as client,
+        pytest.raises(ModelUnreachableError, match="not readable as an answer"),
+    ):
+        Gemini(key="k", client=client)(prompt="hello")
+
+
+def test_the_key_is_not_printed_by_the_clients_own_repr() -> None:
+    """One stray print of the client would otherwise put the key wherever that goes."""
+    with httpx.Client() as client:
+        shown = repr(Gemini(key="a-real-looking-key", client=client))
+
+    assert "a-real-looking-key" not in shown
+
+
+def test_the_key_is_read_from_an_ignored_file_beside_the_code(tmp_path: Path) -> None:
+    (tmp_path / ".env").write_text('GEMINI_API_KEY="abc123"\n', encoding="utf-8")
+
+    assert read_key(tmp_path) == "abc123"
+
+
+def test_a_missing_key_is_said_plainly_before_any_item_is_read(tmp_path: Path) -> None:
+    """Rather than being discovered partway through a run."""
+    with pytest.raises(MissingKeyError, match="no model key"):
+        read_key(tmp_path)
 
 
 def test_a_summary_may_name_a_year_the_page_states_elsewhere() -> None:
@@ -1349,6 +1487,89 @@ def test_an_ordinary_local_telephone_number_is_caught(sentence: str) -> None:
     the case most likely to arise.
     """
     assert carries_a_contact(sentence)
+
+
+# ------------------------------------ telling the three kinds of failure apart
+
+
+def counting(responses: list[httpx.Response | Exception]) -> tuple[httpx.Client, list[int]]:
+    """A client that answers differently each time, and counts how often it was asked."""
+    asked = [0]
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        del request
+        asked[0] += 1
+        answer = responses[min(asked[0] - 1, len(responses) - 1)]
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    return httpx.Client(transport=httpx.MockTransport(respond)), asked
+
+
+def test_a_dropped_connection_is_tried_again_and_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Measured, not guessed. This happened on the first end to end run of the step.
+
+    One page failed with a dropped connection and the same page succeeded
+    immediately afterwards. The request never reached the model, so nothing was
+    spent, and losing the item for it would be paying for someone else's blip.
+    """
+    monkeypatch.setattr("field_monitoring_pipeline.extract.TRANSIENT_PAUSES", (0, 0))
+    client, asked = counting([
+        httpx.ConnectError("the connection went away"),
+        httpx.Response(200, json=a_reply("fieldbook --type grant")),
+    ])
+
+    with client:
+        got = Gemini(key="k", client=client)(prompt="hello")
+
+    assert got == "fieldbook --type grant"
+    assert asked[0] == 2
+
+
+def test_a_connection_that_keeps_dropping_gives_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    """One more try, not an unbounded ladder against a network that is down."""
+    monkeypatch.setattr("field_monitoring_pipeline.extract.TRANSIENT_PAUSES", (0, 0))
+    client, asked = counting([httpx.ConnectError("no route")])
+
+    with client, pytest.raises(ModelUnreachableError, match="could not be reached"):
+        Gemini(key="k", client=client)(prompt="hello")
+
+    assert asked[0] == TRANSIENT_TRIES
+
+
+def test_a_fault_at_the_far_end_is_tried_again(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A server error is the provider's trouble, and the request cost nothing."""
+    monkeypatch.setattr("field_monitoring_pipeline.extract.TRANSIENT_PAUSES", (0, 0))
+    client, asked = counting([
+        httpx.Response(503, json={}),
+        httpx.Response(200, json=a_reply("fieldbook --type grant")),
+    ])
+
+    with client:
+        Gemini(key="k", client=client)(prompt="hello")
+
+    assert asked[0] == 2
+
+
+@pytest.mark.parametrize(
+    ("status", "why"),
+    [
+        pytest.param(429, "asking again cannot make the account fuller", id="quota-or-rate"),
+        pytest.param(400, "a wrong key is wrong the second time too", id="a-bad-key"),
+        pytest.param(404, "a model that does not exist will not appear", id="a-bad-model-name"),
+    ],
+)
+def test_a_refusal_is_never_tried_again(status: int, why: str) -> None:
+    """These cost quota or time and cannot succeed, so one attempt is the whole of it."""
+    client, asked = counting([httpx.Response(status, json={})])
+
+    with client, pytest.raises(ModelUnreachableError):
+        Gemini(key="k", client=client)(prompt="hello")
+
+    assert asked[0] == 1, why
 
 
 @pytest.mark.parametrize(
@@ -1886,3 +2107,22 @@ def test_a_title_carrying_a_contact_detail_never_reaches_a_record() -> None:
 
     with pytest.raises(HeldAfterTwoTriesError, match="carries a contact detail"):
         extract(make_item(page), Replies(line), A_PROMPT, "stand-in")
+def test_the_providers_own_explanation_is_relayed() -> None:
+    """A bare number sends a maintainer looking at their own code.
+
+    Measured on a real run: the free tier answered 503 with "This model is
+    currently experiencing high demand. Spikes in demand are usually temporary."
+    That sentence is the difference between waiting and debugging.
+    """
+    told = {
+        "error": {"code": 503, "message": "This model is currently experiencing high demand.", "status": "UNAVAILABLE"}
+    }
+
+    with answering(503, told) as client, pytest.raises(ModelUnreachableError, match="high demand"):
+        Gemini(key="k", client=client)(prompt="hello")
+
+
+def test_a_provider_that_explains_nothing_still_gives_the_number() -> None:
+    """The message is a bonus, never something the error depends on."""
+    with answering(503, {}) as client, pytest.raises(ModelUnreachableError, match="503"):
+        Gemini(key="k", client=client)(prompt="hello")
