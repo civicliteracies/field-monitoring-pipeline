@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from field_monitoring_pipeline.models import Call, Dated, Field, Open, load_sources
+from field_monitoring_pipeline.models import Call, Dated, Extraction, Field, Open, load_sources
 
 GOOD = """
 [[source]]
@@ -201,6 +201,42 @@ def test_a_built_record_cannot_be_changed_afterwards() -> None:
 
     with pytest.raises(ValidationError):
         call.title = "something else"
+
+
+def test_a_record_refuses_a_key_it_does_not_know() -> None:
+    """Reproduced by an audit: a card with a typo'd field name loaded, and the key vanished.
+
+    The two timing shapes already refused this, for a reason that applies just as
+    well one level up: a card is read back on every push and again on every
+    rebuild, so a field renamed by a later change, or simply mistyped by hand,
+    would load with the old one silently dropped. Every shape the extraction
+    builds now refuses what it does not know.
+    """
+    call = _a_call()
+
+    with pytest.raises(ValidationError):
+        Call.model_validate({**call.model_dump(), "deadlin": "2026-09-30"})
+
+    with pytest.raises(ValidationError):
+        Field.model_validate({"value": "EUR 20,000", "quote": "Grants of EUR 20,000.", "note": "x"})
+
+    with pytest.raises(ValidationError):
+        Extraction.model_validate({
+            "call": call.model_dump(),
+            "prompt_version": "v2",
+            "model_id": "a-model",
+            "builder_version": "b1",
+            "run_id": "x",
+        })
+
+
+def test_a_record_still_reads_back_from_its_own_written_form() -> None:
+    """Refusing extras must not refuse the round trip the rebuild depends on."""
+    made = Extraction(call=_a_call(), prompt_version="v2", model_id="a-model", builder_version="b1")
+
+    again = Extraction.model_validate(made.model_dump())
+
+    assert again == made
 
 
 def _a_call() -> Call:

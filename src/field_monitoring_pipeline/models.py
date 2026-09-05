@@ -73,9 +73,15 @@ class Field(BaseModel):
     The quote must appear in the source text word for word. That is what makes a
     value checkable by anyone reading the card, and it is the cheapest guard
     against a model inventing one.
+
+    Anything else is refused rather than quietly dropped, for the same reason the
+    two timing shapes refuse it: a card read back from disk arrives as plain
+    fields, and a key this shape does not know is either a typo or a shape that
+    has moved on. Both are worth stopping for, and neither is worth discarding in
+    silence.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     value: str
     quote: str
@@ -147,9 +153,14 @@ class Call(BaseModel):
 
     `topics` stays empty here. Tags are assigned from the project's own tag list
     at the tagging slice, never by the model.
+
+    A key this shape does not know is refused. A card is read back on every push
+    and again on every rebuild, and a field renamed or removed by a later change
+    would otherwise load with the old one silently dropped, which is the state
+    the two timing shapes already refuse one level down.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     title: str
     type: CallType
@@ -171,9 +182,12 @@ class Extraction(BaseModel):
     system. A stored value is attributable to the exact prompt, model and
     deterministic code that made it, so a bad change can be found and undone.
     See ADR-0034.
+
+    A key this shape does not know is refused, for the same reason as the record
+    it carries.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     call: Call
     prompt_version: str
