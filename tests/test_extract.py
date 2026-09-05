@@ -11,6 +11,7 @@ from datetime import date
 import pytest
 
 from field_monitoring_pipeline.extract import (
+    BOUNDARY,
     flat,
     lines_of,
     readable,
@@ -151,3 +152,129 @@ def test_a_heading_inside_a_header_is_still_the_title() -> None:
     page = "<header><h1>A Fund With Its Heading In A Header</h1></header><p>Text.</p>"
 
     assert flat("A Fund With Its Heading In A Header") in lines_of(readable(page))
+
+
+# ------------------------------------ the bugs an audit reproduced, each guarded
+
+TWO_PARAGRAPHS = readable(
+    "<h1>The Real Fund</h1>"
+    "<p>Our sister programme awarded grants of $2,000,000 last year.</p>"
+    "<p>Applicants to this fund must be registered charities in Kenya.</p>"
+)
+
+
+def test_a_quote_cannot_begin_in_one_paragraph_and_end_in_the_next() -> None:
+    """Reproduced by an audit, and this is the check the whole record rests on.
+
+    Two unrelated paragraphs, joined with a space, read as one sentence and were
+    accepted as really being on the page. A budget from a different programme
+    could be attached to this call and pass every check. The end of a block is
+    not whitespace, so it is no longer collapsed into a space.
+    """
+    spliced = (
+        "Our sister programme awarded grants of $2,000,000 last year. "
+        "Applicants to this fund must be registered charities in Kenya."
+    )
+
+    assert spliced not in TWO_PARAGRAPHS
+    assert flat(spliced) not in flat(TWO_PARAGRAPHS)
+
+
+@pytest.mark.parametrize(
+    "quote",
+    [
+        pytest.param("Our sister programme awarded grants of $2,000,000 last year.", id="a-whole-sentence"),
+        pytest.param("must be registered charities in Kenya", id="part-of-one"),
+        pytest.param(
+            "Our sister programme awarded grants of $2,000,000 last year.\n\n"
+            "Applicants to this fund must be registered charities in Kenya.",
+            id="both-copied-whole-with-the-break",
+        ),
+    ],
+)
+def test_an_honest_quote_still_matches_after_that(quote: str) -> None:
+    """The fix must refuse the splice without refusing anything real.
+
+    Including a quote that really does cross a block boundary, copied whole. That
+    text is on the page, break and all, so it is still evidence.
+    """
+    assert flat(quote) in flat(TWO_PARAGRAPHS)
+
+
+def test_the_boundary_marker_cannot_be_smuggled_in() -> None:
+    """Otherwise a model could write the marker itself and splice two blocks anyway.
+
+    Any copy arriving in the text becomes a space before real boundaries are
+    marked, so only this code can ever produce one.
+    """
+    forged = (
+        f"Our sister programme awarded grants of $2,000,000 last year.{BOUNDARY}"
+        "Applicants to this fund must be registered charities in Kenya."
+    )
+
+    assert flat(forged) not in flat(TWO_PARAGRAPHS)
+
+
+def test_the_boundary_marker_is_not_whitespace() -> None:
+    """The obvious choice was, and the step it has to survive collapsed it away.
+
+    Stated here as a fact rather than a comment, because the whole paragraph rule
+    silently stops working if this ever becomes true.
+    """
+    assert not BOUNDARY.isspace()
+
+
+@pytest.mark.parametrize(
+    ("windows", "unix"),
+    [
+        pytest.param("<p>a\r\nb</p>", "<p>a\nb</p>", id="inside-a-paragraph"),
+        pytest.param("<p>a</p>\r\n<p>b</p>", "<p>a</p>\n<p>b</p>", id="between-paragraphs"),
+        pytest.param("<p>a\rb</p>", "<p>a\nb</p>", id="a-carriage-return-alone"),
+    ],
+)
+def test_a_page_served_with_windows_line_endings_reads_the_same(windows: str, unix: str) -> None:
+    """Reproduced by an audit: a stray carriage return defeated the fence guard.
+
+    A rule anchored to the end of a line stops matching when a carriage return
+    sits before the newline, and one of the two frozen pages is served that way.
+    The endings are settled once, here, so the same page served either way gives
+    the same text to everything downstream.
+    """
+    text = readable(windows)
+
+    assert "\r" not in text
+    assert text == readable(unix)
+
+
+def test_a_stray_closing_tag_does_not_let_a_menu_through() -> None:
+    """Reproduced by an audit: one shared count let a page unwind the filter.
+
+    A page that closes a tag it never opened dropped the count to nothing while
+    still inside a menu, so the rest of the menu was read as though it were the
+    article. Pages built by a template really do drop tags like this. Matching by
+    name means a stray closing tag changes nothing.
+    """
+    page = (
+        "<nav>Our other fund: apply by 1 March 2030 for USD 900,000.</form>"
+        "A sentence from the menu that must not be quotable.</nav>"
+        "<h1>The Real Fund</h1><p>Applications close 30 September 2026.</p>"
+    )
+
+    text = readable(page)
+
+    assert "A sentence from the menu" not in text
+    assert "1 March 2030" not in text
+    assert "The Real Fund" in text
+    assert "30 September 2026" in text
+
+
+@pytest.mark.parametrize(
+    ("captured", "expected"),
+    [
+        pytest.param("<nav>a<form>b</form>c</nav>keep", "keep", id="nested-and-both-closed"),
+        pytest.param("<p>keep</p><nav>drop", "keep", id="never-closed-swallows-the-rest"),
+        pytest.param("<nav>drop</nav>keep", "keep", id="opened-and-closed-normally"),
+    ],
+)
+def test_furniture_is_dropped_however_the_page_nests_it(captured: str, expected: str) -> None:
+    assert readable(captured) == expected

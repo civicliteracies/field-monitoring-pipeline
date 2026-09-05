@@ -80,23 +80,31 @@ class _ToText(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.out: list[str] = []
-        self.skip = 0
+        # The names of the furniture tags currently open, innermost last. A count
+        # would be simpler and was what this held first, but a page that closes a
+        # tag it never opened then decrements the count and lets the rest of a
+        # menu through as though it were the article. Real pages built by a
+        # template do drop tags that way. Matching by name means an unmatched
+        # closing tag is what it is, a stray, and changes nothing. BUG-021.
+        self.inside: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         del attrs
         if tag in _SKIP:
-            self.skip += 1
+            self.inside.append(tag)
         elif tag in _BLOCK:
             self.out.append("\n")
 
     def handle_endtag(self, tag: str) -> None:
         if tag in _SKIP:
-            self.skip = max(0, self.skip - 1)
+            if tag in self.inside:
+                # Everything opened inside the one being closed is closed with it.
+                del self.inside[self.inside.index(tag) :]
         elif tag in _BLOCK:
             self.out.append("\n")
 
     def handle_data(self, data: str) -> None:
-        if not self.skip:
+        if not self.inside:
             self.out.append(data)
 
 
@@ -113,11 +121,31 @@ def readable(captured: str) -> str:
     parser.feed(captured)
     parser.close()
     text = "".join(parser.out).translate(_INVISIBLE)
+    # A server may end its lines the Windows way, and one of the two frozen pages
+    # does. Left alone, a carriage return sits between a line's last character and
+    # its newline, so any rule anchored to the end of a line quietly stops
+    # matching. That is how a page could still forge the fence in the prompt. The
+    # endings are settled here, once, for every reader of this string. BUG-020.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"[ \t]+", " ", text)
     # A tag boundary often leaves a space at the end of a line. It is invisible
     # to a reader and would otherwise sit inside a stored quote, so it goes here.
     text = re.sub(r"[ \t]+\n", "\n", text)
     return re.sub(r"\n\s*\n+", "\n\n", text).strip()
+
+
+BOUNDARY = chr(0xE000)
+"""What the end of one block of text is turned into before two strings compare.
+
+It is the first character of the private use area, which no page can mean
+anything by and nothing renders. Any copy of it arriving in the text is turned
+into a space first, so only a real boundary can ever produce one and nothing can
+be smuggled in to imitate one.
+
+The obvious choice, the record separator, is wrong: Python counts it as
+whitespace, so the very step this has to survive would collapse it away again.
+Measured rather than assumed, after the first attempt did exactly that.
+"""
 
 
 def flat(value: str) -> str:
@@ -127,6 +155,13 @@ def flat(value: str) -> str:
     two strings are compared, so that a line break in the page does not make a
     sentence fail to match itself.
 
+    The end of a block of text is not whitespace. Collapsing it to a space would
+    let a quote begin in one paragraph and end in the next, joining two unrelated
+    sentences into something that reads as one and passes as real. That is the
+    check the whole record rests on, so the boundary is kept as a character a
+    quote cannot cross. A quote that really does span two blocks, copied whole,
+    still carries the boundary and still matches. BUG-019.
+
     NFC and not NFKC. The compatibility form rewrites characters that carry
     meaning here: it turns a superscript five into a plain five, so a grant of
     ten to the fifth would be read as a grant of one hundred and five. This
@@ -135,7 +170,10 @@ def flat(value: str) -> str:
     spaces that NFKC would otherwise be reached for, because Python treats all
     of them as whitespace.
     """
-    return re.sub(r"\s+", " ", unicodedata.normalize("NFC", value)).strip()
+    text = unicodedata.normalize("NFC", value).replace("\r\n", "\n").replace("\r", "\n")
+    text = text.replace(BOUNDARY, " ")
+    text = re.sub(r"[^\S\n]*\n[^\S\n]*\n\s*", BOUNDARY, text)
+    return re.sub(r"\s+", " ", text).strip(f"{BOUNDARY} ")
 
 
 def lines_of(source: str) -> frozenset[str]:
