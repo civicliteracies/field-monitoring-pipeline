@@ -433,12 +433,23 @@ _MONEY_BEFORE = re.compile(
     r"[\s]*$",
     re.IGNORECASE,
 )
+_MONEY_AFTER = re.compile(
+    r"^[\s]*(?:[$\u00a3\u20ac\u00a5]|\b(?:USD|EUR|GBP|CHF|ZAR|KES|UGX|NGN|CAD|AUD|SEK|NOK|DKK)\b)",
+    re.IGNORECASE,
+)
+"""A currency marker straight after a run of digits, which makes the run money.
+
+Its twin above looks before the run. Only looking before missed the ordinary
+European way of writing an amount, so an honest budget written with the currency
+last was refused as carrying a telephone number.
+"""
+
 MIN_PHONE_DIGITS = 7
 MIN_BARE_DIGITS = 9
 MAX_PHONE_DIGITS = 15
 _NOT_A_NUMBER_TO_RING = re.compile(
     r"^(?:"
-    r"\d{4}\s*[-‐-―]\s*\d{4}"
+    r"(?:19|20)\d{2}\s*[-‐-―]\s*(?:19|20)\d{2}"
     r"|\d{4}-\d{2}-\d{2}"
     r"|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}"
     r")$"
@@ -448,6 +459,17 @@ _NOT_A_NUMBER_TO_RING = re.compile(
 Found by the audit's own reproduction: a deadline quoted as "the closing
 date is 2026-09-30" was refused as carrying a contact detail, which would
 have broken every deadline a page writes in that form.
+"""
+
+
+CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+"""Characters that are not words and must never reach a stored value.
+
+A value is checked after its whitespace is collapsed and stored exactly as the
+model wrote it. A line break or a tab hidden inside therefore passes the check
+and still reaches the card, where the printed record puts one field on one line
+and a person reads it beside the page. A title carrying a line break is also not
+the whole line of the source it is required to be. BUG-022.
 """
 
 
@@ -481,7 +503,7 @@ def carries_a_contact(text: str) -> bool:
             continue
         if _NOT_A_NUMBER_TO_RING.match(found.strip()):
             continue
-        if _MONEY_BEFORE.search(text[: run.start()]):
+        if _MONEY_BEFORE.search(text[: run.start()]) or _MONEY_AFTER.match(text[run.end() :]):
             continue
         return True
     return False
@@ -532,8 +554,14 @@ def check_quote(name: str, quote: str, source: str, value: str | None = None) ->
     well. A budget is the number a reader acts on, and this is the cheapest way
     to hold it to what the page actually says. See ADR-0032.
     """
-    if not MIN_QUOTE <= len(quote) <= MAX_QUOTE:
-        msg = f"--{name}-quote must be {MIN_QUOTE} to {MAX_QUOTE} characters, it is {len(quote)}"
+    if CONTROL.search(quote):
+        msg = f"--{name}-quote carries a line break or another character that is not a word"
+        raise UngroundedClaimError(msg)
+    # Measured on the form the check compares, so padding a short quote with
+    # spaces cannot buy it past the floor. It bought four spaces before.
+    said = flat(quote)
+    if not MIN_QUOTE <= len(said) <= MAX_QUOTE:
+        msg = f"--{name}-quote must be {MIN_QUOTE} to {MAX_QUOTE} characters, it is {len(said)}"
         raise UngroundedClaimError(msg)
     if carries_a_contact(quote):
         msg = (
@@ -541,13 +569,17 @@ def check_quote(name: str, quote: str, source: str, value: str | None = None) ->
             f"sentence, or say --{name}-not-stated."
         )
         raise UngroundedClaimError(msg)
-    if flat(quote) not in flat(source):
+    whole = flat(source)
+    if said not in whole:
         msg = f"--{name}-quote is not a real substring of the source text"
         raise UngroundedClaimError(msg)
     if value is not None:
         own = name in NUMBERS_IN_OWN_QUOTE
-        against = flat(quote) if own else flat(source)
-        missing = [n for n in numbers_in(value) if flat(n) not in against]
+        # Every number the evidence states, as whole numbers rather than as a run
+        # of characters. Asking whether the digits appear anywhere would ground a
+        # claimed 87 on a page that only ever says 1987. BUG-023.
+        stated = {flat(n) for n in numbers_in(said if own else whole)}
+        missing = [n for n in numbers_in(value) if flat(n) not in stated]
         if missing:
             where = "its quote does not say" if own else "the source does not state"
             msg = f"--{name} states {', '.join(missing)}, which {where}"
@@ -632,6 +664,20 @@ def _dated_timing(flags: dict[str, str], source: str) -> Dated:
     return Dated(deadline=typed, quote=quote)
 
 
+def _words_only(name: str, value: str) -> str:
+    """A stored value, refused if it carries anything that is not a word.
+
+    The same rule a quote is held to, and for the same reason: the value is
+    compared with its whitespace collapsed and stored exactly as the model wrote
+    it, so a line break hidden inside passes the check and still reaches the
+    card. See CONTROL.
+    """
+    if CONTROL.search(value):
+        msg = f"--{name} carries a line break or another character that is not a word"
+        raise MalformedCommandError(msg)
+    return value
+
+
 def _one_quoted_field(name: str, flags: dict[str, str], source: str) -> Field | None:
     """One value with its quote, or nothing when the source is said not to state it."""
     absent = f"{name}-not-stated" in flags
@@ -652,7 +698,7 @@ def _one_quoted_field(name: str, flags: dict[str, str], source: str) -> Field | 
         # exactly one. Saying it out loud is the honest form, and this is not.
         msg = f"--{name} is empty. Give a value, or say --{name}-not-stated."
         raise MalformedCommandError(msg)
-    return Field(value=value, quote=check_quote(name, quote, source, value))
+    return Field(value=_words_only(name, value), quote=check_quote(name, quote, source, value))
 
 
 def _funder(flags: dict[str, str]) -> str | None:
@@ -667,7 +713,7 @@ def _funder(flags: dict[str, str]) -> str | None:
     if named is not None and not named.strip():
         msg = "--funder is empty. Give a name, or say --funder-not-stated."
         raise MalformedCommandError(msg)
-    return named
+    return named if named is None else _words_only("funder", named)
 
 
 def build(flags: dict[str, str], source: str, source_url: str) -> Call:
@@ -683,6 +729,7 @@ def build(flags: dict[str, str], source: str, source_url: str) -> Call:
     if not flags["title"].strip():
         msg = "--title is empty"
         raise MalformedCommandError(msg)
+    _words_only("title", flags["title"])
     if flat(flags["title"]) not in lines_of(source):
         msg = "--title must be a whole heading or line of the source text, word for word"
         raise UngroundedClaimError(msg)

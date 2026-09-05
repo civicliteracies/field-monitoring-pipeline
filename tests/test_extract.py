@@ -19,6 +19,7 @@ from field_monitoring_pipeline.extract import (
     FENCE,
     FENCE_END,
     KNOWN,
+    MAX_QUOTE,
     HeldAfterTwoTriesError,
     MalformedCommandError,
     ModelUnreachableError,
@@ -1327,3 +1328,152 @@ def test_the_model_may_not_set_the_link_or_the_topics(forbidden: str, cipesa: tu
 def test_neither_the_link_nor_the_topics_is_a_flag_the_builder_knows() -> None:
     """Stated against the flag table itself, so a later addition has to be deliberate."""
     assert not {"source-url", "source_url", "topics", "topic", "tag", "tags"} & KNOWN
+
+
+# --------------------------- what a second audit found in the checks, each guarded
+
+A_YEAR_ONLY = readable("<p>Established in 1987, the network reaches many countries worldwide.</p>")
+
+
+def test_a_number_must_be_a_whole_number_the_page_states() -> None:
+    """Reproduced by an audit: a fabricated figure rode in on part of a bigger one.
+
+    The check asked whether the digits appeared anywhere in the page, as a run of
+    characters. A claimed 87 was therefore grounded on a page that only ever says
+    1987, because one string sits inside the other. Numbers are now compared as
+    numbers.
+    """
+    quote = "Established in 1987, the network reaches many countries worldwide."
+
+    with pytest.raises(UngroundedClaimError, match="the source does not state"):
+        check_quote("area", quote, A_YEAR_ONLY, "reaches 87 countries worldwide")
+
+
+def test_the_year_itself_is_still_grounded() -> None:
+    """The fix must refuse the fabricated number without refusing the real one."""
+    quote = "Established in 1987, the network reaches many countries worldwide."
+
+    check_quote("area", quote, A_YEAR_ONLY, "a network founded in 1987")
+
+
+def test_a_short_quote_cannot_be_padded_past_the_floor() -> None:
+    """Reproduced by an audit: four trailing spaces bought a one word quote through.
+
+    The length was measured on the raw string and the grounding on the collapsed
+    one, so whitespace counted towards the floor while proving nothing. Both are
+    measured on the same form now.
+    """
+    source = readable("<h1>Civic Data Grants 2026</h1><p>The fund supports projects across Africa.</p>")
+
+    with pytest.raises(UngroundedClaimError, match="must be 10 to 400 characters, it is 6"):
+        check_quote("area", "Africa    ", source, "Africa")
+
+
+def test_a_quote_longer_than_the_ceiling_is_refused() -> None:
+    """The floor had a test and the ceiling did not, and one chained comparison hides that.
+
+    Either half failing satisfies a coverage report the same way, so the ceiling
+    could have been loosened or removed with nothing turning red.
+    """
+    long_page = "word " * 200
+    source = readable(f"<p>{long_page}</p>")
+    quote = flat(source)[: MAX_QUOTE + 50]
+
+    with pytest.raises(UngroundedClaimError, match="must be 10 to 400 characters"):
+        check_quote("area", quote, source)
+
+
+def test_a_local_number_shaped_like_a_range_of_years_is_caught() -> None:
+    """Reproduced by an audit: a common local number has the shape of a range of years.
+
+    The exemption for a range let any eight digits through as long as a dash sat
+    in the middle, so a real telephone number written that way could reach a
+    published card. A range now has to look like years.
+    """
+    assert carries_a_contact("Call our office at 2345-6789 for details about the fund.")
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("The 2024-2025 cycle opens in spring of that year.", id="a-recent-range"),
+        pytest.param("Applications for the 1999-2001 round are closed.", id="an-older-range"),
+    ],
+)
+def test_a_real_range_of_years_is_still_allowed(sentence: str) -> None:
+    """Narrowing the exemption must not refuse the writing it was added for."""
+    assert not carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("The fund offers grants of up to 12.345.678 EUR to organisations.", id="the-code-after"),
+        pytest.param("Awards of 250 000 GBP are made each year to successful applicants.", id="grouped-with-spaces"),
+    ],
+)
+def test_an_amount_with_the_currency_written_after_it_is_money(sentence: str) -> None:
+    """Reproduced by an audit: the rule looked only before the figure.
+
+    An honest budget written the ordinary European way was refused as carrying a
+    telephone number, which costs a retry and can end as a field recorded as not
+    stated.
+    """
+    assert not carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        pytest.param("title", "Civic\nData Grants 2026", id="a-line-break-in-the-title"),
+        pytest.param("summary", "A fund\tfor open data.", id="a-tab-in-a-value"),
+        pytest.param("summary-quote", "The deadline for\napplications is February 16, 2024.", id="in-a-quote"),
+    ],
+)
+def test_a_stored_value_may_not_carry_a_character_that_is_not_a_word(field: str, value: str) -> None:
+    """Reproduced by an audit: a line break passed the check and reached the record.
+
+    A value is compared with its whitespace collapsed and stored exactly as the
+    model wrote it, so a line break hidden inside satisfied the comparison and
+    still arrived on the card. A title carrying one is also not the whole line of
+    the source it is required to be, and the printed record puts one field on one
+    line for the check done by eye.
+    """
+    page = readable("<h1>Civic Data Grants 2026</h1><p>The deadline for applications is February 16, 2024.</p>")
+    quote = "The deadline for applications is February 16, 2024."
+    flags = {
+        "title": "Civic Data Grants 2026",
+        "type": "grant",
+        "funder-not-stated": "",
+        "deadline": "2024-02-16",
+        "deadline-quote": quote,
+        "summary": "A fund.",
+        "summary-quote": quote,
+        "budget-not-stated": "",
+        "eligibility-not-stated": "",
+        "area-not-stated": "",
+    }
+    flags[field] = value
+
+    with pytest.raises((MalformedCommandError, UngroundedClaimError), match="not a word"):
+        build(flags, page, "https://example.org/x")
+
+
+def test_an_absent_funder_is_stored_as_nothing(cipesa: tuple[RawItem, str]) -> None:
+    """The one absent path with no assertion anywhere, though its siblings had one."""
+    item, reply = cipesa
+    without = swap(reply, f"--funder {CIPESA_FUNDER}", "--funder-not-stated")
+
+    got = extract(item, Replies(without), A_PROMPT, "stand-in")
+
+    assert got.call.funder is None
+
+
+def test_a_number_written_with_periods_is_read_as_one_number() -> None:
+    """Never exercised: both fixtures and every test wrote thousands with commas.
+
+    The pattern accepts a period as a separator, so a page written the European
+    way was relying on behaviour nothing checked.
+    """
+    assert numbers_in("a grant of 1.234.567 for the year") == ["1.234.567"]
+    assert numbers_in("a rate of 12.5 per cent over 24 months") == ["12.5", "24"]
