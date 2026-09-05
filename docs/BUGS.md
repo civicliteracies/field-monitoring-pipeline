@@ -98,6 +98,35 @@ is rewritten correctly on the same run.
 file is repaired in passing. See ADR-0027.
 
 ---
+## BUG-018 — Git rewrote the archive, so a quote verified on one machine and failed on every other
+
+**Found** 2026-09-03, by measurement, before any item had been archived.
+
+**Symptom.** A capture of 54 bytes was stored by git as 52 and came back from a
+fresh clone as 52. A quote spanning a line break was found in the original
+capture and was not found in the clone. Nothing had gone wrong yet only because
+the archive was still empty. As soon as it held anything, the check that runs on
+every push and again on rebuild would have refused honest quotes, on the machines
+that did not capture them, for a reason nothing in the output would explain.
+
+**Cause.** `.gitattributes` told git to normalise line endings across every file
+in the repository. That was written when this repository held only code, where it
+prevents a whole class of works-on-my-machine trouble, and it is right for code.
+It became wrong when the repository started holding evidence. A source serving
+Windows line endings gave one string during the run and a different string after
+a clone, and the quote check compares character by character.
+
+**Fix.** Two lines excluding the archive and the frozen test fixtures from that
+rule, so both come back exactly as the server sent them. It also makes true a
+decision already taken, that the raw stays perfectly verbatim so anything can be
+re-derived from it. See
+[ADR-0034](decisions/0034-the-derived-text-and-the-builder-version.md).
+
+**Test.** `tests/test_gitattributes.py`. It drives git rather than trusting it:
+it writes a capture with Windows line endings into a throwaway repository using
+this project's own `.gitattributes`, commits it, clones it, and asserts the bytes
+are unchanged and that a quote spanning the line break still matches. Removing
+the two lines turns all three cases red.
 
 ## BUG-017 — A source could send the run to an address the watch list never chose
 

@@ -454,7 +454,9 @@ arrive with the libraries that read them.
 **What it is.** The typed shapes each step of the run hands to the next.
 
 **What the code inside does.** Defines a source on the watch list and one
-captured item, and reads the watch list from disk.
+captured item, reads the watch list from disk, and defines the record the
+extraction builds: a funding call, the value-and-quote pair five of its fields
+use, and the two shapes a timing can take.
 
 **How it does it.** Both are Pydantic models, so a malformed watch list is
 rejected where it is read rather than failing somewhere further down.
@@ -469,7 +471,11 @@ one file means no step has to guess what another gives it.
 published for an item. It is text from the open web and is only ever hashed,
 never used as a name. See ADR-0026. A source identifier used twice in the watch
 list is refused by name, because that identifier is what a source's bookmark is
-filed under and two entries sharing one would read each other's.
+filed under and two entries sharing one would read each other's. A timing is a
+discriminated union, so a call carrying both a closing date and a rolling status,
+or neither, cannot be expressed rather than merely being checked against. Four
+call fields may be absent and four may not, and that marking is the whole list of
+what the model may answer as not stated. See ADR-0033.
 
 ### `src/field_monitoring_pipeline/normalize.py`
 
@@ -501,6 +507,8 @@ is deferred to the slice that hardens canonicalisation.
 ### `src/field_monitoring_pipeline/fetch.py`
 
 **What it is.** The only part of the system that reaches the open internet.
+The extraction step also reaches out, to a model, but it does not join the
+scheduled run until its guards and the readiness note are done. See ADR-0010.
 
 **What the code inside does.** Reaches one source and brings back what it served,
 unread. Handles it being slow, down, unchanged, too large, or at an address the
@@ -641,6 +649,52 @@ are new to the archive rather than new in the world. `FIELDBOOK_DATA` says
 where the archive is, because on GitHub it is checked out from its own branch
 rather than sitting beside the code.
 
+### `src/field_monitoring_pipeline/extract.py`
+
+**What it is.** The step that turns a captured page into the words a model will
+read. The rest of that step, the reading and the checking, arrives with the two
+slices after this one.
+
+**What the code inside does.** Takes one captured item and produces a single
+readable string: markup removed, escaped characters decoded, script and style
+content dropped, a page's own menus and footers left out, and invisible
+characters settled.
+
+**How it does it.** With the standard library only. A real parser rather than a
+pattern, so malformed markup on a real site does not stop it, and a sentence with
+a bold word in the middle comes out as one run of characters rather than three.
+
+**In and out.** In: one captured item. Out: one string. It writes no file.
+
+**How it fits.** It sits between the archive and everything that reads meaning
+out of a page. Nothing calls it yet.
+
+**What a reviewer must know.** This string is later both what the model reads and
+what every quote is checked against, and nothing else would be sound: a sentence
+carrying a link or a bold word is not one run of characters in the page's own
+markup. That makes this derivation part of the record's contract rather than a
+convenience, which is why it carries a version of its own. See ADR-0034.
+
+### `scripts/refresh_fixture.py`
+
+**What it is.** How a frozen test fixture is regenerated.
+
+**What the code inside does.** Fetches a funder's page through the same function
+the scheduled run uses and writes it into the tests folder.
+
+**How it does it.** It reuses the real fetcher, so the frozen bytes carry the same
+address checks, size cap and timeouts as a real capture.
+
+**In and out.** In: a fixture name. Out: a file under `tests/fixtures/`.
+
+**How it fits.** It writes nothing into `data/`. That directory belongs to the
+run, and a scheduled run could rewrite a file there and move a test underneath
+it.
+
+**What a reviewer must know.** A golden fixture is only worth anything if anyone
+can regenerate it and get the same thing, which is why this is committed rather
+than being something done once by hand.
+
 ### `.github/workflows/calls.yml`
 
 **What it is.** The scheduled run that captures funding calls each morning.
@@ -665,6 +719,33 @@ runs a few minutes past the hour, because jobs scheduled on the hour are the one
 most often delayed. The commit step runs whatever happened before it, so a run
 that falls over partway down the watch list still commits what the earlier
 sources gave it instead of discarding that work.
+
+### `tests/fixtures/`
+
+**What it is.** Two real funding calls, frozen, one folder each.
+
+**What the code inside does.** Nothing. They are files a test reads.
+
+**How it does it.** Each folder holds five things. `input.txt` is the response
+exactly as the funder's server sent it, fetched through the real fetch function.
+`source_url.txt` is where it came from. `reply.txt` is one real answer from the
+model, recorded from a live run and kept. `expected.json` is the record that
+reply produces. `ground_truth.md` is what a person read off the page, which is a
+different thing and is written down separately for a reason.
+
+**In and out.** In: nothing. Out: everything the extraction test reads.
+
+**How it fits.** They are the only real funding calls this project has. The
+archive holds a foundation's general writing, so without these the extraction
+would be proved on something that is not a funding call at all.
+
+**What a reviewer must know.** The recorded reply and the expected record prove
+the deterministic half has not drifted, and nothing more: the record was produced
+by running the builder on that reply, so it cannot also prove the record is
+right. What a person agreed the page says lives in `ground_truth.md`, and the
+same model reading the same page has classified one of them two different ways on
+different runs, which is why the two are kept apart. Regenerate the frozen page
+with `scripts/refresh_fixture.py`.
 
 ### `tests/__init__.py` and the test files
 
@@ -702,8 +783,8 @@ into the sections above, with a full entry, in the pull request that creates it.
 
 | File | What it will do | Arrives at |
 |---|---|---|
-| `models.py` additions | The call and report shapes join the source and raw-item shapes already there | PR 3 |
-| `extract.py` | The one AI step: the model writes a command, a deterministic builder makes the record | PR 3 |
+| ~~`models.py` additions~~ (done) | The call and report shapes join the source and raw-item shapes already there | PR 3 |
+| ~~`extract.py`~~ (done) | The one AI step: the model writes a command, a deterministic builder makes the record | PR 3 |
 | `validate.py` | Checks a record against its rules before filing, holding anything that fails twice | PR 4 |
 | `write.py` | Writes the record as a Markdown card that renders on github.com | PR 4 |
 | `publish.py` | Rebuilds the feed and index from the filed cards, urgent calls first | PR 11 |
