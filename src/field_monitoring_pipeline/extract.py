@@ -445,12 +445,31 @@ last was refused as carrying a telephone number.
 """
 
 MIN_PHONE_DIGITS = 7
-MIN_BARE_DIGITS = 9
 MAX_PHONE_DIGITS = 15
+"""The shortest and the longest a number somebody could ring may be.
+
+The longest is the standard's. ITU-T Recommendation E.164 sets fifteen digits as
+the maximum for an international number. The shortest is this project's own
+judgement and nothing more: that Recommendation sets no minimum at all for an
+ordinary national number, and saying otherwise dressed a guess up as a rule
+somebody else had made.
+"""
+
+_BETWEEN_NUMBERS = re.compile(r"[()]|\s{2,}|\s[-‐-―]\s|\s\+")
+"""Where a candidate has to be broken, because one number cannot carry on across it.
+
+A run of digits does not stop where a telephone number stops. It carries on
+through a bracket, or through a second number written beside the first, and the
+whole thing was then counted as too long for anyone to ring and let through. A
+number followed by its opening hours did exactly that, and so did two numbers
+side by side. Only a run already too long is broken, so an ordinary number spaced
+or dashed the usual way is still weighed whole. BUG-029.
+"""
 _NOT_A_NUMBER_TO_RING = re.compile(
     r"^(?:"
     r"(?:19|20)\d{2}\s*[-‐-―]\s*(?:19|20)\d{2}"
     r"|\d{4}-\d{2}-\d{2}"
+    r"|(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])"
     r"|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}"
     r")$"
 )
@@ -459,6 +478,11 @@ _NOT_A_NUMBER_TO_RING = re.compile(
 Found by the audit's own reproduction: a deadline quoted as "the closing
 date is 2026-09-30" was refused as carrying a contact detail, which would
 have broken every deadline a page writes in that form.
+
+The solid form belongs here too, and only became visible once an unbroken run of
+eight digits stopped being waved through as money. It is written tightly, as a
+plausible year followed by a real month and a real day, so that it exempts a date
+without quietly exempting every eight digit number again.
 """
 
 
@@ -473,6 +497,19 @@ the whole line of the source it is required to be. BUG-022.
 """
 
 
+def _one_at_a_time(run: str) -> list[str]:
+    """A candidate run, broken up only when it is too long to be a single number.
+
+    A run short enough to ring is weighed whole, so a number written with spaces
+    or dashes in the ordinary way is never taken apart. Only a run already past
+    the longest number anybody has is broken, and that is a run the rule used to
+    give up on entirely.
+    """
+    if len(re.sub(r"\D", "", run)) <= MAX_PHONE_DIGITS:
+        return [run]
+    return [part for part in _BETWEEN_NUMBERS.split(run) if part and part.strip()]
+
+
 def carries_a_contact(text: str) -> bool:
     """Does this sentence carry an email address or a telephone number?
 
@@ -482,30 +519,40 @@ def carries_a_contact(text: str) -> bool:
     digits, and this project's own first funder is in a country that does, so the
     rule missed the case most likely to arise.
 
-    It now takes any run of seven to fifteen digits as a number, which is the
-    international range, unless a currency marker sits immediately before it, in
-    which case it is money. That will occasionally refuse an honest figure
-    written with spaces between the thousands. Refusing one costs a second
-    attempt and, at worst, a field recorded as not stated. Missing one publishes
-    somebody's telephone number into a public repository that keeps its history.
-    The cost is not symmetric, so the rule leans the way it does.
+    It takes any run of seven to fifteen digits as a number unless a currency
+    marker sits against it on either side, in which case it is money, or it reads
+    as a date or a range of years.
+
+    It no longer waves through a run of seven or eight digits written without
+    separators. That exemption was for an amount written solid, and it made every
+    telephone number written the same way invisible. Denmark's own language
+    authority lists the solid eight digit form first among the correct ways to
+    write a number there, and Danish and Norwegian funders are on this project's
+    watch list. The reference implementation of this problem, Google's phone
+    number library, accepts a solid block at every level of strictness it has, so
+    the absence of separators is not evidence of anything. And the exemption only
+    ever fired where no currency marker had been found, which made it the rule
+    that settled pure ambiguity, settling it towards publishing.
+
+    The cost is real and worth naming: an amount written solid, with no currency
+    marker beside it, is refused. Refusing one costs a second attempt and, at
+    worst, a field recorded as not stated. Missing one publishes somebody's
+    telephone number into a public repository that keeps its history. The cost is
+    not symmetric, so the rule leans the way it does.
     """
     if EMAIL.search(text):
         return True
     for run in _DIGIT_RUN.finditer(text):
-        found = run.group(0)
-        digits = re.sub(r"\D", "", found)
-        if not MIN_PHONE_DIGITS <= len(digits) <= MAX_PHONE_DIGITS:
-            continue
-        if len(digits) == len(found) and len(digits) < MIN_BARE_DIGITS:
-            # An unbroken run of seven or eight digits is far more often an amount
-            # written without separators than a number somebody could ring.
-            continue
-        if _NOT_A_NUMBER_TO_RING.match(found.strip()):
-            continue
-        if _MONEY_BEFORE.search(text[: run.start()]) or _MONEY_AFTER.match(text[run.end() :]):
-            continue
-        return True
+        before, after = text[: run.start()], text[run.end() :]
+        for part in _one_at_a_time(run.group(0)):
+            digits = re.sub(r"\D", "", part)
+            if not MIN_PHONE_DIGITS <= len(digits) <= MAX_PHONE_DIGITS:
+                continue
+            if _NOT_A_NUMBER_TO_RING.match(part.strip()):
+                continue
+            if _MONEY_BEFORE.search(before) or _MONEY_AFTER.match(after):
+                continue
+            return True
     return False
 
 

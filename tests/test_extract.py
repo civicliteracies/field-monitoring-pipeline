@@ -294,7 +294,6 @@ def test_a_heading_is_a_whole_line_and_a_fragment_of_one_is_not() -> None:
         "Grants of GBP 12,345.67 exactly, for a period of 24 months.",
         "Applications for the 2026-2027 cycle close soon and awards reach 45,000.",
         "A total of USD 1 000 000 is available across the programme.",
-        "The fund has disbursed 1500000 since it began, all of it in grants.",
         "\u20ac500 000 000 was set aside for the whole decade.",
     ],
 )
@@ -1477,3 +1476,88 @@ def test_a_number_written_with_periods_is_read_as_one_number() -> None:
     """
     assert numbers_in("a grant of 1.234.567 for the year") == ["1.234.567"]
     assert numbers_in("a rate of 12.5 per cent over 24 months") == ["12.5", "24"]
+
+
+# ------------- what a page has to write for a telephone number to reach a card
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param(
+            "Call CIPESA on +256 414 289 502 (8.00-17.00) East Africa Time.",
+            id="a-number-then-its-opening-hours",
+        ),
+        pytest.param(
+            "International Media Support +45 88 32 70 00 (+45 52 10 78 20) Copenhagen.",
+            id="a-number-then-another-in-brackets",
+        ),
+        pytest.param("CISU 8612 0342 - 3022 4511 Aarhus.", id="two-numbers-either-side-of-a-dash"),
+        pytest.param("Phone: +45 33 74 74 74 (9.00-16.00) or write to us.", id="hours-with-a-dot"),
+    ],
+)
+def test_a_number_beside_anything_else_with_digits_is_still_caught(sentence: str) -> None:
+    """Found by a skeptic set on refuting the research, and the worst of the lot.
+
+    A run of digits does not stop where a telephone number stops. It carries on
+    through a bracket or a second number, and the whole thing was then counted as
+    too long for anyone to ring and waved through. A number followed by its
+    opening hours is an ordinary way for a page to be written, and the first of
+    these is this project's own first funder. A run past the longest number
+    anybody has is now broken at the places one number cannot cross, and each
+    part is weighed on its own.
+    """
+    assert carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("Contact us at 91234567 for more information about this fund.", id="an-eight-digit-mobile"),
+        pytest.param("Ring os på 33747474 for at høre mere om puljen.", id="the-danish-solid-form"),
+        pytest.param("Call 0771234 during office hours for details.", id="seven-digits-solid"),
+    ],
+)
+def test_a_number_written_without_separators_is_caught(sentence: str) -> None:
+    """The rule used to wave through any solid run of seven or eight digits as money.
+
+    Three things settled it. Denmark's own language authority lists the solid
+    eight digit form first among the correct ways to write a number there, and
+    Danish and Norwegian funders are on this project's watch list. The reference
+    implementation of this problem accepts a solid block at every level of
+    strictness it has, so the absence of separators is evidence of nothing. And
+    the exemption only ever fired where no currency marker had been found, which
+    made it the rule that settled pure ambiguity, settling it towards publishing.
+    """
+    assert carries_a_contact(sentence)
+
+
+def test_an_amount_written_solid_with_no_currency_beside_it_is_refused() -> None:
+    """The cost of the rule above, written down rather than left to be discovered.
+
+    Nothing distinguishes a solid seven digit amount from a solid seven digit
+    number somebody could ring, so one of the two has to lose. Refusing an amount
+    costs a second attempt and, at worst, a field recorded as not stated.
+    Publishing a telephone number cannot be taken back from a public repository
+    that keeps its history. Naming the currency clears it, which is how a funder
+    writes an amount in practice.
+    """
+    assert carries_a_contact("The fund has disbursed 1500000 since it began, all of it in grants.")
+    assert not carries_a_contact("The fund has disbursed USD 1500000 since it began.")
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("Applications close 20260401 at midnight.", id="a-deadline-written-solid"),
+        pytest.param("Grant reference 20240815 is now closed.", id="a-reference-that-is-a-date"),
+    ],
+)
+def test_a_date_written_solid_is_still_a_date(sentence: str) -> None:
+    """Only visible once a solid run of eight digits stopped being waved through.
+
+    The exemption is written tightly, as a plausible year with a real month and a
+    real day, so that it clears a date without quietly clearing every eight digit
+    number again.
+    """
+    assert not carries_a_contact(sentence)
