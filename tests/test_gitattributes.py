@@ -23,11 +23,17 @@ SERVED = b"The deadline for applications\r\nis February 16, 2024.\r\n"
 
 
 def git(where: Path, *args: str) -> None:
+    """Run one git command and ignore what it says.
+
+    Deliberately not asking for text back. Doing so would decode git's output
+    using whatever code page the machine happens to use, and on the machine this
+    was written on that turns an accent or a dash into a replacement character.
+    Nothing here reads the output, so the safest form is not to decode it at all.
+    """
     subprocess.run(
         ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
         cwd=where,
         capture_output=True,
-        text=True,
         check=False,
     )
 
