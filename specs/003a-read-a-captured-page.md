@@ -43,6 +43,10 @@ what comes out.
 4. THE SYSTEM SHALL allow four fields to be absent: funder, budget, eligibility and
    area. Title, type, timing and summary SHALL always be present. That marking in
    the shape is the whole list of what may be absent. See ADR-0033.
+4a. THE SYSTEM SHALL refuse a field a record shape does not know, rather than
+   loading the record and dropping the field. A card is read back on every push
+   and again on every rebuild, so a field mistyped by hand or renamed by a later
+   change would otherwise load with the old one silently discarded.
 5. THE SYSTEM SHALL NOT add the prompt version, the model name or the builder
    version to the record. Those three travel beside it, and the slice that writes
    the card decides where they come to rest.
@@ -68,6 +72,21 @@ what comes out.
     The production input is a feed entry, which carries no navigation, and any rule
     for selecting an article's own region can silently select nothing. See the
     note under **Two things measured while writing this**.
+11a. THE SYSTEM SHALL settle a page's line endings in that derivation, so a page
+    served the Windows way gives the same string as the same page written the plain
+    way. A rule anchored to the end of a line otherwise stops matching, and one of
+    the two frozen pages is served that way. See BUG-020.
+11b. THE SYSTEM SHALL treat the end of a block of text as a boundary a quote cannot
+    cross when two strings are compared, rather than as whitespace. Collapsing it
+    lets a quote begin in one paragraph and end in the next, joining two unrelated
+    sentences into one that reads as real and passes the check every stored value
+    rests on. A quote copied whole across a boundary still carries it and still
+    matches, and nothing in the page or the model's answer can produce a boundary
+    the derivation did not put there. See BUG-019.
+11c. THE SYSTEM SHALL decide which of a page's own parts are furniture by the names
+    of the tags currently open, not by counting them. A page that closes a tag it
+    never opened otherwise unwinds the filter partway through, and the rest of a
+    menu is read as though it were the article. See BUG-021.
 
 ## Files touched
 
@@ -170,7 +189,15 @@ Every test runs offline, with no key and no network.
   date and an open basis, a call with no summary, a kind outside the ten, and a
   record edited after it was built. A timing read back from disk comes back as
   the shape it was written as, dated or open, and a call that has already closed
-  still builds.
+  still builds. A field the shape does not know is refused, and a record still
+  reads back from its own written form.
+- A quote cannot begin in one paragraph and end in the next. An honest quote
+  still matches, including one copied whole across a break, and the boundary
+  cannot be imitated by anything arriving in the text.
+- A page served with Windows line endings reads exactly as the same page written
+  the plain way, whether the ending falls inside a paragraph or between two.
+- A page that closes a tag it never opened does not get its menu read as though
+  it were the article, and furniture is dropped however the page nests it.
 - The evidence survives git. A capture with Windows line endings is committed,
   cloned, and comes back byte for byte, and a quote spanning the line break is
   still findable. Measured by driving git rather than trusting it.

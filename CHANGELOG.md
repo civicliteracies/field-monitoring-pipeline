@@ -13,6 +13,22 @@ language. **Why** a choice was made, and what it cost, belongs in
 
 ### Fixed
 
+- A quote can no longer be stitched together from two unrelated paragraphs. The
+  end of a block of text was being treated as an ordinary space when a quote was
+  checked against the page, so a sentence from one paragraph joined to a sentence
+  from the next read as one real quote and passed. That check is what every
+  stored value rests on.
+- A page's own menu can no longer reach the text a quote is checked against by
+  closing a tag it never opened. A menu lists the funder's other programmes, and
+  a sentence from one of those would otherwise pass while describing a different
+  grant.
+- A page served with Windows line endings now reads exactly as the same page
+  written the plain way. A stray carriage return was letting a page write its own
+  copy of the delimiter that separates the instruction from the text it is meant
+  to read.
+- A record refuses a field it does not know, rather than loading and dropping it
+  in silence. A card is read back on every push and again on every rebuild, so a
+  mistyped or renamed field is worth stopping for.
 - The archive and the frozen test fixtures are no longer rewritten by git. A page
   served with Windows line endings was stored one way and read back another, which
   would have made a quote verify on the machine that captured it and fail
@@ -35,7 +51,7 @@ language. **Why** a choice was made, and what it cost, belongs in
 - A plain-language map of every file in
   [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Numbered decision records in [`docs/decisions/`](docs/decisions/), ADR-0001 to
-  ADR-0025, one file per record with an index.
+  ADR-0036, one file per record with an index.
 - One specification per pull request in [`specs/`](specs/), written and approved
   before any code exists.
 - An advisory run of the gate on Linux for every pull request. It reports and

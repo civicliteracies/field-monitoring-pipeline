@@ -262,8 +262,9 @@ fails here with "Executable ... not found". Open a new terminal.
 
 **What it is.** The rule that stores every text file with Unix line endings.
 
-**What the code inside does.** Normalises all text, and names the file types that
-must always use Unix endings and the binary types git must not touch.
+**What the code inside does.** Normalises text, names the file types that must
+always use Unix endings and the binary types git must not touch, and excludes the
+two places that hold evidence.
 
 **How it does it.** Git converts on the way in, so whatever a Windows or Mac
 machine writes locally is stored the same way in the repository.
@@ -279,6 +280,16 @@ and fails on Linux with a confusing "bad interpreter" error. It matters more her
 than in most projects **because the repository is the database**: the stored cards
 are text, and their differences should be clean and comparable whatever machine
 wrote them.
+
+**The exception is the trap.** Two paths are excluded from that rule: the archive
+and the frozen test pages. Both are evidence, checked character by character, and
+normalising them changes what they say. Measured before anything had been
+archived: a capture of 54 bytes was stored as 52 and came back from a fresh clone
+as 52, and a quote spanning a line break was found in the original and not in the
+clone. A quote would then verify on the machine that captured it and fail on every
+other one, for a reason nothing in the output would explain. The exclusion is what
+makes the promise that the raw stays verbatim true rather than intended. See
+BUG-018 and ADR-0034.
 
 ### `.gitignore`
 
@@ -674,6 +685,17 @@ what every quote is checked against, and nothing else would be sound: a sentence
 carrying a link or a bold word is not one run of characters in the page's own
 markup. That makes this derivation part of the record's contract rather than a
 convenience, which is why it carries a version of its own. See ADR-0034.
+
+**Three things here are load bearing rather than tidy.** The end of a block of
+text is kept as a boundary a quote cannot cross, because collapsing it into a
+space lets a quote begin in one paragraph and end in the next and still pass as
+real. A page's line endings are settled here, once, because a stray carriage
+return stops any rule anchored to the end of a line from matching. And the parts
+of a page treated as furniture are tracked by tag name rather than counted,
+because a page that closes a tag it never opened would otherwise unwind the
+filter and let a menu through as though it were the article. Each of the three
+was a defect found by audit before any record existed. See BUG-019, BUG-020 and
+BUG-021.
 
 ### `scripts/refresh_fixture.py`
 

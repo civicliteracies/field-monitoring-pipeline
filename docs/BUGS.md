@@ -98,6 +98,93 @@ is rewritten correctly on the same run.
 file is repaired in passing. See ADR-0027.
 
 ---
+## BUG-019 — A quote could be stitched together from two unrelated paragraphs
+
+**Found** 2026-09-05, by an audit, before any record had been built.
+
+**Symptom.** A quote made by joining the last sentence of one paragraph to the
+first sentence of the next, with an ordinary space between them, was accepted as
+a real substring of the page. The string was not on the page. Reproduced on a
+two paragraph page with no trickery of any kind: a budget belonging to a
+different programme was attached to a call and passed every check, including the
+rule that a stated figure must appear in the budget's own sentence.
+
+**Cause.** The derivation marks the end of a block of text with a blank line.
+The comparison then collapsed every run of whitespace to a single space, which
+erased that mark. Once erased, the gap between two paragraphs was indistinguishable
+from the space between two words, so a quote could cross from one to the other.
+This was the check every stored value rests on, so it was the worst place in the
+system for the two halves to disagree about what the page says.
+
+**Fix.** The end of a block is turned into a character a quote cannot cross,
+rather than into a space. A quote that really does span two blocks, copied whole,
+still carries the boundary and still matches. Any copy of that character arriving
+in the text becomes a space first, so nothing can imitate a boundary. The
+character is from the private use area, chosen after the obvious one, the record
+separator, turned out to be counted as whitespace by Python and to be collapsed
+away by the very step it had to survive.
+
+**Test.** `tests/test_extract.py`, five tests: the splice is refused, three
+honest quotes still match including one copied whole across the break, the marker
+cannot be smuggled in, and the marker is not whitespace. Reverting the change
+turns the first red.
+
+---
+
+## BUG-020 — A page could still forge the fence by ending a line the Windows way
+
+**Found** 2026-09-05, by an audit, before the step had ever run unattended.
+
+**Symptom.** The instruction sent to the model wraps the page's text in a fence
+and rewrites anything inside it that looks like a fence delimiter, so a page
+cannot end the quoted section and speak as though it were the instruction. A page
+whose lines end with a carriage return slipped past that rewrite: the delimiter
+reached the model intact, and the prompt carried two closing fences instead of
+one. One of the two frozen pages is served with those endings, so this was
+ordinary input rather than a contrived one.
+
+**Cause.** The rewrite matches a delimiter alone on its line, and the end of a
+line is matched only immediately before a newline. A carriage return sits between
+the delimiter and that newline, so the pattern never lined up and the line was
+left as the page wrote it.
+
+**Fix.** Line endings are settled in the derivation, once, before anything reads
+the text. The same page served either way now gives the same string to the model
+and to every check.
+
+**Test.** `tests/test_extract.py`, three cases: a carriage return inside a
+paragraph, between two paragraphs, and alone. Each asserts none survives and that
+the page reads the same as the same page written the plain way.
+
+---
+
+## BUG-021 — A stray closing tag let a page's menu through as though it were the article
+
+**Found** 2026-09-05, by an audit, before any record had been built.
+
+**Symptom.** The derivation drops a page's own furniture, its menus, footers and
+forms, because a menu lists the funder's other programmes and a sentence from one
+of those is a real substring of this page. It would pass the quote check while
+describing a different grant. A page that closed a tag it never opened unwound
+that filter partway through, and the rest of the menu was read as though it were
+the article.
+
+**Cause.** One shared count of how many furniture tags were open, incremented on
+any opening tag and decremented on any closing one, whichever tag it was. A
+closing tag with no opening partner therefore reduced the count while the page
+was still inside a menu. Pages built by a template drop tags this way in ordinary
+use.
+
+**Fix.** The names of the open furniture tags are kept instead of a count, and a
+closing tag matches by name. A stray one now changes nothing, and closing an
+outer tag closes whatever was opened inside it.
+
+**Test.** `tests/test_extract.py`, one test for the stray closing tag and three
+for the ordinary shapes: nested and both closed, never closed, and opened and
+closed normally. Reverting the change turns the first red.
+
+---
+
 ## BUG-018 — Git rewrote the archive, so a quote verified on one machine and failed on every other
 
 **Found** 2026-09-03, by measurement, before any item had been archived.
