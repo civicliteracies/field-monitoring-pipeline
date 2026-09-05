@@ -21,9 +21,11 @@ from field_monitoring_pipeline.extract import (
     DEFAULT_MODEL,
     FENCE,
     FENCE_END,
+    KEY_NAME,
     KNOWN,
     MAX_QUOTE,
     PROMPT_VERSION,
+    TRANSIENT_PAUSES,
     TRANSIENT_TRIES,
     Gemini,
     HeldAfterTwoTriesError,
@@ -1146,6 +1148,17 @@ def test_closing_furniture_closes_the_innermost_one_of_that_name(captured: str) 
 # --------------------------------------------------------- reaching a real model
 
 
+@pytest.fixture(autouse=True)
+def no_real_pauses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The retry ladder waits for real between tries, and no test here wants that.
+
+    Six tests once spent ten seconds each waiting, which was most of the suite.
+    The ladder's shape is pinned by its own test, against the values imported at
+    the top of this file, which this does not touch.
+    """
+    monkeypatch.setattr("field_monitoring_pipeline.extract.TRANSIENT_PAUSES", (0, 0))
+
+
 def answering(status: int, body: object) -> httpx.Client:
     """A client wired to a fake server, so the real code path runs with no network."""
 
@@ -1169,6 +1182,17 @@ def test_the_model_is_pinned_to_an_exact_name() -> None:
     """A moving alias would make a stored model name a label rather than a thing."""
     assert DEFAULT_MODEL == "gemini-3.5-flash-lite"
     assert "latest" not in DEFAULT_MODEL
+
+
+def test_the_retry_ladder_has_one_pause_for_each_gap_between_tries() -> None:
+    """Raising the number of tries without adding a pause would end in an index error.
+
+    That is not one of the named errors a caller is promised, so the shape of the
+    ladder is pinned here. And the pauses widen, because a provider having a bad
+    moment is more likely to have recovered after the longer wait.
+    """
+    assert len(TRANSIENT_PAUSES) == TRANSIENT_TRIES - 1
+    assert TRANSIENT_PAUSES[0] < TRANSIENT_PAUSES[1]
 
 
 @pytest.mark.parametrize(
@@ -1249,14 +1273,29 @@ def test_the_key_is_not_printed_by_the_clients_own_repr() -> None:
     assert "a-real-looking-key" not in shown
 
 
-def test_the_key_is_read_from_an_ignored_file_beside_the_code(tmp_path: Path) -> None:
+def test_the_key_is_read_from_an_ignored_file_beside_the_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(KEY_NAME, raising=False)
     (tmp_path / ".env").write_text('GEMINI_API_KEY="abc123"\n', encoding="utf-8")
 
     assert read_key(tmp_path) == "abc123"
 
 
-def test_a_missing_key_is_said_plainly_before_any_item_is_read(tmp_path: Path) -> None:
+def test_the_key_in_the_environment_wins_over_the_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The scheduled run supplies a repository secret through the environment.
+
+    Reading that first is what lets it do so with no code change, and it is the
+    one path the scheduled run will actually use.
+    """
+    (tmp_path / ".env").write_text('GEMINI_API_KEY="from-the-file"\n', encoding="utf-8")
+    monkeypatch.setenv(KEY_NAME, "from-the-environment")
+
+    assert read_key(tmp_path) == "from-the-environment"
+
+
+def test_a_missing_key_is_said_plainly_before_any_item_is_read(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Rather than being discovered partway through a run."""
+    monkeypatch.delenv(KEY_NAME, raising=False)
+
     with pytest.raises(MissingKeyError, match="no model key"):
         read_key(tmp_path)
 
@@ -1507,16 +1546,13 @@ def counting(responses: list[httpx.Response | Exception]) -> tuple[httpx.Client,
     return httpx.Client(transport=httpx.MockTransport(respond)), asked
 
 
-def test_a_dropped_connection_is_tried_again_and_succeeds(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_a_dropped_connection_is_tried_again_and_succeeds() -> None:
     """Measured, not guessed. This happened on the first end to end run of the step.
 
     One page failed with a dropped connection and the same page succeeded
     immediately afterwards. The request never reached the model, so nothing was
     spent, and losing the item for it would be paying for someone else's blip.
     """
-    monkeypatch.setattr("field_monitoring_pipeline.extract.TRANSIENT_PAUSES", (0, 0))
     client, asked = counting([
         httpx.ConnectError("the connection went away"),
         httpx.Response(200, json=a_reply("fieldbook --type grant")),
@@ -1529,9 +1565,8 @@ def test_a_dropped_connection_is_tried_again_and_succeeds(
     assert asked[0] == 2
 
 
-def test_a_connection_that_keeps_dropping_gives_up(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_a_connection_that_keeps_dropping_gives_up() -> None:
     """One more try, not an unbounded ladder against a network that is down."""
-    monkeypatch.setattr("field_monitoring_pipeline.extract.TRANSIENT_PAUSES", (0, 0))
     client, asked = counting([httpx.ConnectError("no route")])
 
     with client, pytest.raises(ModelUnreachableError, match="could not be reached"):
@@ -1540,9 +1575,8 @@ def test_a_connection_that_keeps_dropping_gives_up(monkeypatch: pytest.MonkeyPat
     assert asked[0] == TRANSIENT_TRIES
 
 
-def test_a_fault_at_the_far_end_is_tried_again(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_a_fault_at_the_far_end_is_tried_again() -> None:
     """A server error is the provider's trouble, and the request cost nothing."""
-    monkeypatch.setattr("field_monitoring_pipeline.extract.TRANSIENT_PAUSES", (0, 0))
     client, asked = counting([
         httpx.Response(503, json={}),
         httpx.Response(200, json=a_reply("fieldbook --type grant")),
@@ -2125,4 +2159,18 @@ def test_the_providers_own_explanation_is_relayed() -> None:
 def test_a_provider_that_explains_nothing_still_gives_the_number() -> None:
     """The message is a bonus, never something the error depends on."""
     with answering(503, {}) as client, pytest.raises(ModelUnreachableError, match="503"):
+        Gemini(key="k", client=client)(prompt="hello")
+
+
+def test_a_provider_that_answers_with_a_page_instead_of_json_still_gives_the_number() -> None:
+    """A gateway in front of the provider can answer with a page. The number is still relayed."""
+
+    def page(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(503, text="<html>Service Unavailable</html>")
+
+    with (
+        httpx.Client(transport=httpx.MockTransport(page)) as client,
+        pytest.raises(ModelUnreachableError, match="503"),
+    ):
         Gemini(key="k", client=client)(prompt="hello")
