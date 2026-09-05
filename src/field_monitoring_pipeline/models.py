@@ -1,22 +1,27 @@
 """The typed shapes each step of the run hands to the next one.
 
-This file holds two things and nothing else: what a source on the watch list
-looks like, and what one captured item looks like. Keeping them in one place
-means no step has to guess what another gives it. A source is read from
-`config/sources.toml`, which people edit by hand; a raw item is what the fetcher
-produces and the archive writes down.
+Keeping every shape in one place means no step has to guess what another gives
+it. There are two groups. The first is what the capture works with: a source on
+the watch list, read from `config/sources.toml` which people edit by hand, and
+one captured item, which the fetcher produces and the archive writes down. The
+second is what the extraction builds: a funding call, and the small pieces a call
+is made of.
+
+A call carries its evidence. Five of its fields hold a value together with the
+exact sentence from the source that supports it, so a value can be checked
+against the page it came from long after it was written.
 """
 
 from __future__ import annotations
 
 import tomllib
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, HttpUrl, ValidationError
+from pydantic import BaseModel, ConfigDict, Discriminator, HttpUrl, ValidationError
 
 Kind = Literal["call", "report"]
 """What a source publishes. Calls and reports run on separate schedules."""
@@ -60,6 +65,120 @@ class RawItem(BaseModel):
     fetched_at: datetime
     raw_text: str
     raw_hash: str
+
+
+class Field(BaseModel):
+    """A value together with the sentence from the source that supports it.
+
+    The quote must appear in the source text word for word. That is what makes a
+    value checkable by anyone reading the card, and it is the cheapest guard
+    against a model inventing one.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    value: str
+    quote: str
+
+
+class Dated(BaseModel):
+    """A call with a fixed closing date, and the sentence the date was read from.
+
+    The date is checked as a valid date rather than a future one, so a call that
+    has closed still validates and the archive keeps it. Whether it is still open
+    is worked out when it is displayed. See ADR-0001.
+
+    Anything else is refused rather than quietly dropped. A record read back from
+    disk arrives as plain fields, and without this a stored card carrying both a
+    closing date and an open basis would load as a dated call with the other half
+    silently discarded, which is exactly the state the two shapes exist to make
+    impossible.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    basis: Literal["dated"] = "dated"
+    deadline: date
+    quote: str
+
+
+OpenBasis = Literal["rolling", "ongoing", "eoi"]
+"""The three ways a call can be open. One name, so nothing can drift from it."""
+
+
+class Open(BaseModel):
+    """A call with no fixed close, and the sentence that says so.
+
+    An open status is a claim about the page exactly like a date is, so it
+    carries its evidence too. See ADR-0031.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    basis: OpenBasis
+    quote: str
+
+
+Timing = Annotated[Dated | Open, Discriminator("basis")]
+"""When a call closes: a fixed date, or an open window. Never both, never neither."""
+
+CallType = Literal[
+    "grant",
+    "tender",
+    "rfp",
+    "eoi",
+    "framework",
+    "fellowship",
+    "prize",
+    "training",
+    "post",
+    "other",
+]
+"""The kinds of call the system recognises. Checked against this list, not quoted."""
+
+
+class Call(BaseModel):
+    """One funding call, as the extraction builds it.
+
+    Four fields may be absent, because a source often does not state them:
+    funder, budget, eligibility and area. The other four are always present.
+    That marking is the whole list of what may be absent, and a model answering
+    "not stated" for one of them is stored as an empty field. See ADR-0033.
+
+    `topics` stays empty here. Tags are assigned from the project's own tag list
+    at the tagging slice, never by the model.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    title: str
+    type: CallType
+    funder: str | None
+    timing: Timing
+    budget: Field | None
+    summary: Field
+    eligibility: Field | None
+    area: Field | None
+    topics: tuple[str, ...] = ()
+    source_url: str
+
+
+class Extraction(BaseModel):
+    """A built record together with what produced it.
+
+    The three versions travel beside the record rather than inside it, because
+    the record's shape is the funder's facts and these are facts about this
+    system. A stored value is attributable to the exact prompt, model and
+    deterministic code that made it, so a bad change can be found and undone.
+    See ADR-0034.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    call: Call
+    prompt_version: str
+    model_id: str
+    builder_version: str
 
 
 def _validated(block: dict[str, Any], index: int) -> Source:

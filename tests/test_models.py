@@ -1,11 +1,12 @@
-"""A broken watch list stops the run before any network request, and says where."""
+"""A broken watch list is refused early, and a record cannot hold an impossible state."""
 
 from datetime import date
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
-from field_monitoring_pipeline.models import load_sources
+from field_monitoring_pipeline.models import Call, Dated, Field, Open, load_sources
 
 GOOD = """
 [[source]]
@@ -119,3 +120,98 @@ since = "2026-06-01"
     )
     with pytest.raises(ValueError, match="more than once"):
         _ = load_sources(write(tmp_path, twice), kind="call")
+
+
+def test_a_timing_refuses_a_field_belonging_to_the_other_shape() -> None:
+    """Making the state impossible to express is cheaper than a guard to remember.
+
+    An earlier version of this test built each shape and checked it reported its
+    own name, which the type checker already proves and which said nothing about
+    the rule. It was also wrong: a record read back from disk arrives as plain
+    fields, and without refusing extra ones an open call carrying a closing date
+    loaded happily with the date silently dropped.
+    """
+    with pytest.raises(ValidationError):
+        Open.model_validate({
+            "basis": "rolling",
+            "quote": "Applications are accepted on a rolling basis.",
+            "deadline": "2026-01-01",
+        })
+
+    with pytest.raises(ValidationError):
+        Dated.model_validate({
+            "basis": "dated",
+            "deadline": "2026-01-01",
+            "quote": "Applications close on 1 January 2026.",
+            "open": "rolling",
+        })
+
+
+def test_an_open_timing_is_read_back_as_the_shape_it_was_written_as() -> None:
+    """The dated shape had this and the open one did not, so a break there was invisible."""
+    written = Call.model_validate({
+        **_a_call().model_dump(),
+        "timing": {"basis": "rolling", "quote": "Applications are accepted on a rolling basis."},
+    })
+
+    again = Call.model_validate(written.model_dump())
+
+    assert isinstance(again.timing, Open)
+    assert again.timing.basis == "rolling"
+
+
+def test_a_timing_is_read_back_as_the_shape_it_was_written_as() -> None:
+    """A stored card is read again on every push, so the discriminator has to work."""
+    call = _a_call()
+
+    again = Call.model_validate(call.model_dump())
+
+    assert isinstance(again.timing, Dated)
+    assert again.timing.deadline == date(2026, 9, 30)
+
+
+def test_a_call_cannot_be_built_without_a_summary() -> None:
+    """A card with no summary has nothing on it, so the shape refuses to hold one."""
+    with pytest.raises(ValidationError):
+        Call.model_validate({
+            "title": "A Fund",
+            "type": "grant",
+            "funder": None,
+            "timing": {"basis": "rolling", "quote": "Applications are accepted on a rolling basis."},
+            "budget": None,
+            "eligibility": None,
+            "area": None,
+            "source_url": "https://example.org/x",
+        })
+
+
+def test_a_kind_outside_the_ten_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        Call.model_validate({**_a_call().model_dump(), "type": "sponsorship"})
+
+
+def test_topics_start_empty_because_tagging_is_a_later_step() -> None:
+    """The model never names a topic. They come from the project's own tag list."""
+    assert _a_call().topics == ()
+
+
+def test_a_built_record_cannot_be_changed_afterwards() -> None:
+    """A record is evidence. Editing one in place would leave no trace."""
+    call = _a_call()
+
+    with pytest.raises(ValidationError):
+        call.title = "something else"
+
+
+def _a_call() -> Call:
+    return Call(
+        title="A Fund",
+        type="grant",
+        funder="Example Foundation",
+        timing=Dated(deadline=date(2026, 9, 30), quote="Applications close on 30 September 2026."),
+        budget=Field(value="EUR 20,000", quote="Grants of EUR 20,000 are available."),
+        summary=Field(value="A fund.", quote="This is a fund for open data."),
+        eligibility=None,
+        area=None,
+        source_url="https://example.org/x",
+    )
