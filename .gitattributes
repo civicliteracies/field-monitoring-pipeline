@@ -24,3 +24,18 @@
 *.jpg  binary
 *.pdf  binary
 *.ico  binary
+
+# Never touched: the evidence.
+#
+# The archive holds what a source actually served, and the frozen fixtures hold
+# the same for the two pages the extraction is tested against. Both are checked
+# character by character: a stored quote has to be found in them word for word,
+# on every push and again whenever a record is rebuilt.
+#
+# The rule above would rewrite their line endings, and that is not a cosmetic
+# change here. Measured: a 54 byte capture was stored as 52 and came back from a
+# fresh clone as 52, and a quote spanning a line break was found in the original
+# and not in the clone. A quote would then verify on the machine that captured it
+# and fail everywhere else.
+data/raw/**       -text
+tests/fixtures/** -text
