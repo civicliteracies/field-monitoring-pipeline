@@ -1,7 +1,7 @@
 # PR 3a — the record shape, and reading a captured page
 
 **Date:** 2026-09-04 · **Status:** ready to propose · **Owner:** build
-**Branch:** `feat/extract-read-a-page` · **Commit type:** `feat(extract): turn a captured page into the text a model reads`
+**Branch:** `feat/extract-read-a-page` · **Commit type:** `feat(extract): turn a captured page into the words a model reads`
 
 ## Goal
 
@@ -31,7 +31,6 @@ what comes out.
 
 ### The record shape
 
-
 1. THE SYSTEM SHALL define the record in `models.py` alongside the shapes already
    there, as a title, a type drawn from a fixed list of ten, a funder, a timing, a
    budget, a summary, an eligibility, an area, a list of topics and a source link.
@@ -50,9 +49,7 @@ what comes out.
 6. THE SYSTEM SHALL NOT add the project-report shape here. It arrives with the
    reports slice.
 
-
 ### The text the model reads
-
 
 7. THE SYSTEM SHALL derive one readable string from a captured item, and that same
    string SHALL be both what the model reads and what every quote is checked
@@ -71,7 +68,6 @@ what comes out.
     The production input is a feed entry, which carries no navigation, and any rule
     for selecting an article's own region can silently select nothing. See the
     note under **Two things measured while writing this**.
-
 
 ## Files touched
 
@@ -101,7 +97,6 @@ leaves out is listed in 3c.
    findable in the text this part produces. That is the whole claim.
 4. Nothing appears anywhere in `data/`.
 
-
 ## Why this arrives in three parts
 
 The extraction step is one idea, and it is three separable pieces of work: what
@@ -126,6 +121,7 @@ compliance, and saying so is better than claiming otherwise. See
 describes this step as the one AI step, proven on a single real item. The first
 two parts do not prove that. The third does, using what the first two built.
 
+## New dependencies requiring approval from a member of CLI
 
 **None.** The date reader, the markup removal and the escaping are all standard
 library. Measured on both fixture pages before this was written.
@@ -153,9 +149,33 @@ library. Measured on both fixture pages before this was written.
 
 ## Tests
 
-- The derivation turns a captured page into text where every real quote is found,
+Every test runs offline, with no key and no network.
 
-## What was measured while writing this
+- Markup inside a sentence does not break the sentence. A date written in bold
+  comes out as one run of words, which is the whole reason a derivation step
+  exists.
+- Script and style content never reaches the text. A page's menus, footers and
+  sidebars are dropped, and a heading that sits inside a header is kept.
+- Escaped characters are decoded and invisible ones are settled: a non-breaking
+  space becomes a plain one, and a zero-width space and a soft hyphen disappear.
+- Broken markup, an empty capture and plain prose all give the words back rather
+  than an error.
+- Comparison collapses whitespace on both sides, so a sentence wrapped across a
+  line break still matches itself and an unusual space in the page matches a
+  plain one. It never rewrites a character that carries meaning: a superscript
+  figure stays a superscript figure.
+- A heading is a whole line of the text. A fragment of one, or a single common
+  word, is not.
+- The record shapes refuse an impossible state: a timing carrying both a closing
+  date and an open basis, a call with no summary, a kind outside the ten, and a
+  record edited after it was built. A timing read back from disk comes back as
+  the shape it was written as, dated or open, and a call that has already closed
+  still builds.
+- The evidence survives git. A capture with Windows line endings is committed,
+  cloned, and comes back byte for byte, and a quote spanning the line break is
+  still findable. Measured by driving git rather than trusting it.
+
+## Two things measured while writing this
 
 **Line endings.** The repository instructs git to normalise line endings across
 every file. A captured body of 54 bytes was stored as 52 and came back from a fresh
