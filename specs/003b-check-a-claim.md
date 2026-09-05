@@ -1,7 +1,7 @@
 # PR 3b — reading a command line, and checking every claim
 
 **Date:** 2026-09-04 · **Status:** ready to propose · **Owner:** build
-**Branch:** `feat/extract-check-a-claim` · **Commit type:** `feat(extract): build a checked record from a flagged command`
+**Branch:** `feat/extract-check-a-claim` · **Commit type:** `feat(extract): build a checked record from the line a model writes`
 
 ## Goal
 
@@ -29,7 +29,6 @@ in the way, is the point of splitting.
 
 ### Finding and reading the command
 
-
 17. WHEN the model replies, THE SYSTEM SHALL take the one line beginning with the
     marker word followed by a space or the end of the line. Two such lines or none
     is a malformed command.
@@ -54,9 +53,7 @@ in the way, is the point of splitting.
 26. THE SYSTEM SHALL take the source link from the item's canonical link where the
     capture recorded one, and otherwise from the address it was fetched from.
 
-
 ### Checking a claim
-
 
 27. THE SYSTEM SHALL confirm that every stored quote appears in the source text
     word for word, comparing after collapsing runs of whitespace and normalising
@@ -91,7 +88,6 @@ in the way, is the point of splitting.
     topics, and is not caught for the summary, the eligibility and the area. See
     ADR-0032 and the guard pass at PR 9.
 
-
 ## Files touched
 
 - `src/field_monitoring_pipeline/extract.py` (the command reader and every check
@@ -119,7 +115,6 @@ there.
    not, a quote carrying an email address, a field left silently out.
 4. Nothing appears anywhere in `data/`.
 
-
 ## Why this arrives in three parts
 
 The extraction step is one idea, and it is three separable pieces of work: what
@@ -144,6 +139,7 @@ compliance, and saying so is better than claiming otherwise. See
 describes this step as the one AI step, proven on a single real item. The first
 two parts do not prove that. The third does, using what the first two built.
 
+## New dependencies requiring approval from a member of CLI
 
 **None.** The date reader, the markup removal and the escaping are all standard
 library. Measured on both fixture pages before this was written.
@@ -171,10 +167,53 @@ library. Measured on both fixture pages before this was written.
 
 ## Tests
 
-- The derivation turns a captured page into text where every real quote is found,
-- The command is found among prose, and a lookalike line, two lines, none, an
+Every test runs offline against a stand-in model, so the suite needs no key,
+costs nothing, and never fails because a provider had a bad morning.
+
+- The command is found among the model's reasoning. A word that merely begins
+  with the marker is not a command. Two command lines, none, a reply longer than
+  the stated length and a line longer than the stated length are each refused.
+- A value carrying quotation marks, commas, semicolons, a backslash, a line break
+  and characters outside the Latin alphabet survives the round trip unchanged,
+  because a free-text value is a JSON string.
 - An unknown flag, a repeated flag, an unquoted value, a plain flag with no value
-- A quote not on the page, a quote of one word, a quote carrying a contact detail,
-- An open call builds and stores its quote, and an open basis with no quote is
-- A broken command triggers exactly one retry, and a second failure raises the named
-- A transport failure consumes no attempt and is not reported as a malformed command.
+  and a value that never closes are each refused with a reason naming the flag.
+- An absence flag carries no value. A field left silently out is refused, and so
+  is a field given both a value and its absence flag. A summary can never be
+  said to be absent. An absence said out loud is stored as an empty field.
+- A quote not on the page, a quote of one word, a quote carrying an email
+  address or a telephone number, and a title that is a fragment of a heading are
+  each refused. Money, a date written in figures and a range of years are never
+  mistaken for a telephone number, and an ordinary local number is caught.
+- A budget may not state a figure its own sentence does not. A summary may name
+  a year the page states elsewhere, and may not name a figure the page never
+  states. A comma between two numbers ends the first one.
+- A closing date is read back out of its own sentence in every written form,
+  including the British abbreviation, and must match the date the model typed.
+  A sentence naming two dates is refused. A relative phrase and an impossible
+  date are not dates. A date given without its sentence, or written in a form
+  that is not a date, is refused.
+- An open call carries its sentence as a date does. An open basis with no
+  sentence, or outside the three, is refused. Evidence given for the timing not
+  chosen is refused rather than dropped.
+- An empty title, an empty funder and an empty quoted value are each refused. A
+  funder given both ways, or neither, is refused.
+- The kind of call must be one of the ten. The model may not set the link or the
+  topics, and neither is a flag the builder knows.
+- A broken answer is sent back once with the reason and the second try is
+  accepted. Two failures end with nothing built. The model is never asked more
+  than twice. A model that does not answer at all is a different error from a
+  malformed command.
+- The two frozen pages: the recorded reply still produces the record it
+  produced, the heading and the closing date match what a person read off each
+  page, and a derived value such as "global" is allowed when a real sentence
+  supports it.
+- The known limit is pinned as a fact: a real sentence attached to a value it
+  does not support is accepted, because the checks catch invention and not
+  misattribution.
+- The source text is fenced in the prompt, and a page cannot write a second
+  fence around itself. The link comes from the capture and never from the model.
+  The printed record carries every quote, says when a call is open, and says
+  when a field is not stated. The watcher sees every attempt and what the model
+  wrote. Nothing is written anywhere. A record built by hand needs the same
+  grounding as one from a model.
