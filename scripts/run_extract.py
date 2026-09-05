@@ -15,6 +15,7 @@ Usage:  uv run python scripts/run_extract.py [name ...]
 from __future__ import annotations
 
 import hashlib
+import io
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -57,6 +58,11 @@ def fixture_item(folder: Path, name: str) -> tuple[RawItem, str]:
 
 def main() -> int:
     """Run the extraction against each named fixture, or the first one by default."""
+    # The record carries a funder's own punctuation. When the screen is
+    # redirected on Windows, Python encodes strictly in the machine's code
+    # page, and one character it lacks stops the whole check. So the screen is
+    # rewrapped to write UTF-8, and to replace rather than stop.
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
     names = sys.argv[1:] or ["cipesa"]
     try:
         key = read_key(ROOT)
