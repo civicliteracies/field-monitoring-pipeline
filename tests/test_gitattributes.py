@@ -29,9 +29,13 @@ def git(where: Path, *args: str) -> None:
     using whatever code page the machine happens to use, and on the machine this
     was written on that turns an accent or a dash into a replacement character.
     Nothing here reads the output, so the safest form is not to decode it at all.
+
+    Signing is switched off as well. A machine set to sign every commit would
+    otherwise fail the throwaway commit silently, and the test would then error
+    for a reason that points nowhere.
     """
     subprocess.run(
-        ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *args],
         cwd=where,
         capture_output=True,
         check=False,
