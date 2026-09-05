@@ -73,6 +73,17 @@ the project rules out.
 
 FENCE = "-----BEGIN SOURCE TEXT-----"
 FENCE_END = "-----END SOURCE TEXT-----"
+FORGED = re.compile(f"(?:{re.escape(FENCE)}|{re.escape(FENCE_END)})")
+"""A delimiter written by the page rather than by this code.
+
+Matched wherever it appears. An earlier version matched one alone on its line,
+which a page defeated by writing its own prose straight after the delimiter on
+the same line, and again by ending the line the Windows way. Neither shape is
+exotic. Matching the delimiter itself removes the whole class. BUG-028.
+
+Compiled once here rather than inside the function, like every other pattern in
+this file.
+"""
 
 
 class MalformedCommandError(Exception):
@@ -324,8 +335,7 @@ def build_prompt(instruction: str, source: str) -> str:
     does not try to spot an attack, it removes the ambiguity an attack needs.
     See ADR-0010.
     """
-    forged = re.compile(rf"^[ \t]*(?:{re.escape(FENCE)}|{re.escape(FENCE_END)})[ \t]*$", re.MULTILINE)
-    safe = forged.sub(lambda m: m.group(0).replace("-", "\u2011"), source)
+    safe = FORGED.sub(lambda m: m.group(0).replace("-", "\u2011"), source)
     return f"{instruction}\n\n{FENCE}\n{safe}\n{FENCE_END}\n"
 
 
@@ -1071,7 +1081,7 @@ def extract(
         )
 
     reasons = "; then ".join(refusals)
-    msg = f"{item.raw_hash[:12]}: held after 2 attempts. Refused because {reasons}"
+    msg = f"{item.raw_hash[:12]} at {url}: held after 2 attempts. Refused because {reasons}"
     raise HeldAfterTwoTriesError(msg)
 
 
@@ -1151,6 +1161,14 @@ same page succeeded immediately afterwards.
 This is the same shape `fetch.py` already uses for sources, with a shorter ladder
 because a model call is expensive in time and a source fetch is not.
 
+Two ladders sit one inside the other, and the cost of that is worth stating
+plainly. This one runs inside a single attempt at reading an item, and an item
+gets two attempts, so one item can make six requests in all. On a bad network,
+where each attempt waits out the reading limit before failing, the worst case is
+a quarter of an hour on one item. Nothing is lost when that happens and no guess
+is published, but a maintainer reading only the paragraph above would expect
+minutes.
+
 Three rather than two, measured. Three calls in a row on this provider's free
 tier gave two answers and one refusal with a server error, each taking around a
 minute, and a page needs one good answer. At that rate two attempts lose roughly
@@ -1164,19 +1182,19 @@ is more likely to have recovered after eight seconds than after two.
 class _Part(BaseModel):
     """One piece of the model's answer, as the provider sends it."""
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     text: str = ""
 
 
 class _Content(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     parts: list[_Part] = []
 
 
 class _Candidate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     content: _Content = _Content()
 
@@ -1191,7 +1209,7 @@ class _Answer(BaseModel):
     so the provider can add fields without breaking this.
     """
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     candidates: list[_Candidate] = []
 
@@ -1204,7 +1222,7 @@ class _Trouble(BaseModel):
     their own code, which is the misdiagnosis this error type exists to prevent.
     """
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     message: str = ""
 
@@ -1212,7 +1230,7 @@ class _Trouble(BaseModel):
 class _Refusal(BaseModel):
     """A reply that carries a refusal rather than an answer."""
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     error: _Trouble = _Trouble()
 
@@ -1242,7 +1260,13 @@ def read_key(root: Path) -> str:
         for line in env_file.read_text(encoding="utf-8").splitlines():
             name, _, value = line.partition("=")
             if name.strip() == KEY_NAME:
-                return value.strip().strip("'\"")
+                found = value.strip().strip("'\"")
+                if found:
+                    return found
+                # The committed template ends with the setting and no value, so
+                # this is what copying it and forgetting to paste the key looks
+                # like. Saying the key is missing is the whole point of this
+                # function, and returning an empty one defeats it. BUG-027.
     msg = (
         f"no model key. Put {KEY_NAME}=your-key in a file called .env at the root of "
         "this project, which git already ignores, or set it in the environment."
@@ -1284,7 +1308,7 @@ class Gemini:
             said = _what_it_said(answer)
             raise TransientFailureError(f"{msg}. It said: {said}" if said else msg)
         if answer.status_code != OK:
-            msg = f"the model answered {answer.status_code}, check the key and the model name"
+            msg = f"the model answered {answer.status_code}, check the key and the model name {self.model_id}"
             raise ModelUnreachableError(msg)
         return answer
 
