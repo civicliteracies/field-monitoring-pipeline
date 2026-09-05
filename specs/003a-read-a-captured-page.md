@@ -156,7 +156,7 @@ library. Measured on both fixture pages before this was written.
 - **The propose, challenge and confirm roles are played inside one prompt** in this
   slice, because a single pass costs nothing extra on a free tier. Independent
   passes and holding a twice-failed item are PR 9.
-- **A retry is the same step attempted again**, not a second AI step.
+- **A retry attempts the same step again.** It is not a second AI step.
 - **No new dependency.** A strict date reader built from the standard library was
   measured against both fixture pages and read both deadlines correctly.
 - **The model key lives in a file git ignores**, read from the environment first so

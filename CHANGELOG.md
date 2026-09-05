@@ -23,6 +23,23 @@ language. **Why** a choice was made, and what it cost, belongs in
   as the article.
 - What a source served is protected from having its line endings rewritten, which
   only the older archive folder was.
+- A figure in a value must be a number the page actually states. It was enough
+  for the digits to appear anywhere, so a claimed 87 was accepted on a page whose
+  only number is the year 1987.
+- A quote can no longer be padded with spaces to reach the length the rule asks
+  for. The length was measured on the raw text and the grounding on the collapsed
+  text, so whitespace counted towards a floor that exists to make a quote mean
+  something.
+- A stored value may not carry a line break or a tab. One hidden inside passed
+  the check, because the check collapses whitespace, and still reached the card,
+  where a title has to be one whole line of the page and the printed record puts
+  one field on one line.
+- A telephone number written as two groups of four digits is caught. The
+  exemption that lets a range of years through was matching any eight digits with
+  a dash in the middle, which is how much of the world writes a local number.
+- An amount with the currency written after it is read as money. The rule looked
+  only before the figure, so an honest budget written the ordinary European way
+  was refused as carrying a contact detail.
 - A quote can no longer be stitched together from two unrelated paragraphs. The
   end of a block of text was being treated as an ordinary space when a quote was
   checked against the page, so a sentence from one paragraph joined to a sentence

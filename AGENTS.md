@@ -69,8 +69,8 @@ Extraction, and nothing else.
   model says so out loud with its own flag, and the record stores an empty field.
   Leaving a field out is not the same thing and is refused. Which fields may be
   absent is settled by the record shape itself. See ADR-0033.
-- **These checks catch invention, not misattribution.** They prove a quote was
-  copied from the page rather than made up. A real sentence attached to a value
+- **These checks catch invention. They do not catch misattribution.** They prove
+  a quote was copied from the page rather than made up. A real sentence attached to a value
   it does not support is caught for the timing, the budget, the type and the
   topics, each of which can be read back or checked against a list. For the
   summary, the eligibility and the area it is not caught, and the guard pass at

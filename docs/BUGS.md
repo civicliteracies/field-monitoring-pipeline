@@ -222,6 +222,110 @@ source still matches itself.
 continuous shapes that must not, plus the whole gate on the sentence that started
 it. The old test asserted a single line break between two paragraphs, which was
 the defect written down as an expectation.
+## BUG-022 — A line break hidden in a value passed the check and reached the record
+
+**Found** 2026-09-05, by an audit, before any record had been built.
+
+**Symptom.** A title given as `Civic\nData Grants 2026` was accepted as a whole
+line of the page and stored with the line break in it. The same held for any
+stored quote or value. Reproduced for a title and for a quote.
+
+**Cause.** A value is compared with its whitespace collapsed and stored exactly
+as the model wrote it. A line break or a tab therefore vanished for the
+comparison and survived into the record. Two things depend on that not happening.
+A title is required to be one whole line of the source, and a title spanning two
+lines is not. And the printed record puts one field on one line so a person can
+read it beside the page, which is where the checks stop and the human check takes
+over.
+
+**Fix.** A stored value may carry no control character. One rule, applied to the
+title, to every quote, to every field value and to the funder.
+
+**Test.** `tests/test_extract.py`, three cases through the builder: a line break
+in the title, a tab in a value, and a line break in a quote.
+
+---
+
+## BUG-023 — A fabricated number was grounded on part of a larger one
+
+**Found** 2026-09-05, by an audit, before any record had been built.
+
+**Symptom.** A claimed reach of 87 countries was accepted on a page whose only
+number is the year 1987. The page states nothing about 87 of anything.
+
+**Cause.** The rule that every number of two or more digits in a value must be
+supported was written as a search for those characters anywhere in the page. The
+digits of 87 sit inside 1987, so the search succeeded. Every number in the page
+was therefore a hiding place for any number whose digits it happened to contain,
+which includes years, identifiers and every larger figure.
+
+**Fix.** The numbers the evidence states are read out with the same rule used to
+read them out of the value, and the two are compared as numbers. A figure now has
+to be one the page actually states.
+
+**Test.** `tests/test_extract.py`, two tests: the fabricated 87 is refused on a
+page that says 1987, and a claim resting on 1987 itself is still accepted.
+
+---
+
+## BUG-024 — Four spaces bought a one word quote past the length floor
+
+**Found** 2026-09-05, by an audit, before any record had been built.
+
+**Symptom.** The quote `Africa` was refused as too short to prove anything, which
+is what the floor exists for. The quote `Africa    ` was accepted.
+
+**Cause.** The length was measured on the raw string and the grounding on the
+collapsed one, so whitespace counted towards the floor while adding nothing that
+could be checked. The suite's own test for this rule was named for a one word
+quote proving nothing, and a one word quote could pass.
+
+**Fix.** Both are measured on the same form, the one the comparison uses.
+
+**Test.** `tests/test_extract.py`, the padded quote is refused and the reported
+length is the real one. A second test covers the ceiling, which had none: the two
+bounds are one chained comparison, so either half failing satisfied a coverage
+report the same way and the ceiling could have been removed with nothing turning
+red.
+
+---
+
+## BUG-025 — A local telephone number written as two groups of four was exempt
+
+**Found** 2026-09-05, by an audit, before any record had been built.
+
+**Symptom.** `Call our office at 2345-6789 for details` was reported as carrying
+no contact detail. A real telephone number could therefore reach a quote stored
+in a public repository that keeps its history.
+
+**Cause.** An exemption added so that a range of years such as 2024-2025 would
+not be read as a telephone number. It was written as any four digits, a dash and
+any four digits, which is also how a great many countries write an ordinary local
+number.
+
+**Fix.** A range has to look like years for the exemption to apply.
+
+**Test.** `tests/test_extract.py`, the local number is caught, and a recent and
+an older range of years are both still allowed.
+
+---
+
+## BUG-026 — An amount with the currency written after it was read as a telephone number
+
+**Found** 2026-09-05, by an audit, before any record had been built.
+
+**Symptom.** `grants of up to 12.345.678 EUR` was refused as carrying a contact
+detail. The same amount written `EUR 12.345.678` was accepted.
+
+**Cause.** The rule that a currency marker makes a run of digits money looked
+only at the text before the run. Writing the currency after the figure is
+ordinary in much of Europe, and grouping thousands with periods is ordinary with
+it.
+
+**Fix.** The rule looks on both sides of the run.
+
+**Test.** `tests/test_extract.py`, two shapes: the currency code after the figure,
+and thousands grouped with spaces.
 
 ---
 

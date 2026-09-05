@@ -691,7 +691,9 @@ source. That derivation is therefore part of the record's contract and carries
 its own version. See ADR-0034. The checks catch a quote that was invented; they
 do not catch a real sentence attached to a value it does not support, except
 where the value can be read back out of its quote, which is the timing and the
-budget. A page's declared furniture is dropped before the model sees it, because
+budget. **The funder is the one field with no evidence at all.** It carries no
+quote and no grounding check, deliberately, and a reader of this file should know
+that before assuming the page's own premise covers every field. See ADR-0032. A page's declared furniture is dropped before the model sees it, because
 a menu on a funder's site lists that funder's other programmes and a sentence
 from one of those is a real substring of this page. Headers are kept, because one
 of the two test pages puts its own heading inside one.

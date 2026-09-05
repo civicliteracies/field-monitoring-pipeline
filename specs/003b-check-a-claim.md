@@ -59,13 +59,23 @@ in the way, is the point of splitting.
     word for word, comparing after collapsing runs of whitespace and normalising
     characters, and applying the same treatment to both sides.
 28. THE SYSTEM SHALL refuse a quote shorter or longer than a stated range. A single
-    word satisfies a substring test and proves nothing.
+    word satisfies a substring test and proves nothing. THE SYSTEM SHALL measure
+    that length on the same form the comparison uses, so whitespace cannot count
+    towards it. See BUG-024.
+28a. THE SYSTEM SHALL refuse any stored value carrying a character that is not a
+    word, meaning the title, every quote, every field value and the funder. Such a
+    character is invisible to a comparison that collapses whitespace and still
+    reaches the card, where a title has to be one whole line of the page and the
+    printed record puts one field on one line. See BUG-022.
 29. THE SYSTEM SHALL refuse a stored quote containing an email address or a
     telephone number, and SHALL NOT alter the quote to remove one, because an
     altered quote is no longer a substring of the source. The field is then grounded
     on another sentence or recorded as not stated. See ADR-0031.
-30. THE SYSTEM SHALL confirm that every number of two or more digits in a budget
-    appears in the budget's own quote, because a budget is the figure itself.
+30. THE SYSTEM SHALL compare numbers as numbers rather than as runs of characters,
+    so a figure the page never states cannot be grounded on part of a larger one.
+    See BUG-023. THE SYSTEM SHALL confirm that every number of two or more digits
+    in a budget appears in the budget's own quote, because a budget is the figure
+    itself.
     For the other quoted fields THE SYSTEM SHALL confirm the number appears
     somewhere in the source text, because those are prose that may honestly name
     a year or a count the page discusses elsewhere. Both still refuse a figure the
@@ -155,7 +165,7 @@ library. Measured on both fixture pages before this was written.
 - **The propose, challenge and confirm roles are played inside one prompt** in this
   slice, because a single pass costs nothing extra on a free tier. Independent
   passes and holding a twice-failed item are PR 9.
-- **A retry is the same step attempted again**, not a second AI step.
+- **A retry attempts the same step again.** It is not a second AI step.
 - **No new dependency.** A strict date reader built from the standard library was
   measured against both fixture pages and read both deadlines correctly.
 - **The model key lives in a file git ignores**, read from the environment first so
@@ -183,8 +193,17 @@ costs nothing, and never fails because a provider had a bad morning.
   said to be absent. An absence said out loud is stored as an empty field.
 - A quote not on the page, a quote of one word, a quote carrying an email
   address or a telephone number, and a title that is a fragment of a heading are
-  each refused. Money, a date written in figures and a range of years are never
-  mistaken for a telephone number, and an ordinary local number is caught.
+  each refused. A one word quote padded with spaces is refused too, and so is a
+  quote past the ceiling. Money is never mistaken for a telephone number, whether
+  the currency is written before or after the figure, and neither is a date in
+  figures nor a range of years. An ordinary local number is caught, including one
+  written as two groups of four digits.
+- A stored value carrying a line break or a tab is refused, in the title, in a
+  value and in a quote.
+- A figure in a value has to be a number the page states. A claimed 87 is refused
+  on a page whose only number is 1987, and a claim resting on 1987 itself is
+  still accepted. A number written with periods is read as one number.
+- An absent funder is stored as nothing.
 - A budget may not state a figure its own sentence does not. A summary may name
   a year the page states elsewhere, and may not name a figure the page never
   states. A comma between two numbers ends the first one.
