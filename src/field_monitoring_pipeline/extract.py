@@ -640,9 +640,6 @@ def _one_quoted_field(name: str, flags: dict[str, str], source: str) -> Field | 
         msg = f"--{name}-not-stated cannot be given with a value"
         raise MalformedCommandError(msg)
     if absent:
-        if name == "summary":
-            msg = "--summary is required and cannot be not-stated"
-            raise MalformedCommandError(msg)
         return None
     if value is None and quote is None:
         msg = f"say either --{name} with --{name}-quote, or --{name}-not-stated"
