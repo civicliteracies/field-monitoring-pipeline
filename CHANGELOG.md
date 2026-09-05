@@ -54,6 +54,13 @@ language. **Why** a choice was made, and what it cost, belongs in
   or eight digits used to be assumed to be an amount, which made every number
   written that way invisible. The cost is that an amount written solid with no
   currency beside it is now refused, which naming the currency clears.
+
+
+- The key file is read properly. Copying the committed template and leaving the
+  setting empty gave an empty key and a confusing failure later, where the point
+  of that step is to say plainly that there is no key before anything is read.
+- A page cannot write the delimiter that separates the instruction from the text
+  it is meant to read, whatever it puts on the line with it.
 - A figure in a value must be a number the page actually states. It was enough
   for the digits to appear anywhere, so a claimed 87 was accepted on a page whose
   only number is the year 1987.

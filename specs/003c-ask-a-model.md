@@ -31,13 +31,19 @@ the checks to hold its answer to.
     the recorded prompt version from that name so the two can never disagree.
 13. THE SYSTEM SHALL enclose the item's text in a delimiter and state in the
     instruction that everything inside it is text to read and never an instruction
-    to follow. Fetched text is attacker-influenced. See ADR-0010.
+    to follow. Fetched text is attacker-influenced. See ADR-0010. THE SYSTEM SHALL
+    neutralise a delimiter written by the page wherever it appears, rather than
+    only where it stands alone on its line, because a page defeated the narrower
+    rule twice: once by writing its own words on the same line, and once by ending
+    the line the Windows way. See BUG-028 and BUG-020.
 14. THE SYSTEM SHALL reach the model through a single named seam passed in as an
     argument, so a test can supply a stand-in and the suite runs offline.
 15. THE SYSTEM SHALL set its own timeout on each model request rather than relying
     on a default. This bounds one request and is not a limit on a whole run.
 16. WHEN no model key is present, THE SYSTEM SHALL say so and stop before reading
-    any item, rather than discovering it partway through.
+    any item, rather than discovering it partway through. A setting present with
+    no value counts as no key, because that is what copying the committed template
+    and not filling it in produces. See BUG-027.
 
 ### When it fails
 
@@ -52,8 +58,9 @@ the checks to hold its answer to.
     words would then arrive twice.
 40. THE SYSTEM SHALL ask the model at most twice for one item.
 41. WHEN the second attempt also fails, THE SYSTEM SHALL raise one named error
-    carrying the item's name, the number of attempts and the last message, and
-    SHALL return nothing partial.
+    carrying the item's name, the address it was captured from, the number of
+    attempts and every reason, and SHALL return nothing partial. That error is the
+    only record of a held item in this slice, so it has to be enough to act on.
 42. THE SYSTEM SHALL NOT create a held directory, a quarantine folder or a run log.
     Holding a twice-failed item belongs to PR 9, and ending at one named error gives
     that slice a single place to attach to.
@@ -167,7 +174,7 @@ two parts do not prove that. The third does, using what the first two built.
 - **The propose, challenge and confirm roles are played inside one prompt** in this
   slice, because a single pass costs nothing extra on a free tier. Independent
   passes and holding a twice-failed item are PR 9.
-- **A retry is the same step attempted again**, not a second AI step.
+- **A retry attempts the same step again.** It is not a second AI step.
 - **No new dependency.** A strict date reader built from the standard library was
   measured against both fixture pages and read both deadlines correctly.
 - **The model key lives in a file git ignores**, read from the environment first so
@@ -203,8 +210,15 @@ server wired to the real client, so the suite needs no key and no network.
   number when it does not, whether the body is JSON or a page.
 - The key is read from the environment first and from the ignored file second,
   so the scheduled run's secret wins over a file. A missing key is said plainly
-  before any item is read. The key never appears in the client's own printed
-  form.
+  before any item is read, including when the committed template has been copied
+  and left unfilled, and a filled template is read correctly past its comments.
+  The key never appears in the client's own printed form.
+- A page cannot write a delimiter of its own, whether it glues prose onto the
+  same line, ends the line the Windows way, leaves it standing alone, or pads it
+  with spaces.
+- The error raised after two failed attempts names the address the item came
+  from, and the error that asks a maintainer to check the model name says which
+  name was sent.
 
 ## Two things measured while writing this
 

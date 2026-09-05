@@ -443,6 +443,53 @@ removes a case the rule used to give up on rather than adding a guard.
 number then another in brackets, two numbers either side of a dash, and hours
 written with a dot. Reverting the change turns all four red.
 
+
+## BUG-027 — Copying the template and forgetting the key gave an empty key rather than a plain refusal
+
+**Found** 2026-09-05, by an audit, before the step had been run by anyone else.
+
+**Symptom.** `env.example` ends with the setting and no value. Copying it to
+`.env` and forgetting to paste the key made the key reader return an empty
+string. The run then carried on, sent an empty key to the provider, and reported
+that the model answered 400 and the key should be checked. Reproduced against the
+template this project actually ships.
+
+**Cause.** The reader returned the first value it found for the setting, without
+asking whether there was one. An empty value is what no key looks like, and the
+one thing this function exists to say is that there is no key, before any item is
+read.
+
+**Fix.** An empty value counts as no key, so the reader keeps looking and, if
+nothing is found, says so plainly.
+
+**Test.** `tests/test_extract.py`, two tests reading the real committed template:
+the unfilled copy is refused with the message a person needs, and a filled copy
+is read correctly past the twenty lines of comment above it.
+
+---
+
+## BUG-028 — A page could write a delimiter of its own by gluing prose onto it
+
+**Found** 2026-09-05, by an audit, before the step had joined any run.
+
+**Symptom.** The instruction wraps the page's text in a delimiter and neutralises
+anything inside that looks like one, so a page cannot end the quoted section and
+speak as though it were the instruction. A page that wrote the delimiter with its
+own words on the same line slipped through, and the prompt carried two closing
+delimiters instead of one.
+
+**Cause.** The guard matched a delimiter alone on its line. Anything on the line
+with it therefore stopped the match. This is the second shape to defeat the same
+guard, the first being a line ended the Windows way, recorded as BUG-020.
+
+**Fix.** The delimiter itself is matched, wherever it sits, which removes the
+class rather than the two known members of it. The pattern also moves to the top
+of the file with every other pattern, having been rebuilt on every call.
+
+**Test.** `tests/test_extract.py`, four shapes: prose glued on, the Windows
+ending, alone on its line, and padded with spaces. Each asserts exactly one
+delimiter of each kind reaches the model.
+
 ---
 
 ## BUG-022 — A line break hidden in a value passed the check and reached the record
