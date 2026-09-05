@@ -1,0 +1,19 @@
+For the title, the page heading is "Open Call for Proposals for Pulitzer Center’s AI Accountability Fellowships (2026–2027)", which is supported by the heading line "Open Call for Proposals for Pulitzer Center’s AI Accountability Fellowships (2026–2027)". 
+
+For the type, the opportunity is a fellowship, as stated in the sentence "The Pulitzer Center is now accepting applications for its fifth cohort (2026-2027) of the Artificial Intelligence (AI) Accountability Fellowships."
+
+For the funder, the organization offering it is the Pulitzer Center, supported by the sentence "The Pulitzer Center is now accepting applications for its fifth cohort (2026-2027) of the Artificial Intelligence (AI) Accountability Fellowships."
+
+For the timing, the deadline is July 12, 2026, found in the sentence "The deadline is July 12, 2026."
+
+For the budget, the amount offered is up to $25,000, supported by the sentence "Journalists selected as AI Accountability Fellows will be provided up to $25,000 (up to $20,000 for reporting and $5,000 for engagement activities) to pursue their reporting projects."
+
+For the summary, the call offers financial support, mentorship, and training for journalists pursuing in-depth reporting projects on artificial intelligence systems, which is supported by the sentence "Through the AI Accountability Fellowships, the Pulitzer Center aims to support in-depth, high-impact reporting projects that document and explain the opportunities, harms, and regulatory and labor issues surrounding AI systems."
+
+For eligibility, applicants can be journalists from around the world interested in reporting on algorithmic and automated systems, supported by the sentence "The Pulitzer Center is recruiting eight to 10 journalists from around the world to report on the impacts of algorithmic and automated systems on their communities."
+
+For the area, it is open globally, as supported by the phrase "from around the world" in the sentence "The Pulitzer Center is recruiting eight to 10 journalists from around the world to report on the impacts of algorithmic and automated systems on their communities."
+
+Reviewing these selections, the title matches the page heading correctly. The type is a fellowship. The funder is accurately named. The deadline quote explicitly contains the July 12, 2026 date. The budget correctly captures the financial support figure. The summary describes the fellowship accurately while using the cited sentence as support. The eligibility correctly points to the recruitment of journalists. The area translates the global reach of the call. 
+
+fieldbook --title "Open Call for Proposals for Pulitzer Center’s AI Accountability Fellowships (2026–2027)" --type fellowship --funder "Pulitzer Center" --deadline 2026-07-12 --deadline-quote "The deadline is July 12, 2026." --summary "The Pulitzer Center is offering fellowships providing financial support, mentorship, and training to journalists reporting on artificial intelligence systems." --summary-quote "Through the AI Accountability Fellowships, the Pulitzer Center aims to support in-depth, high-impact reporting projects that document and explain the opportunities, harms, and regulatory and labor issues surrounding AI systems." --budget "up to $25,000" --budget-quote "Journalists selected as AI Accountability Fellows will be provided up to $25,000 (up to $20,000 for reporting and $5,000 for engagement activities) to pursue their reporting projects." --eligibility "journalists" --eligibility-quote "The Pulitzer Center is recruiting eight to 10 journalists from around the world to report on the impacts of algorithmic and automated systems on their communities." --area "global" --area-quote "The Pulitzer Center is recruiting eight to 10 journalists from around the world to report on the impacts of algorithmic and automated systems on their communities."

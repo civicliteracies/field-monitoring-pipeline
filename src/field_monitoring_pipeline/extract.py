@@ -15,9 +15,30 @@ steps.
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
+from dataclasses import dataclass
+from datetime import date, datetime
 from html.parser import HTMLParser
+from typing import TYPE_CHECKING, Protocol, TypeIs, get_args
+
+from field_monitoring_pipeline.models import (
+    Call,
+    CallType,
+    Dated,
+    Extraction,
+    Field,
+    Open,
+    OpenBasis,
+    RawItem,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+    from field_monitoring_pipeline.models import Timing
 
 BUILDER_VERSION = "b1"
 """The version of the deterministic side: this file's parsing and checking.
@@ -26,6 +47,44 @@ It is stored on every record so a value is attributable to the logic that made
 it. Bump it when a change alters what this file accepts or produces, and pair
 that bump with a decision record and a rebuild. See ADR-0034.
 """
+
+MARKER = "fieldbook"
+MAX_REPLY = 60_000
+MAX_LINE = 8_000
+MIN_QUOTE = 10
+MAX_QUOTE = 400
+
+FENCE = "-----BEGIN SOURCE TEXT-----"
+FENCE_END = "-----END SOURCE TEXT-----"
+
+
+class MalformedCommandError(Exception):
+    """The reply could not be read as a command. The model is told and tries again."""
+
+
+class UngroundedClaimError(Exception):
+    """A claim is not supported by the source text. Also worth one attempt more."""
+
+
+class ModelUnreachableError(Exception):
+    """No reply at all: refused, rate limited, timed out, or the model is gone.
+
+    Kept apart from a malformed command on purpose. When a free tier runs out,
+    every item fails the same way, and a run that reads as "extraction is broken"
+    sends someone looking in the wrong place.
+    """
+
+
+class HeldAfterTwoTriesError(Exception):
+    """Two attempts failed. Nothing is built and nothing is written."""
+
+
+class Model(Protocol):
+    """The one seam. A test passes a stand-in and the suite never leaves the machine."""
+
+    def __call__(self, prompt: str) -> str:
+        """Send the prompt and return the model's reply as text."""
+        ...
 
 
 # --------------------------------------------------- turning a capture into text
@@ -201,3 +260,537 @@ def flat(value: str) -> str:
 def lines_of(source: str) -> frozenset[str]:
     """Every non-empty line of the source, for grounding a heading."""
     return frozenset(flat(line) for line in source.split("\n") if line.strip())
+
+
+# ------------------------------------------------------------------ the prompt
+
+
+@dataclass(frozen=True, slots=True)
+class Prompt:
+    """An instruction and the version that names it, which cannot come apart.
+
+    They used to be two arguments. Nothing tied them, so a caller could send one
+    file's words and record another file's name, which is exactly what the
+    version exists to prevent. Carrying them as one thing makes that impossible
+    rather than merely discouraged.
+    """
+
+    version: str
+    text: str
+
+
+def load_prompt(directory: Path, version: str) -> Prompt:
+    """The instruction sent to the model, read from the file named for its version.
+
+    The version is the file name, so the recorded version and the words actually
+    used can never disagree. Changing the instruction means a new file and a new
+    version, which is also how the guard pass arrives later without touching any
+    code here.
+    """
+    return Prompt(version=version, text=(directory / f"{version}.md").read_text(encoding="utf-8"))
+
+
+def build_prompt(instruction: str, source: str) -> str:
+    """The instruction with the item's text fenced off inside it.
+
+    Captured text comes from the open web and can be written to look like an
+    instruction. Fencing it and saying so is structure rather than detection: it
+    does not try to spot an attack, it removes the ambiguity an attack needs.
+    See ADR-0010.
+    """
+    forged = re.compile(rf"^[ \t]*(?:{re.escape(FENCE)}|{re.escape(FENCE_END)})[ \t]*$", re.MULTILINE)
+    safe = forged.sub(lambda m: m.group(0).replace("-", "\u2011"), source)
+    return f"{instruction}\n\n{FENCE}\n{safe}\n{FENCE_END}\n"
+
+
+# ------------------------------------------------------- reading the command line
+
+FLAGS_TEXT = frozenset({"title", "funder", "budget", "summary", "eligibility", "area"})
+FLAGS_QUOTE = frozenset(f"{name}-quote" for name in ("budget", "summary", "eligibility", "area", "deadline", "open"))
+FLAGS_PLAIN = frozenset({"type", "deadline", "open"})
+OPTIONAL = ("funder", "budget", "eligibility", "area")
+FLAGS_ABSENT = frozenset(f"{name}-not-stated" for name in OPTIONAL)
+KNOWN = FLAGS_TEXT | FLAGS_QUOTE | FLAGS_PLAIN | FLAGS_ABSENT
+QUOTED = ("budget", "summary", "eligibility", "area")
+NUMBERS_IN_OWN_QUOTE = frozenset({"budget"})
+"""Where a stated figure must appear in that field's own sentence.
+
+A budget IS a number, so the sentence carrying it must carry the figure. Every
+other field is prose that may mention a year or a count discussed elsewhere on
+the same page, and demanding one sentence carry all of them refuses honest
+writing. Measured: on one real page, a summary naming the year of an election
+failed two runs in three, and the year was on the page throughout. So for those
+fields a figure must appear somewhere in the source, which still refuses a number
+the page never states.
+"""
+
+_FLAG = re.compile(r"\s*--([a-z-]+)")
+_PLAIN_VALUE = re.compile(r"\s+([^\s\"][^\s]*)")
+_STARTS = re.compile(rf"{MARKER}(?=\s|$)")
+
+
+def find_command(reply: str) -> str:
+    """The one command line in the model's reply.
+
+    Everything before it is the model thinking aloud, which a person reads and no
+    code does. Exactly one line may begin with the marker word: none means the
+    model did not answer, and two means something in the page produced a line
+    shaped like a command.
+    """
+    if len(reply) > MAX_REPLY:
+        msg = f"the reply is longer than {MAX_REPLY} characters"
+        raise MalformedCommandError(msg)
+    lines = [line.strip() for line in reply.splitlines() if _STARTS.match(line.strip())]
+    if len(lines) != 1:
+        msg = f"the reply must carry exactly one line starting with {MARKER!r}, found {len(lines)}"
+        raise MalformedCommandError(msg)
+    if len(lines[0]) > MAX_LINE:
+        msg = f"the command line is longer than {MAX_LINE} characters"
+        raise MalformedCommandError(msg)
+    return lines[0]
+
+
+def _read_text_value(line: str, name: str, at: int) -> tuple[str, int]:
+    """One JSON string, so a quotation mark inside a funder's words cannot break it."""
+    tail = line[at:]
+    start = at + (len(tail) - len(tail.lstrip()))
+    if start >= len(line) or line[start] != '"':
+        msg = f"--{name} needs a value in double quotes"
+        raise MalformedCommandError(msg)
+    try:
+        value, end = json.JSONDecoder().raw_decode(line, start)
+    except ValueError as error:
+        msg = f"--{name} has an unreadable value, {error}"
+        raise MalformedCommandError(msg) from error
+    return str(value), end
+
+
+def parse_flags(line: str) -> dict[str, str]:
+    """The command line as a plain mapping of flag to value.
+
+    Nothing here decides whether the answer is any good. It only turns one line
+    into pieces, refusing anything it cannot read without guessing.
+    """
+    out: dict[str, str] = {}
+    at = len(MARKER)
+    while at < len(line):
+        head = _FLAG.match(line, at)
+        if head is None:
+            msg = f"expected a flag, found {line[at : at + 24]!r}"
+            raise MalformedCommandError(msg)
+        name, at = head.group(1), head.end()
+        if name not in KNOWN:
+            msg = f"--{name} is not a flag this builder knows"
+            raise MalformedCommandError(msg)
+        if name in out:
+            msg = f"--{name} appears more than once"
+            raise MalformedCommandError(msg)
+        if name in FLAGS_ABSENT:
+            out[name] = ""
+        elif name in FLAGS_TEXT or name in FLAGS_QUOTE:
+            out[name], at = _read_text_value(line, name, at)
+        else:
+            plain = _PLAIN_VALUE.match(line, at)
+            if plain is None or plain.group(1).startswith("--"):
+                msg = f"--{name} needs a plain value"
+                raise MalformedCommandError(msg)
+            out[name], at = plain.group(1), plain.end()
+    return out
+
+
+# ---------------------------------------------------------------- checking a claim
+
+_MONTH = (
+    r"(?:January|February|March|April|May|June|July|August|September|October"
+    r"|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)"
+)
+_DATE_FORMS = (
+    (
+        re.compile(rf"\b\d{{1,2}}(?:st|nd|rd|th)?\s+{_MONTH}\.?,?\s+\d{{4}}\b", re.IGNORECASE),
+        ("%d %B %Y", "%d %b %Y"),
+    ),
+    (
+        re.compile(rf"\b{_MONTH}\.?\s+\d{{1,2}}(?:st|nd|rd|th)?,?\s+\d{{4}}\b", re.IGNORECASE),
+        ("%B %d %Y", "%b %d %Y"),
+    ),
+    (re.compile(r"\b\d{4}-\d{2}-\d{2}\b"), ("%Y-%m-%d",)),
+)
+_LONG_ABBREVIATION = re.compile(r"\bSept\b", re.IGNORECASE)
+"""The one abbreviation the pattern accepts that the date reader cannot parse.
+
+"Sept" is ordinary British usage and appears on real funder pages. The reader
+knows the three letter form and the whole word and nothing in between, so
+without this a deadline written that way reads as no date at all, and the item
+is refused for a reason that is this code's fault rather than the page's.
+"""
+_ORDINAL = re.compile(r"(?<=\d)(st|nd|rd|th)", re.IGNORECASE)
+_RUNS = re.compile(r"\s+")
+NUMBER = re.compile(r"\d+(?:[,.  ]\d{3})*(?:\.\d+)?")
+EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_DIGIT_RUN = re.compile(r"\d[\d\s().+-]{4,}\d")
+_MONEY_BEFORE = re.compile(
+    r"(?:[$\u00a3\u20ac\u00a5]|\b(?:USD|EUR|GBP|CHF|ZAR|KES|UGX|NGN|CAD|AUD|SEK|NOK|DKK)\b)"
+    r"[\s]*$",
+    re.IGNORECASE,
+)
+MIN_PHONE_DIGITS = 7
+MIN_BARE_DIGITS = 9
+MAX_PHONE_DIGITS = 15
+_NOT_A_NUMBER_TO_RING = re.compile(
+    r"^(?:"
+    r"\d{4}\s*[-‐-―]\s*\d{4}"
+    r"|\d{4}-\d{2}-\d{2}"
+    r"|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}"
+    r")$"
+)
+"""Runs shaped like a telephone number that are a date or a range of years.
+
+Found by the audit's own reproduction: a deadline quoted as "the closing
+date is 2026-09-30" was refused as carrying a contact detail, which would
+have broken every deadline a page writes in that form.
+"""
+
+
+def carries_a_contact(text: str) -> bool:
+    """Does this sentence carry an email address or a telephone number?
+
+    Deliberately blunt, and widened after an audit showed the first version only
+    knew two shapes: an address beginning with a plus, and the American form with
+    the area code in brackets. Most of the world writes a number as a bare run of
+    digits, and this project's own first funder is in a country that does, so the
+    rule missed the case most likely to arise.
+
+    It now takes any run of seven to fifteen digits as a number, which is the
+    international range, unless a currency marker sits immediately before it, in
+    which case it is money. That will occasionally refuse an honest figure
+    written with spaces between the thousands. Refusing one costs a second
+    attempt and, at worst, a field recorded as not stated. Missing one publishes
+    somebody's telephone number into a public repository that keeps its history.
+    The cost is not symmetric, so the rule leans the way it does.
+    """
+    if EMAIL.search(text):
+        return True
+    for run in _DIGIT_RUN.finditer(text):
+        found = run.group(0)
+        digits = re.sub(r"\D", "", found)
+        if not MIN_PHONE_DIGITS <= len(digits) <= MAX_PHONE_DIGITS:
+            continue
+        if len(digits) == len(found) and len(digits) < MIN_BARE_DIGITS:
+            # An unbroken run of seven or eight digits is far more often an amount
+            # written without separators than a number somebody could ring.
+            continue
+        if _NOT_A_NUMBER_TO_RING.match(found.strip()):
+            continue
+        if _MONEY_BEFORE.search(text[: run.start()]):
+            continue
+        return True
+    return False
+
+
+def dates_in(span: str) -> list[date]:
+    """Every date a strict reader can find in a sentence.
+
+    Strict on purpose. A reader that guesses would agree with a model's guess,
+    and the whole point of reading the date back is to disagree when the model is
+    wrong. A phrase like "next Friday" is treated as unreadable, which ends the
+    attempt rather than inventing a date.
+    """
+    found: list[date] = []
+    for pattern, formats in _DATE_FORMS:
+        for match in pattern.finditer(span):
+            clean = _ORDINAL.sub("", _LONG_ABBREVIATION.sub("Sep", match.group(0)))
+            clean = _RUNS.sub(" ", clean.replace(",", " ").replace(".", " ")).strip()
+            for form in formats:
+                try:
+                    found.append(datetime.strptime(clean, form).date())  # noqa: DTZ007
+                except ValueError:
+                    continue
+                break
+    return found
+
+
+def numbers_in(text: str) -> list[str]:
+    """Every number worth checking: one holding two or more digits.
+
+    A separator continues a number only when it groups thousands, so a comma
+    between two separate numbers ends the first. An earlier version read
+    "before 2020, 5 years" as the single number "2020, 5", which appears in no
+    real sentence, so a truthful claim was refused as ungrounded.
+    """
+    out: list[str] = []
+    for match in NUMBER.finditer(text):
+        run = match.group(0).strip(" ,. ")
+        if len(re.sub(r"\D", "", run)) >= 2:
+            out.append(run)
+    return out
+
+
+def check_quote(name: str, quote: str, source: str, value: str | None = None) -> str:
+    """A quote must be real, long enough to mean something, and clean of contacts.
+
+    Where the value carries a figure, that figure must appear in the quote as
+    well. A budget is the number a reader acts on, and this is the cheapest way
+    to hold it to what the page actually says. See ADR-0032.
+    """
+    if not MIN_QUOTE <= len(quote) <= MAX_QUOTE:
+        msg = f"--{name}-quote must be {MIN_QUOTE} to {MAX_QUOTE} characters, it is {len(quote)}"
+        raise UngroundedClaimError(msg)
+    if carries_a_contact(quote):
+        msg = (
+            f"--{name}-quote carries a contact detail. Ground the field on another "
+            f"sentence, or say --{name}-not-stated."
+        )
+        raise UngroundedClaimError(msg)
+    if flat(quote) not in flat(source):
+        msg = f"--{name}-quote is not a real substring of the source text"
+        raise UngroundedClaimError(msg)
+    if value is not None:
+        own = name in NUMBERS_IN_OWN_QUOTE
+        against = flat(quote) if own else flat(source)
+        missing = [n for n in numbers_in(value) if flat(n) not in against]
+        if missing:
+            where = "its quote does not say" if own else "the source does not state"
+            msg = f"--{name} states {', '.join(missing)}, which {where}"
+            raise UngroundedClaimError(msg)
+    return quote
+
+
+# ------------------------------------------------------------- building the record
+
+
+def _timing(flags: dict[str, str], source: str) -> Timing:
+    """A closing date read back out of its own sentence, or an open basis with its own."""
+    if ("deadline" in flags) == ("open" in flags):
+        msg = "give exactly one of --deadline or --open"
+        raise MalformedCommandError(msg)
+    stray = "open-quote" if "deadline" in flags else "deadline-quote"
+    if stray in flags:
+        # A command carrying evidence for both kinds of timing has not decided
+        # what the page says. Ignoring the spare one would hide that.
+        msg = f"--{stray} was given but the timing is not that kind"
+        raise MalformedCommandError(msg)
+    if "open" in flags:
+        return _open_timing(flags, source)
+    return _dated_timing(flags, source)
+
+
+def _is_call_type(value: str) -> TypeIs[CallType]:
+    """Narrow a string to one of the ten kinds, for the checker as well as us."""
+    return value in get_args(CallType)
+
+
+def _is_open_basis(value: str) -> TypeIs[OpenBasis]:
+    """Narrow a string to one of the three open bases, for the checker as well as us.
+
+    Written as a narrowing check rather than a plain comparison so the type
+    checker sees the same guarantee the code does. The earlier version reflected
+    on the model's own annotation, which resolves through an unknown type, so a
+    divergence between the check and the shape would have reached Pydantic as an
+    unchecked string and raised a kind of error the retry does not catch.
+    """
+    return value in get_args(OpenBasis)
+
+
+def _open_timing(flags: dict[str, str], source: str) -> Open:
+    """A call with no fixed close, and the sentence that says so."""
+    if "open-quote" not in flags:
+        msg = "--open needs --open-quote"
+        raise MalformedCommandError(msg)
+    basis = flags["open"]
+    if not _is_open_basis(basis):
+        allowed = ", ".join(get_args(OpenBasis))
+        msg = f"--open {basis} is not one of {allowed}"
+        raise MalformedCommandError(msg)
+    return Open(basis=basis, quote=check_quote("open", flags["open-quote"], source))
+
+
+def _dated_timing(flags: dict[str, str], source: str) -> Dated:
+    """A closing date, read back out of the sentence the model quoted for it."""
+    if "deadline-quote" not in flags:
+        msg = "--deadline needs --deadline-quote"
+        raise MalformedCommandError(msg)
+    quote = check_quote("deadline", flags["deadline-quote"], source)
+    try:
+        typed = date.fromisoformat(flags["deadline"])
+    except ValueError as error:
+        msg = f"--deadline must look like 2026-09-30, {error}"
+        raise MalformedCommandError(msg) from error
+    found = sorted(set(dates_in(quote)))
+    if not found:
+        msg = "no date can be read from --deadline-quote"
+        raise UngroundedClaimError(msg)
+    if len(found) > 1:
+        stated = ", ".join(str(one) for one in found)
+        msg = (
+            f"--deadline-quote states more than one date ({stated}). "
+            "Quote a narrower span naming only the closing date."
+        )
+        raise UngroundedClaimError(msg)
+    if typed != found[0]:
+        msg = f"--deadline {typed} is not the date its quote states, which is {found[0]}"
+        raise UngroundedClaimError(msg)
+    return Dated(deadline=typed, quote=quote)
+
+
+def _one_quoted_field(name: str, flags: dict[str, str], source: str) -> Field | None:
+    """One value with its quote, or nothing when the source is said not to state it."""
+    absent = f"{name}-not-stated" in flags
+    value, quote = flags.get(name), flags.get(f"{name}-quote")
+    if absent and (value is not None or quote is not None):
+        msg = f"--{name}-not-stated cannot be given with a value"
+        raise MalformedCommandError(msg)
+    if absent:
+        if name == "summary":
+            msg = "--summary is required and cannot be not-stated"
+            raise MalformedCommandError(msg)
+        return None
+    if value is None and quote is None:
+        msg = f"say either --{name} with --{name}-quote, or --{name}-not-stated"
+        raise MalformedCommandError(msg)
+    if value is None or quote is None:
+        msg = f"--{name} and --{name}-quote must both be given"
+        raise MalformedCommandError(msg)
+    if not value.strip():
+        # An empty value is a third way of saying nothing, and the design allows
+        # exactly one. Saying it out loud is the honest form, and this is not.
+        msg = f"--{name} is empty. Give a value, or say --{name}-not-stated."
+        raise MalformedCommandError(msg)
+    return Field(value=value, quote=check_quote(name, quote, source, value))
+
+
+def _funder(flags: dict[str, str]) -> str | None:
+    """The stated funder, or nothing. Deliberately ungrounded in phase one, ADR-0032."""
+    if "funder-not-stated" in flags and "funder" in flags:
+        msg = "--funder-not-stated cannot be given with a value"
+        raise MalformedCommandError(msg)
+    if "funder" not in flags and "funder-not-stated" not in flags:
+        msg = "say either --funder or --funder-not-stated"
+        raise MalformedCommandError(msg)
+    named = flags.get("funder")
+    if named is not None and not named.strip():
+        msg = "--funder is empty. Give a name, or say --funder-not-stated."
+        raise MalformedCommandError(msg)
+    return named
+
+
+def build(flags: dict[str, str], source: str, source_url: str) -> Call:
+    """Turn a read command into a record, refusing anything the page does not support."""
+    for needed in ("title", "type", "summary", "summary-quote"):
+        if needed not in flags:
+            msg = f"--{needed} is required and missing"
+            raise MalformedCommandError(msg)
+    if not _is_call_type(flags["type"]):
+        allowed = ", ".join(get_args(CallType))
+        msg = f"--type {flags['type']} is not one of {allowed}"
+        raise MalformedCommandError(msg)
+    if not flags["title"].strip():
+        msg = "--title is empty"
+        raise MalformedCommandError(msg)
+    if flat(flags["title"]) not in lines_of(source):
+        msg = "--title must be a whole heading or line of the source text, word for word"
+        raise UngroundedClaimError(msg)
+
+    fields = {name: _one_quoted_field(name, flags, source) for name in QUOTED}
+    summary = fields["summary"]
+    if summary is None:  # pragma: no cover - the absent path already raised above
+        msg = "--summary is required"
+        raise MalformedCommandError(msg)
+
+    return Call(
+        title=flags["title"],
+        type=flags["type"],
+        funder=_funder(flags),
+        timing=_timing(flags, source),
+        budget=fields["budget"],
+        summary=summary,
+        eligibility=fields["eligibility"],
+        area=fields["area"],
+        topics=(),
+        source_url=source_url,
+    )
+
+
+# ------------------------------------------------------------------- the whole step
+
+
+def source_url_of(item: RawItem) -> str:
+    """Where a reader is sent. Taken from the capture, never from the model."""
+    return item.canonical_url or item.url or ""
+
+
+def extract(
+    item: RawItem,
+    model: Model,
+    prompt: Prompt,
+    model_id: str,
+    watch: Callable[[int, str], None] | None = None,
+) -> Extraction:
+    """Read one captured item into one record, or raise having built nothing.
+
+    One attempt, and if the command cannot be read or a claim cannot be grounded,
+    one more with the reason handed back. A second failure raises and nothing
+    partial is returned. A call that produces no reply at all is a different
+    thing and consumes no attempt.
+
+    A retry is this same step attempted again rather than a second AI step, so
+    the rule that only extraction uses a model still holds.
+    """
+    source = readable(item.raw_text)
+    asked = build_prompt(prompt.text, source)
+    url = source_url_of(item)
+    refusals: list[str] = []
+
+    for attempt in (1, 2):
+        request = asked if attempt == 1 else f"{asked}\nYour last answer failed: {refusals[-1]}\n"
+        reply = model(prompt=request)
+        if watch is not None:
+            # The check done by eye needs to see the model reasoning and the
+            # line it wrote, not only the record built from them.
+            watch(attempt, reply)
+        try:
+            call = build(parse_flags(find_command(reply)), source, url)
+        except (MalformedCommandError, UngroundedClaimError) as error:
+            refusals.append(str(error))
+            continue
+        return Extraction(
+            call=call,
+            prompt_version=prompt.version,
+            model_id=model_id,
+            builder_version=BUILDER_VERSION,
+        )
+
+    reasons = "; then ".join(refusals)
+    msg = f"{item.raw_hash[:12]}: held after 2 attempts. Refused because {reasons}"
+    raise HeldAfterTwoTriesError(msg)
+
+
+def describe(extraction: Extraction) -> str:
+    """The record as a person reads it, for the check done by hand."""
+    call = extraction.call
+    lines = [
+        f"title       {call.title}",
+        f"type        {call.type}",
+        f"funder      {call.funder or 'not stated'}",
+    ]
+    if isinstance(call.timing, Dated):
+        lines += [f"deadline    {call.timing.deadline}", f"  quote     {call.timing.quote}"]
+    else:
+        lines += [f"open        {call.timing.basis}", f"  quote     {call.timing.quote}"]
+    claims: tuple[tuple[str, Field | None], ...] = (
+        ("budget", call.budget),
+        ("summary", call.summary),
+        ("eligibility", call.eligibility),
+        ("area", call.area),
+    )
+    for name, got in claims:
+        if got is None:
+            lines.append(f"{name:11s} not stated")
+        else:
+            lines += [f"{name:11s} {got.value}", f"  quote     {got.quote}"]
+    lines += [
+        f"link        {call.source_url}",
+        f"prompt      {extraction.prompt_version}",
+        f"model       {extraction.model_id}",
+        f"builder     {extraction.builder_version}",
+    ]
+    return "\n".join(lines)

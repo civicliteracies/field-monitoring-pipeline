@@ -1,0 +1,21 @@
+We begin by examining the source text to propose and test the values for each required field.
+
+For the title, the page heading shown above the article is "Introducing the Tech Accountability Fund and a Call for Proposals – Collaboration on International ICT Policy for East and Southern Africa (CIPESA)". The shorter heading without the organisation's name appended is "Introducing the Tech Accountability Fund and a Call for Proposals". We verify that this exact string appears as a heading in the text.
+
+For the type, the text explicitly announces a "Call for Proposals", which corresponds to an rfp (request for proposals).
+
+For the funder, the text states that the Collaboration on International ICT Policy for East and Southern Africa (CIPESA) has partnered with Digital Action. The sentence supporting this is: "The Collaboration on International ICT Policy for East and Southern Africa (CIPESA) has partnered with Digital Action to support work on tech accountability in Sub-Saharan Africa in the run up to and during the “Year of Democracy” in 2024."
+
+For the timing, the text gives a specific closing date: "The deadline for applications is February 16, 2024." This is a closing date, so we set the deadline to 2024-02-16.
+
+For the budget, the text states: "Grant sizes will range from USD 5,000 to USD 20,000 subject to demonstrated need." This serves as the budget value and quote.
+
+For the summary, we write our own description: This call offers grants for civil society initiatives addressing tech accountability, content moderation, and electoral harms during the 2024 elections. The supporting sentence in the text is: "The Collaboration on International ICT Policy for East and Southern Africa (CIPESA) has partnered with Digital Action to support work on tech accountability in Sub-Saharan Africa in the run up to and during the “Year of Democracy” in 2024."
+
+For the eligibility, the text states that support is channeled to African civil society entities, supported by the sentence: "The Fund responds to these key concerns in the Year of Democracy and to the scant resources to African civil society entities that are working to counter tech harms."
+
+For the area, the text specifies "Sub-Saharan Africa" and mentions numerous African countries. The phrasing requested is "Sub-Saharan Africa", supported by the sentence: "The Collaboration on International ICT Policy for East and Southern Africa (CIPESA) has partnered with Digital Action to support work on tech accountability in Sub-Saharan Africa in the run up to and during the “Year of Democracy” in 2024."
+
+Reviewing our choices through challenge, we confirm that every quote corresponds precisely to the field values and meets all criteria. The closing date quote mentions only the deadline and no opening date. The summary is written in our own words. The area is stated in standard geographic terms.
+
+fieldbook --title "Introducing the Tech Accountability Fund and a Call for Proposals" --type rfp --funder "Collaboration on International ICT Policy for East and Southern Africa (CIPESA)" --deadline 2024-02-16 --deadline-quote "The deadline for applications is February 16, 2024." --summary "Grants for civil society initiatives tackling tech accountability and electoral harms in Africa." --summary-quote "The Collaboration on International ICT Policy for East and Southern Africa (CIPESA) has partnered with Digital Action to support work on tech accountability in Sub-Saharan Africa in the run up to and during the “Year of Democracy” in 2024." --budget "USD 5,000 to USD 20,000" --budget-quote "Grant sizes will range from USD 5,000 to USD 20,000 subject to demonstrated need." --eligibility "African civil society entities" --eligibility-quote "The Fund responds to these key concerns in the Year of Democracy and to the scant resources to African civil society entities that are working to counter tech harms." --area "Sub-Saharan Africa" --area-quote "The Collaboration on International ICT Policy for East and Southern Africa (CIPESA) has partnered with Digital Action to support work on tech accountability in Sub-Saharan Africa in the run up to and during the “Year of Democracy” in 2024."
