@@ -266,6 +266,11 @@ def test_a_relative_phrase_is_not_a_date() -> None:
     assert dates_in("applications close next Friday") == []
 
 
+def test_an_impossible_date_is_not_a_date() -> None:
+    """The pattern matches the shape of a date; the reader decides whether it is one."""
+    assert dates_in("Applications close on 31 February 2024.") == []
+
+
 def test_a_heading_is_a_whole_line_and_a_fragment_of_one_is_not() -> None:
     """A title carries no separate quote, so its own words are its evidence.
 
@@ -287,6 +292,9 @@ def test_a_heading_is_a_whole_line_and_a_fragment_of_one_is_not() -> None:
         "Awards of between EUR 100 000 and EUR 250 000 are available.",
         "Grants of GBP 12,345.67 exactly, for a period of 24 months.",
         "Applications for the 2026-2027 cycle close soon and awards reach 45,000.",
+        "A total of USD 1 000 000 is available across the programme.",
+        "The fund has disbursed 1500000 since it began, all of it in grants.",
+        "\u20ac500 000 000 was set aside for the whole decade.",
     ],
 )
 def test_money_is_never_mistaken_for_a_contact_detail(sentence: str) -> None:
@@ -414,6 +422,9 @@ def cipesa() -> tuple[RawItem, str]:
     return make_item(captured, url), reply
 
 
+CIPESA_FUNDER = quoted("Collaboration on International ICT Policy for East and Southern Africa (CIPESA)")
+
+
 def swap(reply: str, old: str, new: str) -> str:
     assert old in reply, f"the recorded reply does not contain {old[:40]!r}"
     return reply.replace(old, new)
@@ -459,6 +470,30 @@ def swap(reply: str, old: str, new: str) -> str:
             TYPE + " --urgency high",
             "not a flag this builder knows",
             id="an-invented-flag",
+        ),
+        pytest.param(
+            "--deadline 2024-02-16",
+            "--deadline 16/02/2024",
+            "must look like",
+            id="a-deadline-not-written-as-a-date",
+        ),
+        pytest.param(
+            " --deadline-quote " + quoted("The deadline for applications is February 16, 2024."),
+            "",
+            "needs --deadline-quote",
+            id="a-deadline-without-its-sentence",
+        ),
+        pytest.param(
+            f"--funder {CIPESA_FUNDER}",
+            f"--funder {CIPESA_FUNDER} --funder-not-stated",
+            "--funder-not-stated cannot be given",
+            id="a-funder-given-both-ways",
+        ),
+        pytest.param(
+            f"--funder {CIPESA_FUNDER} ",
+            "",
+            "say either --funder",
+            id="a-funder-given-neither-way",
         ),
     ],
 )
@@ -702,6 +737,27 @@ def test_a_person_can_read_the_record_beside_the_page(cipesa: tuple[RawItem, str
     assert "deadline    2024-02-16" in written
     assert "The deadline for applications is February 16, 2024." in written
     assert f"builder     {BUILDER_VERSION}" in written
+
+
+def test_the_printed_record_says_when_a_call_is_open_and_when_a_field_is_not_stated() -> None:
+    """The check done by eye reads every kind of record, not only a dated one with every field."""
+    written = describe(extract(make_item(OPEN_PAGE), Replies(OPEN_LINE), A_PROMPT, "stand-in"))
+    rows = [line.split() for line in written.splitlines()]
+
+    assert ["open", "rolling"] in rows
+    assert ["quote", *OPEN_QUOTE.split()] in rows
+    assert ["eligibility", "not", "stated"] in rows
+    assert ["area", "not", "stated"] in rows
+
+
+def test_the_watcher_sees_every_attempt_and_what_the_model_wrote(cipesa: tuple[RawItem, str]) -> None:
+    """Half of the check done by eye is the model's reasoning, on the failed attempt as well."""
+    item, reply = cipesa
+    seen: list[tuple[int, str]] = []
+
+    extract(item, Replies("no command here", reply), A_PROMPT, "stand-in", watch=lambda n, r: seen.append((n, r)))
+
+    assert seen == [(1, "no command here"), (2, reply)]
 
 
 def test_a_summary_can_never_be_said_to_be_absent() -> None:
@@ -1131,6 +1187,30 @@ def test_an_empty_funder_is_refused() -> None:
                 "title": "A Fund",
                 "type": "grant",
                 "funder": "   ",
+                "open": "rolling",
+                "open-quote": quote,
+                "summary": "A fund.",
+                "summary-quote": quote,
+                "budget-not-stated": "",
+                "eligibility-not-stated": "",
+                "area-not-stated": "",
+            },
+            readable(page),
+            "https://example.org/x",
+        )
+
+
+def test_an_empty_title_is_refused() -> None:
+    """A title carries no quote either, so nothing else would have caught this."""
+    page = "<h1>A Fund</h1><p>Applications are accepted on a rolling basis here.</p>"
+    quote = "Applications are accepted on a rolling basis here."
+
+    with pytest.raises(MalformedCommandError, match="--title is empty"):
+        build(
+            {
+                "title": "   ",
+                "type": "grant",
+                "funder-not-stated": "",
                 "open": "rolling",
                 "open-quote": quote,
                 "summary": "A fund.",
