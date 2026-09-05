@@ -76,7 +76,7 @@ context, or consequence was altered.** Recorded on the same reasoning.
 | [ADR-0032](0032-what-the-checks-catch.md) | `[decision]` | Which fields carry evidence, and what the checks actually catch |
 | [ADR-0033](0033-absence-is-spoken-and-stored-empty.md) | `[decision]` | Absence is spoken out loud by the model and stored as an empty field |
 | [ADR-0034](0034-the-derived-text-and-the-builder-version.md) | `[decision]` | The text the model reads is derived, and the deterministic side carries its own version |
-| [ADR-0035](0035-the-model-key-lives-in-an-ignored-file.md) | `[decision]` | The model key lives in an ignored file beside the code, never in the environment |
+| [ADR-0035](0035-the-model-key-lives-in-an-ignored-file.md) | `[decision]` | The model key lives in an ignored file beside the code, not in an account-wide variable |
 | [ADR-0036](0036-the-extraction-step-arrives-in-three-parts.md) | `[decision]` | The extraction step arrives in three parts, and still exceeds the size the plan asks for |
 | [ADR-0037](0037-a-run-of-digits-is-weighed-one-number-at-a-time.md) | `[decision]` | A run of digits is weighed one number at a time, and a solid run is not assumed to be money |
 | [ADR-0038](0038-the-contact-check-runs-wherever-a-value-is-made.md) | `[decision]` | The contact check runs wherever a published value is made, not at one of the places |

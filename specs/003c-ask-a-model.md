@@ -1,7 +1,7 @@
 # PR 3c — asking a model, proven on a real page
 
 **Date:** 2026-09-04 · **Status:** ready to propose · **Owner:** build
-**Branch:** `feat/extract-ask-a-model` · **Commit type:** `feat(extract): read one real item with a model and show the record`
+**Branch:** `feat/extract-ask-a-model` · **Commit type:** `feat(extract): ask a real model, and tell three failures apart`
 
 ## Goal
 
@@ -26,7 +26,6 @@ the checks to hold its answer to.
 
 ### Asking the model
 
-
 12. THE SYSTEM SHALL hold the instruction sent to the model in its own file under
     `src/field_monitoring_pipeline/prompts/`, named by its version, and SHALL take
     the recorded prompt version from that name so the two can never disagree.
@@ -40,9 +39,7 @@ the checks to hold its answer to.
 16. WHEN no model key is present, THE SYSTEM SHALL say so and stop before reading
     any item, rather than discovering it partway through.
 
-
 ### When it fails
-
 
 37. WHEN a command cannot be read or a claim cannot be grounded, THE SYSTEM SHALL
     return one plain sentence naming the flag and the rule it broke, and SHALL
@@ -82,9 +79,7 @@ the checks to hold its answer to.
 44. THE SYSTEM SHALL raise named error types only, so a caller catches those and
     nothing else.
 
-
 ### What this slice does not touch
-
 
 45. THE SYSTEM SHALL write no file anywhere.
 46. THE SYSTEM SHALL NOT be called by the scheduled run. Extraction joins the
@@ -137,7 +132,6 @@ library. Measured on both fixture pages before this was written.
    Every claim was grounded in a sentence really on its page, both headings matched
    what a person read, and both deadlines came out exactly as the pages state them.
 
-
 ## Why this arrives in three parts
 
 The extraction step is one idea, and it is three separable pieces of work: what
@@ -162,10 +156,6 @@ compliance, and saying so is better than claiming otherwise. See
 describes this step as the one AI step, proven on a single real item. The first
 two parts do not prove that. The third does, using what the first two built.
 
-
-**None.** The date reader, the markup removal and the escaping are all standard
-library. Measured on both fixture pages before this was written.
-
 ## Decisions settled before writing this
 
 - **Five fields carry a stored quote**, being budget, summary, eligibility, area
@@ -189,10 +179,32 @@ library. Measured on both fixture pages before this was written.
 
 ## Tests
 
-- A value carrying quotation marks, commas, semicolons, a backslash, a newline and
-- A broken command triggers exactly one retry, and a second failure raises the named
-- A transport failure consumes no attempt and is not reported as a malformed command.
-- A dropped connection is sent once more and succeeds; one that keeps dropping
+Every test runs offline. The model is a stand-in, and the provider is a fake
+server wired to the real client, so the suite needs no key and no network.
+
+- Everything the two parts before this one test, unchanged.
+- The instruction is loaded from the file named for its version, and it is the
+  version the code actually sends, so a bump to a file that does not exist fails
+  here rather than at the first real run. The instruction asks for one command
+  line and carries the fence.
+- The client returns the text the provider sent, and the model is pinned to an
+  exact name rather than a moving alias.
+- A refusal for quota or rate, a fault at the provider, a wrong key or model
+  name, an answer with no candidate, an empty answer, an answer that is a web
+  page rather than JSON, and a connection that cannot be made, is too slow or is
+  lost are each reported as the model being unreachable and never as a malformed
+  command. A refusal costs the item none of its two attempts.
+- A dropped connection or a fault at the far end is tried again and succeeds,
+  and one that keeps failing gives up after the stated number of tries. A
+  refusal for quota, a wrong key and a wrong model name are never tried again.
+  The retry ladder has one pause for each gap between tries, and the pauses
+  widen. No test waits for real.
+- The provider's own explanation is relayed when it gives one, and the bare
+  number when it does not, whether the body is JSON or a page.
+- The key is read from the environment first and from the ignored file second,
+  so the scheduled run's secret wins over a file. A missing key is said plainly
+  before any item is read. The key never appears in the client's own printed
+  form.
 
 ## Two things measured while writing this
 
@@ -294,20 +306,20 @@ and a decision record.
 
 ## Build checklist
 
-- [ ] The four record shapes in `models.py`, with tests
-- [ ] The text derivation, with tests for markup, entities, invisible characters and
+- [x] The four record shapes in `models.py`, with tests
+- [x] The text derivation, with tests for markup, entities, invisible characters and
       broken input
-- [ ] The prompt in its own versioned file
-- [ ] The command parser, with tests for every refusal
-- [ ] The checks, with tests for every refusal
-- [ ] The builder, the retry and the named errors
-- [ ] The small entry point for the end-to-end check
-- [ ] Both fixtures frozen through the real fetch function
-- [ ] Hand-written replies for the failure paths
-- [ ] `.gitattributes`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `CHANGELOG.md`
-- [ ] ADR-0031 to ADR-0034 and their index lines
-- [ ] `mise run verify` green
-- [ ] The end-to-end check run by hand against both fixtures
+- [x] The prompt in its own versioned file
+- [x] The command parser, with tests for every refusal
+- [x] The checks, with tests for every refusal
+- [x] The builder, the retry and the named errors
+- [x] The small entry point for the end-to-end check
+- [x] Both fixtures frozen through the real fetch function
+- [x] Hand-written replies for the failure paths
+- [x] `.gitattributes`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `CHANGELOG.md`
+- [x] ADR-0031 to ADR-0036 and their index lines
+- [x] `mise run verify` green
+- [x] The end-to-end check run by hand against both fixtures
 
 ## Still open
 
