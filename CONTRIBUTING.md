@@ -60,6 +60,40 @@ The package uses a `src/` layout: code lives under `src/field_monitoring_pipelin
 
 Without mise, the underlying commands are `uv run ruff check . --fix`, `uv run ruff format .`, `uv run basedpyright src tests`, `uv run pytest -n auto`.
 
+## Running the extraction by hand
+
+Every test in this project runs with no model key and no network. One thing does
+not: the check that reads a real funder's page with a real model and prints the
+record so a person can read it beside the page.
+
+You need a free key from Google AI Studio. Put it in a file called `.env` at the
+root of this project, with one line in it:
+
+```
+GEMINI_API_KEY=your-key-here
+```
+
+Git ignores that file, so it never leaves your machine. `env.example` beside it
+is the committed template and carries no value. Type the key into an editor
+rather than a terminal: a shell writes what it is given into its own saved
+history, and the filter meant to hide sensitive commands does not match a name
+with underscores in it. See ADR-0035.
+
+Then run it against one of the two frozen fixtures:
+
+```bash
+uv run python scripts/run_extract.py cipesa
+uv run python scripts/run_extract.py pulitzer
+```
+
+It prints the record it built and, beneath each claim, the sentence from the page
+that supports it. Open the funder's page in a browser and read the two side by
+side. It is right when every claim is on the page, every quote really appears
+there, the closing date matches, and anything the page does not mention reads as
+not stated rather than as a guess.
+
+If you have no key it says so and stops before reading anything.
+
 ## Pre-commit hooks
 
 `mise run setup` installs three hooks, so most of this happens automatically:

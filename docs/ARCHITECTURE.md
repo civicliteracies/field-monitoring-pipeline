@@ -517,7 +517,7 @@ is deferred to the slice that hardens canonicalisation.
 
 ### `src/field_monitoring_pipeline/fetch.py`
 
-**What it is.** The only part of the system that reaches the open internet.
+**What it is.** The only part of the scheduled run that reaches the open internet.
 The extraction step also reaches out, to a model, but it does not join the
 scheduled run until its guards and the readiness note are done. See ADR-0010.
 
@@ -666,7 +666,8 @@ rather than sitting beside the code.
 Everything else in the run is deterministic.
 
 **What the code inside does.** Turns a captured item into one readable string,
-finds the single command line a model writes, parses it, checks every claim against that same string, and builds
+sends it to a model with a fixed instruction, finds the single command line the
+model writes, parses it, checks every claim against that same string, and builds
 the record.
 
 **How it does it.** The model is asked for a command line rather than for
@@ -679,6 +680,34 @@ the parse. Markup is removed with the standard library only.
 **In and out.** In: one captured item, a model to ask, and an instruction. Out: a
 record together with the prompt version, the model name and the version of this
 file's own logic. It writes no file.
+
+**When the model cannot be reached.** Three kinds of failure look alike from
+outside and are not treated alike. A refusal for quota or rate is permanent for
+that run, because asking again cannot make the account fuller. A wrong key or a
+wrong model name is permanent full stop. A dropped connection or a fault at the
+far end is neither, because the request never reached the model and nothing was
+spent, so it is sent again, up to three times in all, with widening pauses. All three end as the same
+named error if they do not resolve, and none of them costs the item one of its
+two attempts at the command.
+
+**Why the scheduled run needs a repository secret, and what one is.** The
+scheduled run happens on GitHub's computers rather than on anyone's own machine.
+It needs the key to call the model, and the key cannot live in the repository,
+because the repository is public and anyone reading it would have the key. A
+repository secret is a store GitHub keeps alongside the repository: a value is put
+in once, a running job can read it, and nobody browsing the code can see it.
+GitHub also replaces it with asterisks anywhere it appears in a run's log, so a
+key printed by accident shows as stars rather than characters. That is the whole
+idea: a value the running job can use and a reader cannot see. It is not needed
+until extraction joins the scheduled run, and applying it is a repository setting
+rather than a change to any file here.
+
+**How the key reaches it.** The setting is named `GEMINI_API_KEY`. On a person's
+machine it goes in a file called `.env` at the root of the project, which git
+ignores, and `env.example` is the committed template that says so. For the
+scheduled run it is a repository secret instead, which is a separate thing and is
+not needed until extraction joins that run. The value is never written into a
+record, an error or a log.
 
 **How it fits.** It sits between the archive and the card. It is not called by
 the scheduled run and does not join it until its guards and the readiness note
@@ -708,6 +737,28 @@ because a page that closes a tag it never opened would otherwise unwind the
 filter and let a menu through as though it were the article. Each of the three
 was a defect found by audit before any record existed. See BUG-019, BUG-020 and
 BUG-021.
+
+
+### `src/field_monitoring_pipeline/prompts/`
+
+**What it is.** The instruction sent to the model, one file per version.
+
+**What the code inside does.** Nothing. It is prose the model reads.
+
+**How it does it.** The version is the file name, so the version recorded on a
+record and the words that produced it can never disagree. Changing the
+instruction means writing a new file, which is also how the guard pass arrives at
+a later slice without touching any code.
+
+**In and out.** In: nothing. Out: the text that surrounds a captured item.
+
+**How it fits.** It is the whole non-deterministic side of the system's
+behaviour, kept out of the code so it can be read and changed by itself.
+
+**What a reviewer must know.** The item's text is fenced inside it and named as
+text to read rather than instructions to follow. That is structure rather than
+detection: it does not try to spot an attack, it removes the ambiguity an attack
+would need. See ADR-0010.
 
 ### `scripts/refresh_fixture.py`
 
@@ -780,6 +831,47 @@ right. What a person agreed the page says lives in `ground_truth.md`, and the
 same model reading the same page has classified one of them two different ways on
 different runs, which is why the two are kept apart. Regenerate the frozen page
 with `scripts/refresh_fixture.py`.
+
+### `scripts/run_extract.py`
+
+**What it is.** The check a person does by eye, run by hand.
+
+**What the code inside does.** Reads one frozen fixture with the real model and
+prints the record beside every sentence it rests on.
+
+**How it does it.** `uv run python scripts/run_extract.py cipesa` (or
+`pulitzer`). It is the only thing in this project that needs a model key.
+
+**In and out.** In: a fixture name. Out: text on the screen. It writes nothing.
+
+**How it fits.** It sits outside the package for the same reason
+`refresh_fixture.py` does. Both are harnesses a person runs, neither is part of
+the scheduled run, and keeping them out means the package holds only what the run
+itself executes.
+
+**What a reviewer must know.** The record it prints is checked against the
+funder's page by reading the two side by side. That is the whole claim of
+accuracy this slice makes. There is no score and no measurement.
+
+### `env.example`
+
+**What it is.** A template naming the setting the model key is read from.
+
+**What the code inside does.** Nothing. It carries no value.
+
+**How it does it.** The real key goes in a file called `.env` beside it, which
+git ignores. This one is committed so that anyone setting the project up can see
+what is needed without reading code.
+
+**In and out.** In: nothing. Out: instructions for a person.
+
+**How it fits.** Only the check done by hand needs a key. Every test runs without
+one, and the scheduled run will use a repository secret instead.
+
+**What a reviewer must know.** The key is typed into an editor, never into a
+terminal, because a shell writes what it is given into its own saved history and
+the filter meant to hide sensitive commands does not match a name with
+underscores. See ADR-0035.
 
 ### `tests/__init__.py` and the test files
 

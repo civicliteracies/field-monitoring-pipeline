@@ -109,6 +109,9 @@ language. **Why** a choice was made, and what it cost, belongs in
   it came from. Five fields on a call carry the sentence that supports them, a
   closing date is read back out of its own sentence rather than trusted, and a
   claim the page does not support is refused with a reason.
+- The one AI step, proven on a single real item. A model reads a captured item,
+  reasons in the open, then writes one command line naming what it found. A broken
+  answer is sent back once with the reason. Nothing is written to disk yet.
 - A quality gate as one command, `mise run verify`: formatting checked, ruff
   lint, a strict type-check with basedpyright, and the test suite. It reports
   rather than repairs, and the pre-push hook runs it, so nothing failing leaves
