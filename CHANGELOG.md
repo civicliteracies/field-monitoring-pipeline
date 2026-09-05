@@ -23,6 +23,14 @@ language. **Why** a choice was made, and what it cost, belongs in
   as the article.
 - What a source served is protected from having its line endings rewritten, which
   only the older archive folder was.
+- A telephone number is caught even when something else with digits sits beside
+  it. A number followed by its opening hours, or two numbers side by side, used to
+  merge into one run that the check read as too long for anyone to ring, and the
+  quote was published.
+- A telephone number written without separators is caught. Any solid run of seven
+  or eight digits used to be assumed to be an amount, which made every number
+  written that way invisible. The cost is that an amount written solid with no
+  currency beside it is now refused, which naming the currency clears.
 - A figure in a value must be a number the page actually states. It was enough
   for the digits to appear anywhere, so a claimed 87 was accepted on a page whose
   only number is the year 1987.

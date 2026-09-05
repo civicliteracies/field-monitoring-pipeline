@@ -222,6 +222,38 @@ source still matches itself.
 continuous shapes that must not, plus the whole gate on the sentence that started
 it. The old test asserted a single line break between two paragraphs, which was
 the defect written down as an expectation.
+## BUG-029 — A telephone number beside anything else with digits in it was published
+
+**Found** 2026-09-05, by a skeptic set on refuting an audit's own research, and the
+worst of the ten found that day.
+
+**Symptom.** A quote carrying a real telephone number was published whenever
+anything else with digits in it sat beside the number. Five of six ordinary
+sentence shapes leaked, among them "Call CIPESA on +256 414 289 502 (8.00-17.00)
+East Africa Time", built from this project's own first funder's contact line, and
+a Danish funder's two office numbers written side by side. Reproduced against the
+real code.
+
+**Cause.** A run of digits does not stop where a telephone number stops. The
+pattern that finds a candidate continues through a bracket, a second number, or a
+set of opening hours, because a space, a bracket, a dot and a dash are all things
+that appear inside one number. The merged run then held nineteen or twenty
+digits, the length test said no number anybody can ring is that long, and the
+whole run was cleared. The rule was therefore at its weakest exactly where a page
+puts a number: in a contact line, next to other figures.
+
+**Fix.** A run short enough to be one number is weighed whole, as before. A run
+longer than that is broken at the places one number cannot continue across, which
+are a bracket, a gap of more than one space, a dash with space on both sides, and
+a plus starting a second number. Each part is then weighed on its own. This
+removes a case the rule used to give up on rather than adding a guard.
+
+**Test.** `tests/test_extract.py`, four shapes: a number then its opening hours, a
+number then another in brackets, two numbers either side of a dash, and hours
+written with a dot. Reverting the change turns all four red.
+
+---
+
 ## BUG-022 — A line break hidden in a value passed the check and reached the record
 
 **Found** 2026-09-05, by an audit, before any record had been built.

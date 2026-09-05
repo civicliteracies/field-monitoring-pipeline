@@ -77,6 +77,7 @@ context, or consequence was altered.** Recorded on the same reasoning.
 | [ADR-0033](0033-absence-is-spoken-and-stored-empty.md) | `[decision]` | Absence is spoken out loud by the model and stored as an empty field |
 | [ADR-0034](0034-the-derived-text-and-the-builder-version.md) | `[decision]` | The text the model reads is derived, and the deterministic side carries its own version |
 | [ADR-0036](0036-the-extraction-step-arrives-in-three-parts.md) | `[decision]` | The extraction step arrives in three parts, and still exceeds the size the plan asks for |
+| [ADR-0037](0037-a-run-of-digits-is-weighed-one-number-at-a-time.md) | `[decision]` | A run of digits is weighed one number at a time, and a solid run is not assumed to be money |
 
 ---
 

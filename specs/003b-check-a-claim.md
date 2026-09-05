@@ -67,6 +67,15 @@ in the way, is the point of splitting.
     character is invisible to a comparison that collapses whitespace and still
     reaches the card, where a title has to be one whole line of the page and the
     printed record puts one field on one line. See BUG-022.
+28b. THE SYSTEM SHALL weigh a run of digits one telephone number at a time. A run
+    longer than any number anybody can ring SHALL be broken at the places a single
+    number cannot continue across, rather than being cleared whole, because a
+    number followed by its opening hours or by a second number is otherwise let
+    through. See BUG-029.
+28c. THE SYSTEM SHALL NOT assume that a run of digits written without separators
+    is an amount. That assumption made every telephone number written the same way
+    invisible, and it only ever applied where no currency marker had been found,
+    which made it the rule that settled pure ambiguity. See ADR-0037.
 29. THE SYSTEM SHALL refuse a stored quote containing an email address or a
     telephone number, and SHALL NOT alter the quote to remove one, because an
     altered quote is no longer a substring of the source. The field is then grounded
@@ -196,8 +205,11 @@ costs nothing, and never fails because a provider had a bad morning.
   each refused. A one word quote padded with spaces is refused too, and so is a
   quote past the ceiling. Money is never mistaken for a telephone number, whether
   the currency is written before or after the figure, and neither is a date in
-  figures nor a range of years. An ordinary local number is caught, including one
-  written as two groups of four digits.
+  figures, a date written solid, nor a range of years. An ordinary local number is
+  caught, including one written as two groups of four digits, one written without
+  separators at all, and one sitting beside its own opening hours or beside a
+  second number. An amount written solid with no currency beside it is refused,
+  which is the stated cost of that last rule.
 - A stored value carrying a line break or a tab is refused, in the title, in a
   value and in a quote.
 - A figure in a value has to be a number the page states. A claimed 87 is refused
