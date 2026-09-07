@@ -24,6 +24,7 @@ from field_monitoring_pipeline.extract import (
     KEY_NAME,
     KNOWN,
     MAX_QUOTE,
+    NO_LINK,
     PROMPT_VERSION,
     TRANSIENT_PAUSES,
     TRANSIENT_TRIES,
@@ -1320,7 +1321,7 @@ def test_the_template_copied_and_left_unfilled_counts_as_no_key(
 
 
 def test_the_key_is_found_past_the_templates_comment_lines(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The shipped template carries twenty lines of comment, several containing an equals sign.
+    """The shipped template carries twenty eight lines of comment, several with an equals sign.
 
     A person fills it in and keeps the comments, so the reader has to walk past
     all of them. That path had no test.
@@ -2223,6 +2224,33 @@ def test_a_title_carrying_a_contact_detail_never_reaches_a_record() -> None:
 
     with pytest.raises(HeldAfterTwoTriesError, match="carries a contact detail"):
         extract(make_item(page), Replies(line), A_PROMPT, "stand-in")
+
+
+def test_an_item_with_no_link_of_its_own_still_says_where_it_came_from() -> None:
+    """Both address fields on a captured item may be absent, and no test said so.
+
+    A feed can publish an entry carrying no link, and the fallback for that was
+    an empty string with nothing naming it. As a card's link that is right: the
+    card shows none. In the message raised when an item is held it read "held
+    after 2 attempts at " and named nothing at all, which is the one message a
+    person has to act on when the run holds something.
+    """
+    item = RawItem(
+        source_id="a-feed-with-no-links",
+        source_item_id=None,
+        url=None,
+        canonical_url=None,
+        fetched_at=datetime(2026, 9, 3, 6, 17, tzinfo=UTC),
+        raw_text="<p>A page whose feed entry carries no link at all.</p>",
+        raw_hash="b" * 64,
+    )
+
+    assert source_url_of(item) == NO_LINK
+
+    with pytest.raises(HeldAfterTwoTriesError, match="no link, captured from a-feed-with-no-links"):
+        extract(item, Replies("not a command", "still not a command"), A_PROMPT, "stand-in")
+
+
 def test_the_providers_own_explanation_is_relayed() -> None:
     """A bare number sends a maintainer looking at their own code.
 

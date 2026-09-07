@@ -1034,9 +1034,21 @@ def build(flags: dict[str, str], source: str, source_url: str) -> Call:
 # ------------------------------------------------------------------- the whole step
 
 
+NO_LINK = ""
+"""What a captured item with no address of its own is worth as a link.
+
+A feed may publish an entry carrying no link at all, so both address fields on a
+captured item can be absent and this is a real case rather than an unreachable
+guard. An empty string is the right answer for a card, which then shows no link.
+It was the wrong answer for the message raised when an item is held, which read
+"held after 2 attempts at " and told the person reading the run nothing about
+which item it meant, so that message now says so in words instead.
+"""
+
+
 def source_url_of(item: RawItem) -> str:
     """Where a reader is sent. Taken from the capture, never from the model."""
-    return item.canonical_url or item.url or ""
+    return item.canonical_url or item.url or NO_LINK
 
 
 def extract(
@@ -1081,7 +1093,8 @@ def extract(
         )
 
     reasons = "; then ".join(refusals)
-    msg = f"{item.raw_hash[:12]} at {url}: held after 2 attempts. Refused because {reasons}"
+    where = url or f"no link, captured from {item.source_id}"
+    msg = f"{item.raw_hash[:12]} at {where}: held after 2 attempts. Refused because {reasons}"
     raise HeldAfterTwoTriesError(msg)
 
 
