@@ -31,6 +31,26 @@ def test_the_watch_list_is_read_and_filtered_by_kind(tmp_path: Path) -> None:
     assert load_sources(write(tmp_path, GOOD), kind="report") == ()
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param(GOOD.replace("[[source]]", "[[sources]]"), id="the-table-name-mis-spelt"),
+        pytest.param("", id="a-watch-list-with-nothing-in-it"),
+    ],
+)
+def test_a_watch_list_naming_nothing_to_watch_is_refused(tmp_path: Path, body: str) -> None:
+    """A typo inside a block was reported. A typo in the block's own name was not.
+
+    The list simply came back empty, every source was skipped without being
+    mentioned, and the run reported that it had succeeded. A source that is never
+    looked at is indistinguishable from a source with nothing to say, so this
+    could have gone unnoticed for as long as anybody cared to wait, which is the
+    failure this project is built to avoid.
+    """
+    with pytest.raises(ValueError, match="no \\[\\[source\\]\\] blocks"):
+        _ = load_sources(write(tmp_path, body), kind="call")
+
+
 def test_a_route_nobody_implements_is_named_with_its_block(tmp_path: Path) -> None:
     """The error must say which block is wrong, not only which value."""
     broken = (

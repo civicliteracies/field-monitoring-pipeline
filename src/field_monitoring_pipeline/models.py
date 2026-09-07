@@ -97,6 +97,15 @@ def load_sources(path: Path, kind: Kind) -> tuple[Source, ...]:
         raw = tomllib.load(handle)
 
     blocks = raw.get("source", [])
+    if not blocks:
+        # A typo in a block was already reported. A typo in the block's own name
+        # was not: the list came back empty, every source was skipped, and the
+        # run said it had succeeded. A watch list naming nothing to watch is a
+        # mistake in the repository, which is the one thing that stops a run
+        # outright rather than being carried past.
+        found = ", ".join(sorted(raw)) or "nothing at all"
+        msg = f"{path} lists no [[source]] blocks. It contains {found}."
+        raise ValueError(msg)
     sources = tuple(_validated(block, index) for index, block in enumerate(blocks, start=1))
     _refuse_a_repeated_id(sources)
     return tuple(source for source in sources if source.kind == kind)
