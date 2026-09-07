@@ -27,6 +27,78 @@ before the code it concerns existed, the entry says which slice brings the test.
 
 ---
 
+## BUG-036 — The gate said it refused a lockfile that disagreed, and did not
+
+**Found** 2026-09-07, by an audit running the tooling rather than reading it.
+
+**Symptom.** Four places stated that uv refuses to run when `uv.lock` and
+`pyproject.toml` disagree, and that this is why the gate carries no separate
+check for it. Neither half held. A dependency added to `pyproject.toml` by hand
+and never locked passed the Linux install step, and the local gate rewrote the
+lockfile to agree rather than reporting the difference.
+
+**Cause.** Two different flags. `--frozen` means install from the lockfile
+without updating it, so a disagreement is ignored rather than refused. Plain
+`uv run` resolves and quietly rewrites the lockfile. The flag that asserts the
+two agree is `--locked`, and nothing used it. Measured both ways in a copy of the
+project outside the repository.
+
+**Fix.** The Linux install step uses `--locked`. Every command in the gate passes
+`--locked`, so the assertion holds on the machine the push comes from as well as
+on the one that reports afterwards. The four claims are corrected to describe the
+tool as it behaves.
+
+**Test.** None that runs in the suite. This is a property of the task runner and
+the workflow rather than of the code, and a test that shells out to uv to install
+a deliberately broken project would be slower than the whole suite. The gate
+itself now fails if the two files disagree, which is the check.
+
+---
+
+## BUG-035 — A typo in the watch list made the whole run do nothing and report success
+
+**Found** 2026-09-07, by a completeness pass reading files no other reading had opened.
+
+**Symptom.** Writing the watch list's table name wrongly, `[[sources]]` for
+`[[source]]`, produced a list of no sources. Every source was skipped without
+being mentioned, and the run reported that it had succeeded.
+
+**Cause.** The reader asked the parsed file for its `source` blocks and accepted
+whatever came back, including nothing. A typo inside a block was already reported
+by name. A typo in the block's own name was not, because there was then no block
+to report.
+
+**Fix.** A watch list naming nothing to watch stops the run and says which keys
+the file does contain, so the typo is visible in the message. This is the one
+kind of failure that stops a run outright, because it is a mistake in the
+repository rather than a website having a bad day.
+
+**Test.** `tests/test_models.py`, two shapes: the table name mis-spelt, and a
+watch list with nothing in it at all.
+
+---
+
+## BUG-034 — A damaged bookmark ended the whole scheduled run before anything was fetched
+
+**Found** 2026-09-07, by an audit reading how the run behaves when its own files are wrong.
+
+**Symptom.** A half-written or hand-damaged file under `data/state/` ended the
+entire run with an unhandled error, before a single source had been reached.
+
+**Cause.** The bookmark is read at the top of the loop, outside the error
+handling that keeps one failing source from stopping the others. A file recorded
+as a disposable cache was therefore the one thing able to stop every source at
+once.
+
+**Fix.** Unreadable now means the same as absent. The source is fetched
+unconditionally, which is the cost that decision already accepted, and the file
+is rewritten correctly on the same run.
+
+**Test.** `tests/test_calls.py`, a damaged bookmark: no source is skipped and the
+file is repaired in passing. See ADR-0027.
+
+---
+
 ## BUG-017 — A source could send the run to an address the watch list never chose
 
 **Found** 2026-09-02, by probing, before release.

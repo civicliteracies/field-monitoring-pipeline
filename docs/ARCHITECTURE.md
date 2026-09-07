@@ -210,7 +210,8 @@ locked libraries and the git hooks. `check` runs the four sub-tasks and fixes wh
 it can, which is what you want while working. `verify` runs the same four and
 fixes nothing, because a gate that edits the code it is judging can pass by
 repairing the fault it should have reported. Nothing else is bolted on: uv already
-refuses to run when the dependency files disagree, so there is no separate check
+is told to refuse when the dependency files disagree, by `--locked` on every
+command in the gate, so there is no separate check
 for that.
 
 **In and out.** In: `mise run <task>`. Out: the installed toolchain and the
@@ -714,5 +715,5 @@ into the sections above, with a full entry, in the pull request that creates it.
 | `config/tags.toml` | The fixed topic list, each marked primary or secondary | PR 8 |
 | `config/strings.toml` | The card and feed wording, so changing copy needs no code | PR 11 |
 | **A card file** | One funding call as a text file: typed fields at the top, the source quotes below. Explained once as a type, never one entry per card | PR 4 |
-| `datapackage.json` | Describes the collected data: its fields, licence, and provenance | PR 8 |
+| `datapackage.json` | Describes the collected data: its fields and where each came from | PR 8 |
 | `site/` | The dashboard. Built by the CLI team, not the build agent | PR 12 |

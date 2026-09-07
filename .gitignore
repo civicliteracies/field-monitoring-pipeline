@@ -23,7 +23,6 @@ htmlcov/
 .venv
 env/
 venv/
-!.env.example
 
 # --- Local Secrets & Config (NEVER commit secrets!) ---
 *.env
