@@ -35,6 +35,14 @@ language. **Why** a choice was made, and what it cost, belongs in
   served with Windows line endings was stored one way and read back another, which
   would have made a quote verify on the machine that captured it and fail
   everywhere else.
+- A damaged bookmark file no longer ends the whole scheduled run before anything
+  is fetched. It costs one unconditional fetch of one source and is repaired.
+- A typo in the watch list is reported instead of producing a run that quietly
+  looks at nothing and reports success.
+- The gate refuses a lockfile that disagrees with the project file. It said it
+  did and did not: the flag in use installed from the lockfile and ignored the
+  disagreement, and the local gate rewrote the lockfile to agree rather than
+  reporting it.
 
 ### Added
 
@@ -85,17 +93,6 @@ language. **Why** a choice was made, and what it cost, belongs in
   redirects it, and refuses anything on a private or local network.
 - A source behind a gate is reported as skipped rather than as quiet, and keeps
   no bookmark, so the next run looks again instead of believing it.
-
-### Fixed
-
-- A damaged bookmark file no longer ends the whole scheduled run before anything
-  is fetched. It costs one unconditional fetch of one source and is repaired.
-- A typo in the watch list is reported instead of producing a run that quietly
-  looks at nothing and reports success.
-- The gate refuses a lockfile that disagrees with the project file. It said it
-  did and did not: the flag in use installed from the lockfile and ignored the
-  disagreement, and the local gate rewrote the lockfile to agree rather than
-  reporting it.
 
 ### Changed
 
