@@ -31,7 +31,11 @@ all. Checks live on the maintainer's machine rather than on GitHub, per
 3. WHEN every dev tool is declared, THE SYSTEM SHALL pin it to an exact version
    rather than a range, so a version changes only when someone changes it
    deliberately and that change arrives as a pull request to be discussed.
-4. WHEN `uv.lock` and `pyproject.toml` disagree, uv SHALL refuse to run. No
+4. WHEN `uv.lock` and `pyproject.toml` disagree, the gate SHALL refuse to run,
+   because every command in it passes `--locked`. Plain `uv run` does not
+   refuse; it rewrites the lockfile to agree, which is a gate repairing what it
+   is judging. `uv sync --frozen` does not refuse either; it installs what the
+   lockfile says and ignores the disagreement. Both were measured. See BUG-036. No
    separate check is added: this behaviour comes with the tool.
 
 ### Documentation
@@ -325,7 +329,7 @@ decisions taken during this build. Each line names its source so the list is aud
 - [x] Every dev tool pinned to an exact version in `pyproject.toml` — *requirement 3* — **done 2026-08-31**
 - [x] `.github/workflows/ci.yml`: `mise run verify` on Linux for every pull request, advisory, every action pinned to a commit SHA, token `contents: read` — *requirement 25; ADR-0023* — **done 2026-08-31**
 - [x] ~~GitHub workflows for any of the above~~ — **removed 2026-08-31**, ADR-0021. GitHub runs the scheduled scraping job and nothing else
-- [x] ~~`uv lock --check`, `pip-audit`, a file-size script, and a documentation-guard script inside the gate~~ — **removed 2026-08-31**, ADR-0022. uv already refuses to run when the dependency files disagree; pinned versions plus a discussed pull request cover the rest
+- [x] ~~`uv lock --check`, `pip-audit`, a file-size script, and a documentation-guard script inside the gate~~ — **removed 2026-08-31**, ADR-0022. the gate asserts the dependency files agree by passing `--locked`, which is where that check now lives; pinned versions plus a discussed pull request cover the rest
 
 ### C. Configuration edits
 

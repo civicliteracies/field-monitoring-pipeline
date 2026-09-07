@@ -35,15 +35,17 @@ depends = ["format", "lint", "typecheck", "test"]
 # The same four checks as `check`, with nothing fixed. A gate must report rather
 # than repair, or it can pass by quietly editing the code it is judging. This is
 # what the pre-push hook and the advisory Linux run both call. Nothing else
-# belongs here: uv already refuses to run when the dependency files disagree, so
-# there is no need to check that separately.
+# belongs here, but the dependency files are asserted to agree: --locked fails
+# when uv.lock and pyproject.toml disagree. Bare `uv run` was here first, and it
+# quietly rewrites the lockfile to match instead, so the gate was repairing the
+# very thing it was supposed to be judging.
 [tasks.verify]
 description = "The gate, read-only: reports rather than fixes. What the push hook runs."
 run = [
-    "uv run ruff format --check .",
-    "uv run ruff check .",
-    "uv run basedpyright src tests",
-    "uv run pytest -n auto",
+    "uv run --locked ruff format --check .",
+    "uv run --locked ruff check .",
+    "uv run --locked basedpyright src tests",
+    "uv run --locked pytest -n auto",
 ]
 
 [tasks.test]

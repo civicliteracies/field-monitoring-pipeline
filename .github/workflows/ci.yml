@@ -42,10 +42,12 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
 
-      # --frozen fails if the lockfile and pyproject.toml disagree, which is the
-      # same refusal uv makes locally.
+      # --locked fails if the lockfile and pyproject.toml disagree. --frozen was
+      # here first and does not: it installs what the lockfile says and ignores
+      # the disagreement, so a dependency added by hand to pyproject.toml passed
+      # this step without ever being locked. Measured, not assumed.
       - name: Install dependencies from the lockfile only
-        run: uv sync --frozen
+        run: uv sync --locked
 
       # The same task the pre-push hook runs, so a green tick here means what a
       # clean push means, on a different operating system.
