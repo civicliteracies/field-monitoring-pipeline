@@ -44,8 +44,12 @@ def git(where: Path, *args: str) -> None:
 
 @pytest.mark.parametrize(
     "kept",
-    ["data/raw/item.txt", "tests/fixtures/a-source/input.txt"],
-    ids=["the-archive", "a-frozen-fixture"],
+    [
+        "data/raw/item.txt",
+        "data/responses/a-source/served.raw",
+        "tests/fixtures/a-source/input.txt",
+    ],
+    ids=["the-archive", "what-the-source-served", "a-frozen-fixture"],
 )
 def test_evidence_survives_a_commit_and_a_clone(kept: str) -> None:
     """Measured: without the exception, 54 bytes were stored as 52 and came back as 52.

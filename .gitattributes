@@ -37,5 +37,9 @@
 # fresh clone as 52, and a quote spanning a line break was found in the original
 # and not in the clone. A quote would then verify on the machine that captured it
 # and fail everywhere else.
+# `data/responses/` belongs here for the same reason as `data/raw/`, and was
+# missed when the response became the capture. It holds the bytes a source served,
+# which is what every stored quote is ultimately checked against.
 data/raw/**       -text
+data/responses/** -text
 tests/fixtures/** -text

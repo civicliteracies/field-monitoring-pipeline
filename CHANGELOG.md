@@ -13,6 +13,8 @@ language. **Why** a choice was made, and what it cost, belongs in
 
 ### Fixed
 
+- What a source served is protected from having its line endings rewritten, which
+  only the older archive folder was.
 - A quote can no longer be stitched together from two unrelated paragraphs. The
   end of a block of text was being treated as an ordinary space when a quote was
   checked against the page, so a sentence from one paragraph joined to a sentence
