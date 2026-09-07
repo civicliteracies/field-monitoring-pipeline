@@ -282,6 +282,73 @@ the page reads the same as the same page written the plain way.
 
 ---
 
+## BUG-043 — An error handed back to the model carried the page's own words
+
+**Found** 2026-09-07, by a second opinion reading the slice against its own
+specification, and it was introduced by the fix for BUG-033 the same day.
+
+**Symptom.** The refusal raised when a deadline quote names a second date written
+in figures said which date it was. That message travels into the next request, so
+the page's own words were sent to the model a second time.
+
+**Cause.** The message interpolated the matched text rather than counting it. The
+rule against this is written down: an error handed back must carry no text read
+from the source.
+
+**Fix.** The message says how many were found and not what they are, which is
+enough for the model to quote a narrower span.
+
+**Test.** `tests/test_extract.py`, the same three shapes as BUG-033, now matching
+a message that names no date.
+
+---
+
+## BUG-042 — A range of years written with a slash was refused as a telephone number
+
+**Found** 2026-09-07, by a second opinion, and introduced by the widening of the
+separators the day before.
+
+**Symptom.** "The fellowship covers 2026/2027 in full." was refused as carrying a
+telephone number. The academic year is written that way and a funding page is
+full of them.
+
+**Cause.** Reading a solidus as a separator inside a run of digits made the year
+range eight digits joined by one, and the shapes known not to be numbers to ring
+knew the dash forms only.
+
+**Fix.** The slash joins the dashes in that exemption. Written with a plain space
+it stays refused, because two groups of four digits with a space between them is
+also exactly how a Danish local number is written, which is the defect BUG-025
+was about.
+
+**Test.** `tests/test_extract.py`, three shapes: a plain hyphen, an en dash and a
+slash.
+
+---
+
+## BUG-041 — A stored value could carry an invisible character that is a line break by another name
+
+**Found** 2026-09-07, by a second opinion reading the requirement rather than the
+code.
+
+**Symptom.** The rule is that a stored value carries nothing but words. The check
+meant only the characters below the ASCII range, so a line separator, a paragraph
+separator, a zero width space, a byte order mark, a soft hyphen or a direction
+override passed into the title, the funder or any value, and reached the card.
+
+**Cause.** The pattern was written when the concern was a tab or a line break
+typed by a model. The same idea has a much wider membership in Unicode, and two
+of them are line breaks under another name while the direction overrides make a
+stored value read on the page as something other than what it says.
+
+**Fix.** The pattern covers the format and separator characters as well. The cost
+is that a script using a zero width joiner as ordinary writing would be refused,
+which costs one further attempt.
+
+**Test.** `tests/test_extract.py`, seven characters, one per shape.
+
+---
+
 ## BUG-040 — Closing a furniture tag closed the outermost one of that name, not the innermost
 
 **Found** 2026-09-07, by a second opinion, in the fix for BUG-021.

@@ -13,6 +13,10 @@ language. **Why** a choice was made, and what it cost, belongs in
 
 ### Fixed
 
+- A stored value cannot carry an invisible character. The rule said nothing but
+  words and the check meant only the characters below the ASCII range, so a line
+  separator, a zero width space or a direction override reached a card.
+- A range of years written with a slash is read as a range of years again.
 - A quote can no longer be stitched together from two blocks of text. This was
   recorded as fixed once and was not: the end of a block was written as a single
   line break, which a page wrapping its own source also produces, so the two could
