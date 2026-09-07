@@ -230,6 +230,53 @@ def test_a_record_refuses_a_key_it_does_not_know() -> None:
         })
 
 
+def test_a_call_carries_the_funders_facts_and_nothing_about_this_system() -> None:
+    """The three versions travel beside a record, never inside it.
+
+    A record's shape is what the funder said. How it came to be made is a fact
+    about this system, and mixing the two would put a value and its provenance in
+    one place where a later reader cannot tell which is which. The shapes refuse
+    what they do not know, so this is one line to assert and it had none.
+    """
+    for stamped in ("prompt_version", "model_id", "builder_version"):
+        with pytest.raises(ValidationError):
+            Call.model_validate({**_a_call().model_dump(), stamped: "v1"})
+
+
+@pytest.mark.parametrize(
+    "absent",
+    [
+        pytest.param("funder", id="the-funder"),
+        pytest.param("budget", id="the-budget"),
+        pytest.param("eligibility", id="the-eligibility"),
+        pytest.param("area", id="the-area"),
+    ],
+)
+def test_the_four_fields_a_source_often_omits_may_be_absent(absent: str) -> None:
+    """A source frequently states none of these, and a record has to hold that."""
+    assert Call.model_validate({**_a_call().model_dump(), absent: None})
+
+
+@pytest.mark.parametrize(
+    "required",
+    [
+        pytest.param("title", id="the-title"),
+        pytest.param("type", id="the-type"),
+        pytest.param("timing", id="the-timing"),
+        pytest.param("summary", id="the-summary"),
+    ],
+)
+def test_the_four_fields_a_card_cannot_do_without_are_refused_empty(required: str) -> None:
+    """The other half of the same rule, and the half that had no test.
+
+    Which fields may be absent is settled by the shape itself rather than by a
+    list somebody has to remember. That only means something if both halves are
+    held to it: the four that may be absent, and the four that may not.
+    """
+    with pytest.raises(ValidationError):
+        Call.model_validate({**_a_call().model_dump(), required: None})
+
+
 def test_a_record_still_reads_back_from_its_own_written_form() -> None:
     """Refusing extras must not refuse the round trip the rebuild depends on."""
     made = Extraction(call=_a_call(), prompt_version="v2", model_id="a-model", builder_version="b1")

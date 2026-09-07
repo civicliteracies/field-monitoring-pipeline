@@ -58,7 +58,11 @@ def test_invisible_and_escaped_characters_are_settled(captured: str, expected: s
     [
         pytest.param("", "", id="nothing-at-all"),
         pytest.param("Just a sentence.", "Just a sentence.", id="no-markup"),
-        pytest.param("<p>unclosed <b>bold <i>and <p>another", "unclosed bold and\nanother", id="never-closed"),
+        # A blank line, because the second paragraph opening is the end of the
+        # first. This read as a single line break until a fresh reading found
+        # that the collapsing step turns one of those into an ordinary space,
+        # which is the splice BUG-019 exists to stop. See BLOCK_ENDS.
+        pytest.param("<p>unclosed <b>bold <i>and <p>another", "unclosed bold and\n\nanother", id="never-closed"),
     ],
 )
 def test_odd_input_gives_the_words_back(captured: str, expected: str) -> None:
@@ -278,3 +282,74 @@ def test_a_stray_closing_tag_does_not_let_a_menu_through() -> None:
 )
 def test_furniture_is_dropped_however_the_page_nests_it(captured: str, expected: str) -> None:
     assert readable(captured) == expected
+
+
+# ------------- what a second opinion found the derivation was still letting past
+
+
+@pytest.mark.parametrize(
+    "captured",
+    [
+        pytest.param("<p>Alpha.</p><p>Beta.</p>", id="two-paragraphs"),
+        pytest.param("<p>Alpha.<br>Beta.</p>", id="a-line-break-inside-a-paragraph"),
+        pytest.param("<p>Alpha.<br/>Beta.</p>", id="a-self-closing-line-break"),
+        pytest.param("<p>Alpha.</p>Beta.", id="a-paragraph-then-loose-text"),
+        pytest.param("<div>Alpha.</div>Beta.", id="a-division-then-loose-text"),
+        pytest.param("<ul><li>Alpha.</li><li>Beta.</li></ul>", id="two-list-items"),
+        pytest.param("<h1>Alpha.</h1><p>Beta.</p>", id="a-heading-then-a-paragraph"),
+        pytest.param("<table><tr><td>Alpha.</td></tr><tr><td>Beta.</td></tr></table>", id="two-rows"),
+        pytest.param("<table><tr><td>Alpha.</td><td>Beta.</td></tr></table>", id="two-cells-in-one-row"),
+        pytest.param("<blockquote>Alpha.</blockquote><p>Beta.</p>", id="a-blockquote-then-a-paragraph"),
+    ],
+)
+def test_a_quote_cannot_cross_any_shape_of_block_boundary(captured: str) -> None:
+    """The end of a block was written as a single line break, and one is not enough.
+
+    A line break also arrives inside a block, from a page that wraps its own
+    source, and the collapsing step cannot tell the two apart. It treated both as
+    an ordinary space, so the boundary was lost for every shape that produced
+    only one: a line break inside a paragraph, a block followed by loose text,
+    and a page written one way while the same page written the other was fenced
+    correctly. Both frozen pages carry the first of those, and a fresh reading
+    found the defect BUG-019 was recorded as having fixed.
+
+    Two cells of one row were worse than spliced. They were run together with
+    nothing at all between them.
+    """
+    assert flat("Alpha. Beta.") not in flat(readable(captured))
+
+
+@pytest.mark.parametrize(
+    "captured",
+    [
+        pytest.param("<p>Alpha and\nBeta together.</p>", id="a-soft-line-break-in-the-source"),
+        pytest.param("<p>Alpha <strong>and</strong> Beta together.</p>", id="a-sentence-broken-by-markup"),
+        pytest.param("<p>Alpha and\n   Beta together.</p>", id="a-sentence-wrapped-and-indented"),
+    ],
+)
+def test_one_continuous_sentence_still_matches_itself(captured: str) -> None:
+    """The cost of the rule above, held to the shape it must not break.
+
+    A page wraps its own source wherever it likes, and a sentence broken that way
+    is still one sentence. Fencing on a single line break would refuse an honest
+    quote from every page written that way.
+    """
+    assert flat("Alpha and Beta together.") in flat(readable(captured))
+
+
+@pytest.mark.parametrize(
+    "captured",
+    [
+        pytest.param("<p>Real.</p><nav>menu<nav>sub</nav> leaked </nav><p>End.</p>", id="a-menu-inside-a-menu"),
+        pytest.param("<p>Real.</p><aside>a<aside>b</aside> leaked </aside><p>End.</p>", id="an-aside-inside-an-aside"),
+    ],
+)
+def test_closing_furniture_closes_the_innermost_one_of_that_name(captured: str) -> None:
+    """Closing the outermost ended both, and the rest of the furniture read as article.
+
+    Matching by name was introduced so that a stray closing tag changes nothing.
+    It searched from the wrong end, so a page that nests the same furniture tag,
+    which a template does whenever a menu holds a submenu, ended the whole filter
+    at the inner closing tag and the remaining menu text was read as the page.
+    """
+    assert readable(captured) == "Real.\n\nEnd."

@@ -30,11 +30,29 @@ that bump with a decision record and a rebuild. See ADR-0034.
 
 # --------------------------------------------------- turning a capture into text
 
+BLOCK_ENDS = "\n\n"
+"""What the end of one block of text is written as before anything reads it.
+
+A blank line, always, because that is the only thing the collapsing step treats
+as a boundary a quote cannot cross. A single line break was written here first,
+and one arrives inside a block too, from a page that wraps its own source. The
+collapsing step cannot tell those apart, so it treated both as ordinary space and
+the boundary was lost for every shape that produced only one: a line break inside
+a paragraph, a block followed by loose text, and one page written `<br>` while
+the same page written `<br/>` was fenced correctly. Both frozen pages carry the
+first of those. BUG-019 was recorded as fixed and was not.
+"""
+
 _BLOCK = frozenset({
     "p",
     "div",
     "li",
     "tr",
+    # A cell is its own block. Without these two, the cells of one row were run
+    # together with nothing at all between them, so a label in one column and a
+    # figure in another read as a single sentence a quote could be built from.
+    "td",
+    "th",
     "br",
     "h1",
     "h2",
@@ -93,15 +111,19 @@ class _ToText(HTMLParser):
         if tag in _SKIP:
             self.inside.append(tag)
         elif tag in _BLOCK:
-            self.out.append("\n")
+            self.out.append(BLOCK_ENDS)
 
     def handle_endtag(self, tag: str) -> None:
         if tag in _SKIP:
             if tag in self.inside:
-                # Everything opened inside the one being closed is closed with it.
-                del self.inside[self.inside.index(tag) :]
+                # Everything opened inside the one being closed is closed with
+                # it, and it is the innermost one of that name that is closing.
+                # Taking the outermost meant a menu inside a menu ended both, and
+                # the rest of the page's furniture was read as the article. That
+                # is the very thing matching by name was introduced to stop.
+                del self.inside[len(self.inside) - 1 - self.inside[::-1].index(tag) :]
         elif tag in _BLOCK:
-            self.out.append("\n")
+            self.out.append(BLOCK_ENDS)
 
     def handle_data(self, data: str) -> None:
         if not self.inside:
