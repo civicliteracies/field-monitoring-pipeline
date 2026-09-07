@@ -158,6 +158,73 @@ the page reads the same as the same page written the plain way.
 
 ---
 
+## BUG-040 — Closing a furniture tag closed the outermost one of that name, not the innermost
+
+**Found** 2026-09-07, by a second opinion, in the fix for BUG-021.
+
+**Symptom.** A page that nests the same furniture tag, which a template does
+whenever a menu holds a submenu, ended the whole filter at the inner closing tag.
+Everything after it, the rest of the menu included, was read as the article.
+
+**Cause.** The list of open furniture tags was searched from the front. Matching
+by name was introduced so that a stray closing tag changes nothing, and it
+searched from the wrong end.
+
+**Fix.** The innermost tag of that name is the one that closes.
+
+**Test.** `tests/test_extract.py`, a menu inside a menu and an aside inside an
+aside. The existing test named for nesting used two different tag names, which is
+the one nesting shape that already worked.
+
+---
+
+## BUG-039 — The cells of one row were run together with nothing between them
+
+**Found** 2026-09-07, by a second opinion.
+
+**Symptom.** A table row derived to its cells with no separator at all, so a label
+in one column and a figure in another read as a single sentence a quote could be
+built from.
+
+**Cause.** A row was a block boundary and a cell was not.
+
+**Fix.** A cell is its own block.
+
+**Test.** `tests/test_extract.py`, two cells of one row, among the ten block
+shapes a quote may not cross.
+
+---
+
+## BUG-038 — The end of a block was one line break, and one is not enough
+
+**Found** 2026-09-07, by a second opinion, and the most serious thing found in
+this project so far: BUG-019 was recorded as fixed and was not.
+
+**Symptom.** A quote could still be stitched together from two unrelated blocks.
+Reproduced through the whole gate: a sentence that is not on the page was
+accepted as a budget's own evidence. It happens on both frozen pages, in markup
+they really use, and the same page written `<br>` spliced while written `<br/>`
+did not.
+
+**Cause.** The end of a block was written as a single line break. A single line
+break also arrives inside a block, from a page that wraps its own source, and the
+collapsing step cannot tell those apart. It treated both as ordinary space, so
+the boundary was lost for every shape that produced only one: a line break inside
+a paragraph, and a block followed by loose text. Only two adjacent blocks
+produced the blank line the fence actually required, and that is the only shape
+the guarding test used.
+
+**Fix.** The end of a block is written as a blank line, always. A line break
+inside a block is still collapsed, so a sentence broken by a page wrapping its
+source still matches itself.
+
+**Test.** `tests/test_extract.py`, ten block shapes that must fence and three
+continuous shapes that must not, plus the whole gate on the sentence that started
+it. The old test asserted a single line break between two paragraphs, which was
+the defect written down as an expectation.
+
+---
+
 ## BUG-021 — A stray closing tag let a page's menu through as though it were the article
 
 **Found** 2026-09-05, by an audit, before any record had been built.

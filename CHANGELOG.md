@@ -13,6 +13,14 @@ language. **Why** a choice was made, and what it cost, belongs in
 
 ### Fixed
 
+- A quote can no longer be stitched together from two blocks of text. This was
+  recorded as fixed once and was not: the end of a block was written as a single
+  line break, which a page wrapping its own source also produces, so the two could
+  not be told apart. Both frozen pages were affected.
+- The cells of a table row are separated. They used to run together with nothing
+  between them.
+- A page that nests a menu inside a menu no longer has the rest of its menu read
+  as the article.
 - What a source served is protected from having its line endings rewritten, which
   only the older archive folder was.
 - A quote can no longer be stitched together from two unrelated paragraphs. The
