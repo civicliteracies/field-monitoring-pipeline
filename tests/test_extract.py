@@ -6,10 +6,13 @@ The two fixtures are real funding calls, frozen exactly as the servers served
 them.
 """
 
+import contextlib
 import json
+import os
 import re
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import cast
 
 import httpx
 import pytest
@@ -17,6 +20,7 @@ import pytest
 from field_monitoring_pipeline.extract import (
     BOUNDARY,
     BUILDER_VERSION,
+    CONNECT_SECONDS,
     CONTROL,
     DEFAULT_MODEL,
     FENCE,
@@ -26,6 +30,7 @@ from field_monitoring_pipeline.extract import (
     MAX_QUOTE,
     NO_LINK,
     PROMPT_VERSION,
+    READ_SECONDS,
     TRANSIENT_PAUSES,
     TRANSIENT_TRIES,
     Gemini,
@@ -1146,6 +1151,8 @@ def test_closing_furniture_closes_the_innermost_one_of_that_name(captured: str) 
     at the inner closing tag and the remaining menu text was read as the page.
     """
     assert readable(captured) == "Real.\n\nEnd."
+
+
 # --------------------------------------------------------- reaching a real model
 
 
@@ -2249,6 +2256,85 @@ def test_an_item_with_no_link_of_its_own_still_says_where_it_came_from() -> None
 
     with pytest.raises(HeldAfterTwoTriesError, match="no link, captured from a-feed-with-no-links"):
         extract(item, Replies("not a command", "still not a command"), A_PROMPT, "stand-in")
+
+
+def test_a_quote_given_without_its_value_is_refused(cipesa: tuple[RawItem, str]) -> None:
+    """The rule covers both halves and only one of them was tested.
+
+    A value without its quote had a test. A quote without its value did not,
+    though the code refuses both in the same branch. A promise with a test on one
+    side only is a promise half kept.
+    """
+    item, reply = cipesa
+    without_the_value = swap(reply, f"--budget {quoted('USD 5,000 to USD 20,000')} ", "")
+
+    with pytest.raises(HeldAfterTwoTriesError, match="must both be given"):
+        extract(item, Replies(without_the_value), A_PROMPT, "stand-in")
+
+
+def test_one_request_carries_its_own_time_limits(cipesa: tuple[RawItem, str]) -> None:
+    """The limits are set and nothing looked at them, so removing them turned nothing red.
+
+    A request with no limit of its own waits on whatever the library chose, and
+    the run is unattended. Both halves are checked, because reaching a far end
+    that will not answer and waiting on one that answers slowly are different
+    faults with different costs.
+    """
+    seen: list[dict[str, float | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        timeout = cast("dict[str, float | None]", request.extensions.get("timeout") or {})
+        seen.append(timeout)
+        del request
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "no command"}]}}]})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        model = Gemini(key="k", client=client)
+        with contextlib.suppress(Exception):
+            _ = model(prompt="hello")
+
+    assert seen, "the request never went out"
+    assert seen[0]["read"] == READ_SECONDS
+    assert seen[0]["connect"] == CONNECT_SECONDS
+
+
+def test_the_second_request_adds_the_reason_and_nothing_else(cipesa: tuple[RawItem, str]) -> None:
+    """The old check was a substring, which would pass if the page were sent twice.
+
+    The second attempt has to be the same prompt with the reason appended. Sending
+    the source again would double the cost of every retry and change what the
+    model is answering, and a substring check could not tell.
+    """
+    item, reply = cipesa
+    broken = swap(reply, "--type rfp", "--type sponsorship")
+    model = Replies(broken, reply)
+
+    _ = extract(item, model, A_PROMPT, "stand-in")
+
+    first, second = model.asked
+    assert second.startswith(first), "the second request is the first with something added"
+    added = second[len(first) :]
+    assert "Your last answer failed" in added
+    assert added.count(FENCE) == 0, "the source text is not sent a second time"
+
+
+def test_this_step_writes_no_file_anywhere(cipesa: tuple[RawItem, str], tmp_path: Path) -> None:
+    """Three of the requirements are things this slice must not do, and none was guarded.
+
+    Nothing here creates a held directory, a quarantine folder or a run log, and
+    nothing writes a file at all. That holds today by construction, so a later
+    slice that added one would turn nothing red. Now it would.
+    """
+    item, reply = cipesa
+    before = set(tmp_path.rglob("*"))
+    original = Path.cwd()
+    os.chdir(tmp_path)
+    try:
+        _ = extract(item, Replies(reply), A_PROMPT, "stand-in")
+    finally:
+        os.chdir(original)
+
+    assert set(tmp_path.rglob("*")) == before, "the step wrote something"
 
 
 def test_the_providers_own_explanation_is_relayed() -> None:

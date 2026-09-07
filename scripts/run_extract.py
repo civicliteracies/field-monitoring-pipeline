@@ -40,6 +40,14 @@ PROMPTS = ROOT / "src" / "field_monitoring_pipeline" / "prompts"
 FIXTURES = ROOT / "tests" / "fixtures"
 
 
+MOST_OF_A_REPLY = 4_000
+"""How much of one reply is printed before the rest is counted rather than shown.
+
+Enough to read a model's reasoning and the command line it ends with, and short
+enough that a reply running to the ceiling does not bury what came before it.
+"""
+
+
 def fixture_item(folder: Path, name: str) -> tuple[RawItem, str]:
     """One frozen fixture as an item, so the real path reads it like any other."""
     url = (folder / "source_url.txt").read_text(encoding="utf-8").strip()
@@ -82,9 +90,19 @@ def main() -> int:
             sys.stdout.write(f"\n{'=' * 78}\n{name}\n{url}\n{'=' * 78}\n")
 
             def show(attempt: int, reply: str) -> None:
-                """What the model said, which is half of the check done by eye."""
+                """What the model said, which is half of the check done by eye.
+
+                Shown at length on purpose, because a person reading it beside the
+                page is the whole point of this script. Bounded all the same: a
+                reply may be sixty thousand characters, and a wall of them buries
+                the command line underneath that the reader is here to look at.
+                """
+                said = reply.rstrip()
+                if len(said) > MOST_OF_A_REPLY:
+                    cut = len(said) - MOST_OF_A_REPLY
+                    said = f"{said[:MOST_OF_A_REPLY]}\n[{cut} more characters, not shown]"
                 sys.stdout.write(f"\n--- what the model wrote, attempt {attempt} ---\n")
-                sys.stdout.write(reply.rstrip() + "\n")
+                sys.stdout.write(said + "\n")
                 sys.stdout.write("--- the record built from it ---\n")
 
             try:

@@ -1171,14 +1171,20 @@ succeeds. Without this a single blip loses the item, which happened on the first
 end to end run of this step: one page failed with a dropped connection and the
 same page succeeded immediately afterwards.
 
-This is the same shape `fetch.py` already uses for sources, with a shorter ladder
-because a model call is expensive in time and a source fetch is not.
+This is the same shape `fetch.py` already uses for sources, and the same number
+of tries. The pauses are longer: two seconds then eight, against one then two for
+a source. A model that has just dropped a connection is more often busy than
+broken, and waiting longer costs nothing while asking again sooner can arrive
+into the same congestion. An earlier version of this note claimed a shorter
+ladder than the fetch step's, which was never true of the code.
 
 Two ladders sit one inside the other, and the cost of that is worth stating
 plainly. This one runs inside a single attempt at reading an item, and an item
 gets two attempts, so one item can make six requests in all. On a bad network,
 where each attempt waits out the reading limit before failing, the worst case is
-a quarter of an hour on one item. Nothing is lost when that happens and no guess
+six requests of a hundred and eighty seconds plus the pauses inside each attempt,
+which is eighteen minutes and twenty seconds on one item. Nothing is lost when
+that happens and no guess
 is published, but a maintainer reading only the paragraph above would expect
 minutes.
 
