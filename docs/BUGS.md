@@ -27,6 +27,36 @@ before the code it concerns existed, the entry says which slice brings the test.
 
 ---
 
+## BUG-037 — A currency word cleared a telephone number written one space away from an amount
+
+**Found** 2026-09-07, by a skeptic checking the fix for BUG-030, and the last of
+the leaks in this function.
+
+**Symptom.** "Contact 20 41 23 45 250 000 EUR" published the number, and so did a
+Danish office number written beside an amount in the same way. The run holds
+fourteen digits, which is fewer than any number anybody can ring, so nothing
+about its length was suspicious.
+
+**Cause.** A plain single space is not a place a run of digits can be broken,
+and it must not become one: an ordinary telephone number is written with plain
+spaces inside it, so breaking on one would take every real number apart and hide
+it. A number and an amount joined only by single spaces therefore stayed one run,
+and the currency word at the far end cleared the whole of it.
+
+**Fix.** The run is read from the currency word inwards. Every shorter piece of
+it that could stand alone is weighed, and a piece long enough to ring that is not
+itself written the way a figure is written means the currency word was clearing
+more than the amount. A figure grouped for reading has a first group of one to
+three digits and then nothing but groups of exactly three; a telephone number
+does not, because its groups are whatever the country writes. Without that
+distinction the fix would refuse every amount past a million, since the first
+seven digits of one are as long as a number somebody could ring.
+
+**Test.** `tests/test_extract.py`, three leaking shapes and three large figures
+that must still be read as figures, including one in the billions. See ADR-0038.
+
+---
+
 ## BUG-036 — The gate said it refused a lockfile that disagreed, and did not
 
 **Found** 2026-09-07, by an audit running the tooling rather than reading it.
@@ -98,6 +128,100 @@ is rewritten correctly on the same run.
 file is repaired in passing. See ADR-0027.
 
 ---
+## BUG-033 — A deadline was published from the wrong date when the other one was written in figures
+
+**Found** 2026-09-07, by an audit attacking the checks by running them.
+
+**Symptom.** A sentence saying when a call opens in words and when it closes in
+figures produced a card whose deadline was the **opening** date, with that same
+sentence stored beside it as its evidence. The card contradicted its own quote.
+
+**Cause.** The date reader knows three written forms. A date written 30/09/2026
+is not one of them, so the sentence read as naming a single date and the guard
+against a quote naming two dates never fired.
+
+**Fix.** A date written in figures in a form this project refuses to guess at is
+now noticed, which is not the same as read. 30/09/2026 means one thing in most of
+the world and nothing in the United States, and a reader that guessed would agree
+with whatever the model guessed. Noticing it is enough to ask for a narrower
+quote.
+
+**Test.** `tests/test_extract.py`, three shapes: slashes, dots, and the year
+written first.
+
+---
+
+## BUG-032 — A separator the pattern did not know hid a telephone number completely
+
+**Found** 2026-09-07, by an audit probing the gate with code rather than reading it.
+
+**Symptom.** A number written with an en dash, a non-breaking hyphen, a minus
+sign, a solidus, a middle dot, a word joiner, a figure space, wide digits, or
+this project's own paragraph boundary character was published. No currency word
+was needed anywhere in the sentence.
+
+**Cause.** The pattern that finds a candidate accepted only the plain ASCII
+separators. Anything else broke the run into pieces shorter than the shortest
+number anybody can ring, and each piece was skipped. The boundary character is
+the worst of these, because the collapsing step turns it back into a space
+afterwards, so a quote written with it still matched the page word for word.
+
+**Fix.** Every character that is one of these written another way is read as the
+plain one before the rule looks at the sentence. Each stands for exactly one
+character, so a number's position in the plainly written text is its position in
+the sentence the page wrote, which the currency rule depends on.
+
+**Test.** `tests/test_extract.py`, nine shapes, one per separator.
+
+---
+
+## BUG-031 — Two numbers written side by side were discarded for being too long to ring
+
+**Found** 2026-09-07, by an audit, and the shape needs no currency word at all.
+
+**Symptom.** "Call 020 7123 4567 020 7123 4568 with any questions." published both
+numbers. So did a number written solid beside an amount, and a number beside a
+reference number.
+
+**Cause.** Nothing splits two numbers written one plain space apart, and nothing
+should, because an ordinary number is written with single spaces inside it. The
+merged run therefore passed the longest number anybody has, and a run that long
+was skipped as too long to ring. The rule was at its weakest exactly where a page
+puts a number, which is a contact line listing two of them.
+
+**Fix.** A run still holding more digits than anybody's number, with nothing
+inside it that a single number can carry on across, is refused rather than
+skipped.
+
+**Test.** `tests/test_extract.py`, four shapes.
+
+---
+
+## BUG-030 — The contact rule ran on the quote and on nothing else
+
+**Found** 2026-09-07, by an audit of fourteen independent readings, and the most
+serious thing any of them found.
+
+**Symptom.** A telephone number or an email address written into the title, the
+funder, or any of the four stored values reached the record untouched. Reproduced
+end to end: a funder of "Example Trust (grants team, tel +45 20 41 23 45)" and a
+title of "Call the grants team on 020 7123 4567" both built a record.
+
+**Cause.** The rule was called in exactly one place, inside the quote check. The
+guard on stored values looked only for control characters. The funder is the
+widest way through, because it is deliberately ungrounded in phase one, so the
+model's own words become a stored value with nothing reading them.
+
+**Fix.** The rule runs in the one function every stored value passes through on
+its way into the record. This is a different kind of fix from the four that came
+before it: those made the rule stronger, and a stronger rule applied in one place
+out of six still publishes a number in the other five.
+
+**Test.** `tests/test_extract.py`, two end-to-end tests carrying a real contact
+line through the whole step, one on the funder and one on the title. See ADR-0038.
+
+---
+
 ## BUG-019 — A quote could be stitched together from two unrelated paragraphs
 
 **Found** 2026-09-05, by an audit, before any record had been built.

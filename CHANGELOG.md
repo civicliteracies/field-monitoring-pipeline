@@ -21,6 +21,25 @@ language. **Why** a choice was made, and what it cost, belongs in
   between them.
 - A page that nests a menu inside a menu no longer has the rest of its menu read
   as the article.
+- A telephone number or an email address can no longer reach a card through the
+  title, the funder, or any stored value. The rule that keeps contact details out
+  of a published record ran on the quoted sentence and on nothing else, so five
+  of the six published fields had no guard at all.
+- A telephone number is caught when a currency word sits anywhere near it. One
+  currency word used to clear every number sharing a run of digits with it,
+  whichever end it sat at, including a number written one plain space from an
+  amount. A figure grouped for reading is still read as a figure, so an amount in
+  the millions or billions is unaffected.
+- A telephone number is caught when it is written with a dash, a slash, a middle
+  dot, an invisible joiner, or wide digits, none of which the rule could see
+  before.
+- Two telephone numbers written side by side are caught. They used to merge into
+  one run and be discarded for being longer than any number anybody can ring.
+- An address written to defeat a machine reading the page is caught, in the four
+  forms a site uses when it means to hide one.
+- A closing date is no longer published from the wrong date. A sentence naming
+  when a call opens in words and when it closes in figures produced a card whose
+  deadline was the opening date, with that sentence stored beside it as evidence.
 - What a source served is protected from having its line endings rewritten, which
   only the older archive folder was.
 - A telephone number is caught even when something else with digits sits beside
