@@ -551,7 +551,7 @@ breaking on one would take every real number apart. BUG-029 and ADR-0038.
 """
 _NOT_A_NUMBER_TO_RING = re.compile(
     r"^(?:"
-    r"(?:19|20)\d{2}\s*[-‐-―]\s*(?:19|20)\d{2}"
+    r"(?:19|20)\d{2}\s*[-‐-―/]\s*(?:19|20)\d{2}"
     r"|\d{4}[-/.]\d{1,2}[-/.]\d{1,2}"
     r"|(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])"
     r"|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}"
@@ -570,7 +570,16 @@ without quietly exempting every eight digit number again.
 """
 
 
-CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+CONTROL = re.compile(
+    "[\x00-\x1f\x7f-\x9f"
+    "\u00ad"  # soft hyphen, a break the reader cannot see
+    "\u200b-\u200f"  # zero width space, the joiners, the direction marks
+    "\u2028\u2029"  # line separator and paragraph separator
+    "\u202a-\u202e"  # the direction overrides
+    "\u2060-\u2064"  # word joiner and the invisible operators
+    "\ufeff"  # zero width no-break space
+    "]"
+)
 """Characters that are not words and must never reach a stored value.
 
 A value is checked after its whitespace is collapsed and stored exactly as the
@@ -578,6 +587,19 @@ model wrote it. A line break or a tab hidden inside therefore passes the check
 and still reaches the card, where the printed record puts one field on one line
 and a person reads it beside the page. A title carrying a line break is also not
 the whole line of the source it is required to be. BUG-022.
+
+The rule is that a stored value carries nothing but words, and for a while this
+said that while meaning only the characters below the ASCII range. A fresh
+reading found the rest: the line and paragraph separators, which are line breaks
+by another name, the zero width characters, which put an invisible break inside a
+word, and the direction overrides, which make a stored value read on the page as
+something other than what it says. All of them are refused now, because a value
+is published and a reader has to be able to trust that it says what it appears
+to say.
+
+The cost is that a script which uses a zero width joiner as an ordinary part of
+its writing would be refused. That costs one further attempt, and the two frozen
+pages carry none. It is the same lean the contact rule takes.
 """
 
 
@@ -843,13 +865,17 @@ def _dated_timing(flags: dict[str, str], source: str) -> Dated:
     if not found:
         msg = "no date can be read from --deadline-quote"
         raise UngroundedClaimError(msg)
-    if unreadable := _A_DATE_NOBODY_CAN_READ.findall(quote):
+    if how_many := len(_A_DATE_NOBODY_CAN_READ.findall(quote)):
         # A second date the reader cannot read is still a second date, and the
         # guard below never saw it. Refusing costs one more attempt. Accepting
         # publishes a closing date that the evidence stored beside it contradicts.
+        #
+        # The count is said and the dates themselves are not. This error travels
+        # into the next request, and putting the page's own words in it would
+        # send them to the model a second time. See requirement 39.
         msg = (
-            f"--deadline-quote also states {', '.join(unreadable)}, which could be "
-            "read more than one way. Quote a narrower span naming only the closing date."
+            f"--deadline-quote also states {how_many} date(s) written in figures, which "
+            "could be read more than one way. Quote a narrower span naming only the closing date."
         )
         raise UngroundedClaimError(msg)
     if len(found) > 1:

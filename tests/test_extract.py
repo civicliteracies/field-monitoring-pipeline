@@ -16,6 +16,7 @@ import pytest
 from field_monitoring_pipeline.extract import (
     BOUNDARY,
     BUILDER_VERSION,
+    CONTROL,
     FENCE,
     FENCE_END,
     KNOWN,
@@ -555,7 +556,7 @@ def test_a_deadline_quote_naming_a_second_date_in_figures_is_refused(closing: st
         "--budget-not-stated --eligibility-not-stated --area-not-stated"
     )
 
-    with pytest.raises(HeldAfterTwoTriesError, match="read more than one way"):
+    with pytest.raises(HeldAfterTwoTriesError, match="written in figures"):
         extract(make_item(page), Replies(line), A_PROMPT, "stand-in")
 
 
@@ -760,6 +761,27 @@ def test_the_link_comes_from_the_capture_and_never_from_the_model() -> None:
     item = make_item("<p>x</p>", "https://funder.example/call")
 
     assert source_url_of(item) == "https://funder.example/call"
+
+
+def test_the_link_falls_back_to_the_address_it_was_fetched_from() -> None:
+    """The requirement has two halves and only the first was exercised.
+
+    The helper that builds an item for these tests sets both address fields to
+    the same string, so the fallback branch could not be told apart from the one
+    above it. A capture that recorded no canonical link is an ordinary case: not
+    every feed publishes one.
+    """
+    fetched_only = RawItem(
+        source_id="fixture",
+        source_item_id=None,
+        url="https://funder.example/where-it-was-fetched",
+        canonical_url=None,
+        fetched_at=datetime(2026, 9, 3, 6, 17, tzinfo=UTC),
+        raw_text="<p>x</p>",
+        raw_hash="c" * 64,
+    )
+
+    assert source_url_of(fetched_only) == "https://funder.example/where-it-was-fetched"
 
 
 def test_a_person_can_read_the_record_beside_the_page(cipesa: tuple[RawItem, str]) -> None:
@@ -1099,6 +1121,8 @@ def test_closing_furniture_closes_the_innermost_one_of_that_name(captured: str) 
     at the inner closing tag and the remaining menu text was read as the page.
     """
     assert readable(captured) == "Real.\n\nEnd."
+
+
 def test_a_summary_may_name_a_year_the_page_states_elsewhere() -> None:
     """Measured, not assumed. This refusal cost two runs in three on a real page.
 
@@ -1783,6 +1807,49 @@ def test_a_large_figure_is_still_read_as_one_figure(sentence: str) -> None:
     its groups are whatever the country writes. Without that distinction the rule
     above would refuse any amount past a million, since the first seven digits of
     one are as long as a number somebody could ring.
+    """
+    assert not carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    ("point", "what"),
+    [
+        pytest.param(0x2028, "a line separator", id="line-separator"),
+        pytest.param(0x2029, "a paragraph separator", id="paragraph-separator"),
+        pytest.param(0x200B, "a zero width space", id="zero-width-space"),
+        pytest.param(0x200D, "a zero width joiner", id="zero-width-joiner"),
+        pytest.param(0x202E, "a right to left override", id="direction-override"),
+        pytest.param(0xFEFF, "a zero width no-break space", id="byte-order-mark"),
+        pytest.param(0x00AD, "a soft hyphen", id="soft-hyphen"),
+    ],
+)
+def test_a_stored_value_carries_nothing_but_words(point: int, what: str) -> None:
+    """The rule said "not a word" and the pattern meant "below the ASCII range".
+
+    A fresh reading found the difference. The line and paragraph separators are
+    line breaks by another name, the zero width characters put an invisible break
+    inside a word, and the direction overrides make a stored value read on the
+    page as something other than what it says. A value is published, and a reader
+    has to be able to trust that it says what it appears to say.
+    """
+    assert CONTROL.search(f"Example{chr(point)}Trust"), what
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("The fellowship covers 2026-2027 in full.", id="a-plain-hyphen"),
+        pytest.param("The fellowship covers 2026–2027 in full.", id="an-en-dash"),
+        pytest.param("The fellowship covers 2026/2027 in full.", id="a-slash"),
+    ],
+)
+def test_a_range_of_years_is_allowed_however_it_is_joined(sentence: str) -> None:
+    """Widening the separators for a telephone number caught the slash form too.
+
+    The academic year is written that way and a funding page is full of them.
+    Written with a plain space it stays refused, because two groups of four
+    digits with a space between them is also exactly how a Danish local number is
+    written, which is the defect BUG-025 was about.
     """
     assert not carries_a_contact(sentence)
 
