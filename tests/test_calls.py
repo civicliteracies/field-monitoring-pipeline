@@ -114,6 +114,28 @@ def test_the_validator_is_remembered_between_runs(config: Path, tmp_path: Path) 
     assert saved["etag"] == 'W/"seen"'
 
 
+def test_a_damaged_bookmark_costs_one_fetch_and_stops_nothing(config: Path, tmp_path: Path) -> None:
+    """A bookmark is a cache, and a cache must never be able to end a run.
+
+    Reading it happens before the loop's own error handling, so a half-written or
+    hand-damaged file ended the whole scheduled run before a single source had
+    been fetched. That made a throwaway file the one thing able to stop every
+    source at once. Unreadable now means the same as absent: the source is
+    fetched unconditionally, which is the stated cost, and the file is rewritten
+    correctly on the same run. See ADR-0027.
+    """
+    data = tmp_path / "data"
+    bookmark = data / STATE / "tai-weekly.json"
+    bookmark.parent.mkdir(parents=True)
+    _ = bookmark.write_text("{ this was never valid json", encoding="utf-8")
+
+    with serving(FEED, headers={"etag": 'W/"fresh"'}) as client:
+        report = run(config, Store(data), client)
+
+    assert all("skipped" not in source.summary for source in report.sources)
+    assert json.loads(bookmark.read_text("utf-8"))["etag"] == 'W/"fresh"', "and it is repaired in passing"
+
+
 def test_a_broken_source_does_not_stop_the_run(config: Path, tmp_path: Path) -> None:
     store = Store(tmp_path / "data")
 

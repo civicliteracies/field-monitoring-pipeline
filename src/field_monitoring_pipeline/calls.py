@@ -22,6 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
+from pydantic import ValidationError
 
 from field_monitoring_pipeline.archive import archive, archive_response
 from field_monitoring_pipeline.fetch import Failed, Fetched, Unchanged, Validator, fetch, read_items
@@ -58,10 +59,25 @@ class RunReport:
 
 
 def _load_validator(store: Store, source_id: str) -> Validator | None:
+    """What this source served last time, or nothing when that cannot be read.
+
+    A file here is a cache and nothing more. Losing one costs a single
+    unconditional fetch of one source, and the run rewrites it correctly on the
+    same pass. See ADR-0027.
+
+    A half-written or hand-damaged file used to end the whole scheduled run
+    before a single source had been fetched, because this reading happens outside
+    the loop's own error handling. That turned a throwaway file into the one
+    thing that could stop every source at once, which is the opposite of what the
+    record says it is. Unreadable now means the same as absent.
+    """
     saved = store.read(STATE, f"{source_id}.json")
     if saved is None:
         return None
-    return Validator.model_validate_json(saved)
+    try:
+        return Validator.model_validate_json(saved)
+    except ValidationError:
+        return None
 
 
 def _save_validator(store: Store, source_id: str, validator: Validator) -> None:
