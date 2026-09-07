@@ -415,6 +415,22 @@ _DATE_FORMS = (
     ),
     (re.compile(r"\b\d{4}-\d{2}-\d{2}\b"), ("%Y-%m-%d",)),
 )
+_A_DATE_NOBODY_CAN_READ = re.compile(r"\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b|\b\d{4}[./]\d{1,2}[./]\d{1,2}\b")
+"""A date written in figures in a form this project refuses to guess at.
+
+30/09/2026 is the thirtieth of September in most of the world and an impossible
+date in the United States, and nothing in the sentence says which was meant. The
+reader therefore does not read it, which was right, but it also did not notice
+it. So a sentence saying when a call opens in words and when it closes in figures
+looked like a sentence naming one date, the guard against two dates never fired,
+and the opening date was published as the closing date with that same sentence
+stored beside it as its evidence.
+
+Noticing is not the same as reading. This says only that something here is a date
+and cannot be read, which is a reason to ask for a narrower quote, never a reason
+to pick a meaning. The plain international form is deliberately not matched here,
+because the reader can already read it.
+"""
 _LONG_ABBREVIATION = re.compile(r"\bSept\b", re.IGNORECASE)
 """The one abbreviation the pattern accepts that the date reader cannot parse.
 
@@ -427,7 +443,71 @@ _ORDINAL = re.compile(r"(?<=\d)(st|nd|rd|th)", re.IGNORECASE)
 _RUNS = re.compile(r"\s+")
 NUMBER = re.compile(r"\d+(?:[,.  ]\d{3})*(?:\.\d+)?")
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-_DIGIT_RUN = re.compile(r"\d[\d\s().+-]{4,}\d")
+
+_EMAIL_IN_DISGUISE = re.compile(
+    r"[A-Za-z0-9._%+-]+\s*"
+    r"(?:\[\s*at\s*\]|\(\s*at\s*\)|\{\s*at\s*\}|＠)\s*"
+    r"[A-Za-z0-9._%+-]+\s*(?:\[\s*dot\s*\]|\(\s*dot\s*\)|\s+dot\s+|\.)\s*[A-Za-z]{2,}"
+    r"|[A-Za-z0-9._%+-]+\s+at\s+[A-Za-z0-9._%+-]+\s+dot\s+[A-Za-z]{2,}",
+    re.IGNORECASE,
+)
+"""An address written to defeat a machine reading the page rather than a person.
+
+The plain pattern above catches the ordinary form and the ordinary form only. A
+page that means to keep its address away from a scraper writes it another way,
+and that is exactly the page whose address is most likely to belong to a person
+rather than to a shared mailbox, so it is the case that matters most.
+
+The bare spelt out form is only counted when both markers are spelt out
+together. Requiring "at" alone would refuse an ordinary English sentence, since
+"look at the guidance" carries the same three letters between two words.
+"""
+
+_SPELT_THE_SAME = {
+    # Dashes a page may use between the groups of a telephone number. Each one is
+    # turned into the plain hyphen so that one rule reads them all, and so that
+    # the shapes known not to be numbers to ring, which are written with a plain
+    # hyphen, still recognise a date or a range of years written with any of them.
+    **{c: "-" for c in "‐‑‒–—―−﹘﹣－"},
+    # Characters that look like a gap, or like nothing at all, and were therefore
+    # a way to hide a telephone number from a rule that only knew the plain
+    # space. The project's own boundary character is here because a page can
+    # write it, and because flat() turns it back into a space afterwards, so a
+    # quote carrying one still matched the page word for word.
+    **{
+        chr(point): " "
+        for point in (
+            0x00A0,  # no-break space
+            0x00AD,  # soft hyphen
+            0x00B7,  # middle dot
+            0x2007,  # figure space
+            0x2009,  # thin space
+            0x0085,  # next line, which is a line break written as one character
+            0x2027,  # hyphenation point
+            0x202F,  # narrow no-break space
+            0x200B,  # zero width space
+            0x200C,  # zero width non-joiner
+            0x200D,  # zero width joiner
+            0x2060,  # word joiner
+            0xFEFF,  # zero width no-break space
+            0x2028,  # line separator
+            0x2029,  # paragraph separator
+            0xE000,  # this project owns this one, and a page can write it too
+        )
+    },
+    # Digits written in the wide forms used by East Asian typography.
+    **{chr(0xFF10 + n): str(n) for n in range(10)},
+}
+_PLAINLY = str.maketrans(_SPELT_THE_SAME)
+"""Every character that is one of these written another way, mapped to the plain one.
+
+Each stands for exactly one character, so a position in the plainly written text
+is the same position in the text as the page wrote it. That matters because the
+rule looks at what sits on either side of a number, and it has to look at the
+real sentence.
+"""
+
+_DIGIT_RUN = re.compile(r"\d[\d\s().+/-]{4,}\d")
 _MONEY_BEFORE = re.compile(
     r"(?:[$\u00a3\u20ac\u00a5]|\b(?:USD|EUR|GBP|CHF|ZAR|KES|UGX|NGN|CAD|AUD|SEK|NOK|DKK)\b)"
     r"[\s]*$",
@@ -462,13 +542,17 @@ A run of digits does not stop where a telephone number stops. It carries on
 through a bracket, or through a second number written beside the first, and the
 whole thing was then counted as too long for anyone to ring and let through. A
 number followed by its opening hours did exactly that, and so did two numbers
-side by side. Only a run already too long is broken, so an ordinary number spaced
-or dashed the usual way is still weighed whole. BUG-029.
+side by side. Every run is broken here, not only one already too long: breaking
+them all was measured against every sentence this project has written down and
+changed no answer, while leaving short runs whole let a currency word at one end
+of a run clear a telephone number at the other. None of these is a plain single
+space, because an ordinary number is written with plain spaces inside it and
+breaking on one would take every real number apart. BUG-029 and ADR-0038.
 """
 _NOT_A_NUMBER_TO_RING = re.compile(
     r"^(?:"
     r"(?:19|20)\d{2}\s*[-‐-―]\s*(?:19|20)\d{2}"
-    r"|\d{4}-\d{2}-\d{2}"
+    r"|\d{4}[-/.]\d{1,2}[-/.]\d{1,2}"
     r"|(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])"
     r"|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}"
     r")$"
@@ -497,17 +581,59 @@ the whole line of the source it is required to be. BUG-022.
 """
 
 
-def _one_at_a_time(run: str) -> list[str]:
-    """A candidate run, broken up only when it is too long to be a single number.
+def _one_at_a_time(run: str, start: int) -> list[tuple[str, int]]:
+    """Each number in a run, with where in the sentence it begins.
 
-    A run short enough to ring is weighed whole, so a number written with spaces
-    or dashes in the ordinary way is never taken apart. Only a run already past
-    the longest number anybody has is broken, and that is a run the rule used to
-    give up on entirely.
+    Every run is broken, not only one already too long to ring. The length gate
+    that used to stand here was measured and protects nothing: breaking every run
+    changed no answer on any sentence this project has written down, while
+    leaving short runs whole let one currency word at the end of a run clear a
+    telephone number at its start.
+
+    The position travels with each part because the rule has to look at what sits
+    on either side of that part. Looking at the two ends of the whole run instead
+    was how a currency word cleared every number between them.
     """
-    if len(re.sub(r"\D", "", run)) <= MAX_PHONE_DIGITS:
-        return [run]
-    return [part for part in _BETWEEN_NUMBERS.split(run) if part and part.strip()]
+    parts: list[tuple[str, int]] = []
+    at = 0
+    for gap in _BETWEEN_NUMBERS.finditer(run):
+        parts.append((run[at : gap.start()], start + at))
+        at = gap.end()
+    parts.append((run[at:], start + at))
+    return [(part, where) for part, where in parts if part.strip()]
+
+
+def _written_like_an_amount(groups: list[str]) -> bool:
+    """Do these groups of digits read as one figure rather than as a number to ring?
+
+    An amount grouped for reading has a first group of one to three digits and
+    then nothing but groups of exactly three: 1 500 000. A telephone number does
+    not look like that, because its groups are whatever the country writes.
+    """
+    return len(groups[0]) <= 3 and all(len(group) == 3 for group in groups[1:])
+
+
+def _a_number_hiding_beside_an_amount(part: str, *, money_first: bool) -> bool:
+    """Is part of this run a number to ring, with the rest of it the amount?
+
+    A currency word clears the run it stands beside, which is right when the run
+    is only the amount. "Contact 20 41 23 45 250 000 EUR" is not: the amount is
+    the last two groups and the first four are somebody's office number, and one
+    plain space between them is not something a run can be broken at, because an
+    ordinary number is written with plain spaces inside it.
+
+    So the run is read from the currency word inwards. Every shorter piece of it
+    that could stand alone is weighed, and one that is long enough to ring and is
+    not itself written like a figure means the currency word was clearing more
+    than the amount.
+    """
+    groups = [found.group(0) for found in re.finditer(r"\d+", part)]
+    for cut in range(1, len(groups)):
+        away_from_the_money = groups[:cut] if money_first is False else groups[cut:]
+        digits = sum(len(group) for group in away_from_the_money)
+        if MIN_PHONE_DIGITS <= digits <= MAX_PHONE_DIGITS and not _written_like_an_amount(away_from_the_money):
+            return True
+    return False
 
 
 def carries_a_contact(text: str) -> bool:
@@ -519,9 +645,16 @@ def carries_a_contact(text: str) -> bool:
     digits, and this project's own first funder is in a country that does, so the
     rule missed the case most likely to arise.
 
-    It takes any run of seven to fifteen digits as a number unless a currency
-    marker sits against it on either side, in which case it is money, or it reads
-    as a date or a range of years.
+    It takes any run of seven to fifteen digits as a number, unless it reads as a
+    date or a range of years, or unless a currency marker stands beside that
+    particular figure. A run holding more digits than anybody's number, with
+    nothing inside it that one number can carry on across, is two numbers written
+    side by side and is refused rather than passed over.
+
+    The currency marker clears the figure it stands beside and no more. Clearing
+    the whole run it was found in published a telephone number written next to an
+    amount, which is how a page announces a grant and gives a number to ring for
+    it. See ADR-0038.
 
     It no longer waves through a run of seven or eight digits written without
     separators. That exemption was for an amount written solid, and it made every
@@ -540,17 +673,29 @@ def carries_a_contact(text: str) -> bool:
     telephone number into a public repository that keeps its history. The cost is
     not symmetric, so the rule leans the way it does.
     """
-    if EMAIL.search(text):
+    plain = text.translate(_PLAINLY)
+    if EMAIL.search(plain) or _EMAIL_IN_DISGUISE.search(plain):
         return True
-    for run in _DIGIT_RUN.finditer(text):
-        before, after = text[: run.start()], text[run.end() :]
-        for part in _one_at_a_time(run.group(0)):
+    for run in _DIGIT_RUN.finditer(plain):
+        for part, at in _one_at_a_time(run.group(0), run.start()):
             digits = re.sub(r"\D", "", part)
-            if not MIN_PHONE_DIGITS <= len(digits) <= MAX_PHONE_DIGITS:
+            if len(digits) < MIN_PHONE_DIGITS:
                 continue
+            if len(digits) > MAX_PHONE_DIGITS:
+                # More digits than anybody's number, with nothing inside that a
+                # single number cannot carry on across. That is two numbers
+                # written side by side, which is how a contact line is written,
+                # not one very long figure. It used to be waved through for being
+                # too long to ring, which made the rule weakest exactly where a
+                # page puts a number.
+                return True
             if _NOT_A_NUMBER_TO_RING.match(part.strip()):
                 continue
-            if _MONEY_BEFORE.search(before) or _MONEY_AFTER.match(after):
+            before, after = plain[:at], plain[at + len(part) :]
+            money_first = bool(_MONEY_BEFORE.search(before))
+            if money_first or _MONEY_AFTER.match(after):
+                if _a_number_hiding_beside_an_amount(part, money_first=money_first):
+                    return True
                 continue
             return True
     return False
@@ -698,6 +843,15 @@ def _dated_timing(flags: dict[str, str], source: str) -> Dated:
     if not found:
         msg = "no date can be read from --deadline-quote"
         raise UngroundedClaimError(msg)
+    if unreadable := _A_DATE_NOBODY_CAN_READ.findall(quote):
+        # A second date the reader cannot read is still a second date, and the
+        # guard below never saw it. Refusing costs one more attempt. Accepting
+        # publishes a closing date that the evidence stored beside it contradicts.
+        msg = (
+            f"--deadline-quote also states {', '.join(unreadable)}, which could be "
+            "read more than one way. Quote a narrower span naming only the closing date."
+        )
+        raise UngroundedClaimError(msg)
     if len(found) > 1:
         stated = ", ".join(str(one) for one in found)
         msg = (
@@ -718,10 +872,24 @@ def _words_only(name: str, value: str) -> str:
     compared with its whitespace collapsed and stored exactly as the model wrote
     it, so a line break hidden inside passes the check and still reaches the
     card. See CONTROL.
+
+    The contact rule is applied here too, and that is the point of this function
+    rather than an extra. It used to run in one place only, on the quote, so the
+    title, the funder and all four values reached the card unchecked. The funder
+    was the easiest way through of all, because it is deliberately ungrounded in
+    phase one, so the model's own words became a stored value with nothing
+    looking at them. A rule that keeps contact details out of a published record
+    has to run wherever a published value is made, not at one of the places.
     """
     if CONTROL.search(value):
         msg = f"--{name} carries a line break or another character that is not a word"
         raise MalformedCommandError(msg)
+    if carries_a_contact(value):
+        msg = (
+            f"--{name} carries a contact detail. Say it in words that do not name "
+            f"a way to reach somebody, or say the field is not stated."
+        )
+        raise UngroundedClaimError(msg)
     return value
 
 

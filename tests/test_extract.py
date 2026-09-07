@@ -525,6 +525,40 @@ def test_a_deadline_quote_naming_two_dates_is_refused() -> None:
         extract(make_item(page), Replies(line), A_PROMPT, "stand-in")
 
 
+@pytest.mark.parametrize(
+    "closing",
+    [
+        pytest.param("30/09/2026", id="written-with-slashes"),
+        pytest.param("30.09.2026", id="written-with-dots"),
+        pytest.param("2026/09/30", id="the-year-first-with-slashes"),
+    ],
+)
+def test_a_deadline_quote_naming_a_second_date_in_figures_is_refused(closing: str) -> None:
+    """The guard against two dates only ever saw the dates the reader could read.
+
+    A page saying when a call opens in words and when it closes in figures is
+    ordinary. The reader knows three written forms and none of these, so the
+    sentence looked like a sentence naming one date, the guard did not fire, and
+    the opening date was published as the closing date with that very sentence
+    stored beside it as its evidence. A card contradicted its own quote.
+
+    Reading these is not the answer, because 30/09/2026 means one thing in most
+    of the world and nothing at all in the United States, and a reader that
+    guessed would agree with whatever the model guessed. Noticing is enough.
+    """
+    both = f"Applications open on 1 August 2026 and close on {closing}."
+    page = f"<h1>Two Date Fund</h1><p>{both}</p>"
+    line = (
+        f"fieldbook --title {quoted('Two Date Fund')} --type grant --funder-not-stated "
+        f"--deadline 2026-08-01 --deadline-quote {quoted(both)} "
+        f"--summary {quoted('A fund.')} --summary-quote {quoted(both)} "
+        "--budget-not-stated --eligibility-not-stated --area-not-stated"
+    )
+
+    with pytest.raises(HeldAfterTwoTriesError, match="read more than one way"):
+        extract(make_item(page), Replies(line), A_PROMPT, "stand-in")
+
+
 def test_a_value_without_its_quote_is_refused(cipesa: tuple[RawItem, str]) -> None:
     item, reply = cipesa
     without = swap(
@@ -1408,7 +1442,11 @@ def test_a_real_range_of_years_is_still_allowed(sentence: str) -> None:
     "sentence",
     [
         pytest.param("The fund offers grants of up to 12.345.678 EUR to organisations.", id="the-code-after"),
-        pytest.param("Awards of 250 000 GBP are made each year to successful applicants.", id="grouped-with-spaces"),
+        # Eight digits, not six. At six this case never reached the rule it was
+        # written to guard: the run was shorter than any number anybody can ring,
+        # so it was skipped before the currency was ever looked at, and the test
+        # passed whether the fix existed or not.
+        pytest.param("Awards of 25 000 000 GBP are made each year to successful applicants.", id="grouped-with-spaces"),
     ],
 )
 def test_an_amount_with_the_currency_written_after_it_is_money(sentence: str) -> None:
@@ -1561,3 +1599,223 @@ def test_a_date_written_solid_is_still_a_date(sentence: str) -> None:
     number again.
     """
     assert not carries_a_contact(sentence)
+
+
+# ---------------- what an audit found still reached a card, and what now stops it
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("Budget EUR 250 000 (+45 20 41 23 45)", id="currency-first-number-last"),
+        pytest.param("Contact (+45 20 41 23 45) 250 000 EUR is the grant amount.", id="number-first-currency-last"),
+        pytest.param("Grant of USD 1 250 000 (+256 414 289 502)", id="a-real-funders-contact-line"),
+        pytest.param("Numbers +45 11 11 11 11 +45 22 22 22 22 5000 EUR total.", id="two-numbers-then-an-amount"),
+        pytest.param("250000 (0761234567) 300000 EUR total", id="a-number-between-two-amounts"),
+    ],
+)
+def test_a_currency_word_clears_only_the_figure_it_stands_beside(sentence: str) -> None:
+    """One currency word used to clear every number sharing a run of digits with it.
+
+    The run was broken into separate numbers correctly, and then each of them was
+    weighed against the text at the two ends of the whole run rather than against
+    its own surroundings. So a page naming an amount and a telephone number in
+    one breath published the number. Every sentence here did exactly that, and
+    the last of them is built from a real funder's own contact line.
+    """
+    assert carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("Tel 20 41 23 45 - 500 EUR", id="a-short-run-with-the-amount-after"),
+        pytest.param("USD 500 - 020 4123 4567", id="a-short-run-with-the-amount-before"),
+        pytest.param("(20 41 23 45) 500 EUR", id="a-short-run-in-brackets"),
+    ],
+)
+def test_a_run_short_enough_to_ring_is_still_broken_into_its_numbers(sentence: str) -> None:
+    """A run was left whole unless it was already too long for anybody's number.
+
+    The reason recorded for that gate was that an ordinary number spaced or
+    dashed the usual way must not be taken apart. It was then measured: breaking
+    every run changes no answer on any sentence this project has written down, so
+    the gate protected nothing while letting a currency word at one end of a
+    short run clear a telephone number at the other.
+    """
+    assert carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("Call 4520412345 250000 now for information.", id="a-solid-number-then-an-amount"),
+        pytest.param("Call 020 7123 4567 020 7123 4568 with any questions.", id="two-numbers-one-space-apart"),
+        pytest.param("Telephone020 7123 4567020 7123 4568", id="two-numbers-with-nothing-between"),
+        pytest.param("Call the coordinator on 0712345678 654321 in office hours.", id="a-number-then-a-reference"),
+    ],
+)
+def test_more_digits_than_anybody_has_is_two_numbers_not_one_long_figure(sentence: str) -> None:
+    """A run too long to ring used to be waved through for being too long.
+
+    Nothing splits two numbers written one space apart, so they stayed one run,
+    the run passed the longest number anybody has, and the rule gave up on it.
+    That made the rule weakest exactly where a page puts a number, which is a
+    contact line listing two of them. A run of digits carrying more than one
+    number's worth, with nothing inside it that a single number cannot cross, is
+    now refused rather than skipped. No currency word is needed for any of these.
+    """
+    assert carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("Please call the grants team on 020–7123–4567 today.", id="an-en-dash"),
+        pytest.param("Please call the grants team on 020‑7123‑4567 today.", id="a-non-breaking-hyphen"),
+        pytest.param("Please call the grants team on 020−7123−4567 today.", id="a-minus-sign"),
+        pytest.param("Please call the grants team on 020/7123/4567 today.", id="a-solidus"),
+        pytest.param("Please call the grants team on 020·7123·4567 today.", id="a-middle-dot"),
+        pytest.param("Please call the grants team on 020⁠7123⁠4567 today.", id="a-word-joiner"),
+        pytest.param("Please call the grants team on 020 7123 4567 today.", id="a-figure-space"),
+        pytest.param(
+            "Please call the grants team on ０２０ ７１２３ ４５６７ today.",
+            id="digits-written-wide",
+        ),
+        pytest.param(
+            f"Please call the grants team on 020{chr(0xE000)}7123{chr(0xE000)}4567 today.",
+            id="this-projects-own-boundary-character",
+        ),
+    ],
+)
+def test_a_separator_the_pattern_did_not_know_no_longer_hides_a_number(sentence: str) -> None:
+    """The pattern that finds a candidate knew only the plain ASCII separators.
+
+    Any other one broke the number into pieces too short to count and published
+    it, with no currency word anywhere. The last of these is the worst, because
+    the character is this project's own paragraph boundary: a page writes it
+    where a space belongs, the number is hidden, and the collapsing step turns it
+    back into a space afterwards, so the quote still matches the page word for
+    word. Every one of these is now read as the plain character it stands for
+    before the rule looks at it.
+    """
+    assert carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("Write to grants [at] example.org with questions.", id="at-in-square-brackets"),
+        pytest.param("Write to grants(at)example.org with questions.", id="at-in-round-brackets"),
+        pytest.param("Write to grants AT example DOT org with questions.", id="both-markers-spelt-out"),
+        pytest.param("Write to grants＠example.org with questions.", id="a-wide-at-sign"),
+    ],
+)
+def test_an_address_written_to_defeat_a_scraper_is_still_an_address(sentence: str) -> None:
+    """The rule caught the plain form only.
+
+    A page that writes its address this way is deliberately hiding it from a
+    machine, which makes it the address most likely to belong to a person rather
+    than to a shared mailbox. The bare spelt out form counts only when both
+    markers are spelt out together, so an ordinary sentence saying "look at the
+    guidance" is not mistaken for one.
+    """
+    assert carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("The team looks at the guidance before applying for a grant.", id="the-word-at-in-prose"),
+        pytest.param("Awards of USD 1 000 000 are made each year to applicants.", id="an-amount-spaced-out"),
+        pytest.param("Awards of 12.345.678 EUR are made each year.", id="an-amount-with-the-currency-last"),
+        pytest.param("The fellowship covers 2026–2027 in full.", id="a-range-of-years-with-an-en-dash"),
+        pytest.param("The closing date is 2026-09-30 at midnight.", id="a-deadline-in-figures"),
+    ],
+)
+def test_the_wider_rule_still_lets_an_honest_sentence_through(sentence: str) -> None:
+    """Widening a refusal is only safe if what it must allow is written down too.
+
+    Every sentence here is one the rule has to keep accepting: a page's own
+    English, an amount however the currency is placed, and the date and year
+    shapes a funding page is full of. The range of years is the one the wider
+    separator rule most easily breaks, since it now reads an en dash as a hyphen.
+    """
+    assert not carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("Contact 20 41 23 45 250 000 EUR", id="a-number-then-an-amount"),
+        pytest.param("Ring os pa 33 74 74 74 1 500 000 DKK i alt.", id="a-danish-office-number"),
+        pytest.param("USD 020 7123 4567", id="the-currency-word-first"),
+    ],
+)
+def test_a_currency_word_clears_the_amount_and_not_the_number_beside_it(sentence: str) -> None:
+    """One plain space is not something a run can be broken at, and a page knows it.
+
+    An ordinary telephone number is written with plain spaces inside it, so the
+    rule must never split on one. That left a number and an amount joined by a
+    single space as one run, short enough to be somebody's number, with a currency
+    word at the far end clearing all of it.
+
+    The run is now read from the currency word inwards. A shorter piece of it that
+    could stand alone, is long enough to ring, and is not itself written the way a
+    figure is written, means the currency word was clearing more than the amount.
+    """
+    assert carries_a_contact(sentence)
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        pytest.param("Awards of USD 1 500 000 000 are made each year.", id="a-figure-in-the-billions"),
+        pytest.param("Awards of 1 500 000 000 DKK are made each year.", id="the-same-with-the-currency-last"),
+        pytest.param("Awards of 25 000 000 GBP are made each year.", id="a-figure-in-the-millions"),
+    ],
+)
+def test_a_large_figure_is_still_read_as_one_figure(sentence: str) -> None:
+    """The cost of the rule above, held down to the shape it must not break.
+
+    A figure grouped for reading has a first group of one to three digits and
+    then nothing but groups of exactly three. A telephone number does not, because
+    its groups are whatever the country writes. Without that distinction the rule
+    above would refuse any amount past a million, since the first seven digits of
+    one are as long as a number somebody could ring.
+    """
+    assert not carries_a_contact(sentence)
+
+
+def test_a_funder_carrying_a_contact_detail_never_reaches_a_record(cipesa: tuple[RawItem, str]) -> None:
+    """The check ran on the quote alone, so five of the six stored fields were open.
+
+    The funder is the widest way in, because it is deliberately ungrounded in
+    phase one: the model's own words became a stored value with nothing looking
+    at them at all. This is the whole reason the rule now runs where a value is
+    made rather than at one of the places a value is made.
+    """
+    item, reply = cipesa
+    named = quoted("Example Trust (grants team, tel +45 20 41 23 45)")
+
+    with pytest.raises(HeldAfterTwoTriesError, match="carries a contact detail"):
+        extract(item, Replies(swap(reply, CIPESA_FUNDER, named)), A_PROMPT, "stand-in")
+
+
+def test_a_title_carrying_a_contact_detail_never_reaches_a_record() -> None:
+    """A page whose heading is its own contact line passed every check it had.
+
+    The title is held to being a whole line of the source, and a contact line is
+    a whole line of the source, so that check agreed with it.
+    """
+    page = "<h1>Call the grants team on 020 7123 4567</h1><p>Applications close on March 1, 2024.</p>"
+    line = (
+        f"fieldbook --title {quoted('Call the grants team on 020 7123 4567')} --type grant "
+        f"--funder-not-stated --deadline 2024-03-01 "
+        f"--deadline-quote {quoted('Applications close on March 1, 2024.')} "
+        f"--summary {quoted('A fund.')} --summary-quote {quoted('Applications close on March 1, 2024.')} "
+        "--budget-not-stated --eligibility-not-stated --area-not-stated"
+    )
+
+    with pytest.raises(HeldAfterTwoTriesError, match="carries a contact detail"):
+        extract(make_item(page), Replies(line), A_PROMPT, "stand-in")
