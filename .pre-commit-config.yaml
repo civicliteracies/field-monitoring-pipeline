@@ -1,12 +1,15 @@
 # Every hook runs its tool from this project's own environment, at the version
 # uv.lock names, so no version is written here and no hook can disagree with
-# the matching `mise run` task.
+# the matching `mise run` task. The push hook does it through `mise run verify`.
 repos:
 -   repo: local
     hooks:
-    -   id: pytest
-        name: Run tests with pytest
-        entry: uv run pytest -n auto
+    # The push runs the gate as one mise task, so the checks it runs are defined
+    # only in mise.toml. Listing them here as separate hooks would give the gate
+    # a second definition that could drift from the first.
+    -   id: quality-gate
+        name: Run the quality gate
+        entry: mise run verify
         language: system
         stages: [pre-push]
         pass_filenames: false
