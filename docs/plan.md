@@ -13,7 +13,7 @@ changes sit outside the run, in the records and in the checks that guard the cod
 - [x] **1. `docs: add README overview, decision log, bug history and architecture map`**
       Outside the run. The front page says what Fieldbook is, and `docs` gains this plan, the
       decision log, the bug history and the map of every file.
-- [ ] **2. `chore(hooks): run every hook from the project environment`**
+- [x] **2. `chore(hooks): run every hook from the project environment`**
       Outside the run, in the quality gate. Every check git runs by itself uses the copy of the tool
       the project installed, rather than fetching a second copy of its own, so no version number is
       written in the hook settings.
