@@ -3,7 +3,7 @@
 ## Prerequisites
 
 * [uv](https://docs.astral.sh/uv/getting-started/) — manages the Python environment and dependencies
-* [mise](https://mise.jdx.dev/getting-started.html) (recommended) — runs project tasks and pins the Python version for you
+* [mise](https://mise.jdx.dev/getting-started.html) — runs project tasks and pins the Python version for you. Required: the pre-push hook runs `mise run verify`
 * Python ≥3.13 (mise installs this automatically if you don't have it)
 
 ## Setup
@@ -19,7 +19,7 @@ mise run setup
 1. `uv sync` — creates `.venv` and installs both the project's runtime dependencies and its `dev` dependency group (ruff, basedpyright, pytest, commitizen).
 2. `uvx pre-commit install` — wires up the git hooks described below.
 
-Without mise, run the same two steps by hand:
+Without mise you can still install the project, but the pre-push hook will fail, because it runs `mise run verify`. To install by hand:
 
 ```sh
 uv sync
@@ -33,7 +33,7 @@ pyproject.toml   # project metadata, runtime deps, dev deps, and every tool's co
 uv.lock          # exact resolved versions — committed, never hand-edited
 src/field_monitoring_pipeline/   # the package
 tests/           # pytest suite, mirrors src/
-mise.toml        # task runner: setup, check, lint, format, typecheck, test
+mise.toml        # task runner: setup, check, verify, lint, format, typecheck, test
 .pre-commit-config.yaml   # git hook definitions
 ```
 
@@ -51,13 +51,14 @@ The package uses a `src/` layout: code lives under `src/field_monitoring_pipelin
 
 | Command | Description |
 | --- | --- |
-| `mise run check` | Quality gate: format + lint + typecheck + test — run this before opening a PR |
+| `mise run check` | While you work: lint + format with fixes, then typecheck + test |
+| `mise run verify` | Quality gate: the same four checks, read-only. The pre-push hook runs it before every push |
 | `mise run lint` | Lint and auto-fix with ruff |
 | `mise run format` | Format with ruff |
 | `mise run typecheck` | Type-check with basedpyright (strict mode) |
 | `mise run test` | Run the test suite |
 
-Without mise, the underlying commands are `uv run ruff check . --fix`, `uv run ruff format .`, `uv run basedpyright src tests`, `uv run pytest -n auto`.
+Without mise, the underlying commands are `uv run ruff check . --fix`, `uv run ruff format .`, `uv run basedpyright src tests`, `uv run pytest -n auto`. `mise run verify` runs the same four without `--fix` and with `--check` on the formatter, so it reports and changes nothing.
 
 ## Pre-commit hooks
 
@@ -65,15 +66,15 @@ Without mise, the underlying commands are `uv run ruff check . --fix`, `uv run r
 
 * **On `git commit`** — `ruff check --fix` and `ruff format` run against the files you're committing. If either one modifies a file, the commit is aborted so you can review the change and re-stage it.
 * **On `git commit` (commit-msg)** — `commitizen` checks your commit message matches [Conventional Commits](https://www.conventionalcommits.org/) (`type(scope): summary`, e.g. `feat(pipeline): add CSV ingest step`). Common types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
-* **On `git push`** — the full `pytest` suite runs. A failing test blocks the push.
+* **On `git push`** — `mise run verify` runs the whole gate over the whole project: linting, formatting checked, the strict type check, and the tests. Any failure blocks the push. The commit hooks see only the files in that commit; this one sees everything. Edits you have not staged are set aside while it runs, but staged changes and new files git does not track yet are checked, so either can block the push even when it is not in the commits you are sending.
 
-Every hook runs its tool through `uv run`, at the version `uv.lock` names, so a hook and the matching `mise run` task cannot disagree about what counts as a mistake. `.pre-commit-config.yaml` names no version at all.
+Every hook runs its tool through `uv run`, at the version `uv.lock` names; the push hook does it through `mise run verify`, which runs `uv run` commands of its own. So a hook and the matching `mise run` task cannot disagree about what counts as a mistake. `.pre-commit-config.yaml` names no version at all.
 
 Run any of them by hand without committing/pushing:
 
 ```sh
 uvx pre-commit run --all-files          # lint + format hooks only
-uvx pre-commit run --all-files --hook-stage pre-push   # tests
+uvx pre-commit run --all-files --hook-stage pre-push   # the whole gate
 ```
 
 Writing a commit message interactively (handles the Conventional Commits format for you):
