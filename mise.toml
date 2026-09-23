@@ -28,9 +28,13 @@ run = "uv sync"
 # QUALITY
 # =============================================================================
 
+# check runs the four tasks below one after another. It does not use `depends`,
+# because mise runs dependencies at the same time. The linter goes first:
+# removing an unused import leaves the blank lines that stood around it, and
+# only a later format pass removes them. The commit hooks run in that order too.
 [tasks.check]
 description = "Quality gate: format + lint + typecheck + test"
-depends = ["format", "lint", "typecheck", "test"]
+run = [{ task = "lint" }, { task = "format" }, { task = "typecheck" }, { task = "test" }]
 
 [tasks.test]
 description = "Run test suite"
