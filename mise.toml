@@ -3,7 +3,7 @@
 # =============================================================================
 #
 # SETUP    setup, install
-# QUALITY  check, lint, format, typecheck, test
+# QUALITY  check, verify, lint, format, typecheck, test
 
 [settings]
 python.uv_venv_auto = true
@@ -28,9 +28,27 @@ run = "uv sync"
 # QUALITY
 # =============================================================================
 
+# check runs the four tasks below one after another. It does not use `depends`,
+# because mise runs dependencies at the same time. The linter goes first:
+# removing an unused import leaves the blank lines that stood around it, and
+# only a later format pass removes them. The commit hooks run in that order too.
 [tasks.check]
-description = "Quality gate: format + lint + typecheck + test"
-depends = ["format", "lint", "typecheck", "test"]
+description = "While you work: lint + format with fixes, then typecheck + test"
+run = [{ task = "lint" }, { task = "format" }, { task = "typecheck" }, { task = "test" }]
+
+# The gate, which the pre-push hook runs. Read-only: every command here judges
+# and none of them writes, because it runs after the commits exist, and a task
+# that reformatted here would leave fixes that are not in what was pushed.
+# Since nothing writes, the order only decides which check runs first, and the
+# task stops at the first failure.
+[tasks.verify]
+description = "The quality gate: the read-only checks that must pass before code leaves the machine"
+run = [
+    "uv run ruff check .",
+    "uv run ruff format --check .",
+    "uv run basedpyright src tests",
+    "uv run pytest -n auto",
+]
 
 [tasks.test]
 description = "Run test suite"

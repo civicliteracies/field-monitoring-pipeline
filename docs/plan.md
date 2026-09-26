@@ -17,7 +17,7 @@ changes sit outside the run, in the records and in the checks that guard the cod
       Outside the run, in the quality gate. Every check git runs by itself uses the copy of the tool
       the project installed, rather than fetching a second copy of its own, so no version number is
       written in the hook settings.
-- [ ] **3. `chore(hooks): run the whole quality gate from the pre-push hook`**
+- [x] **3. `chore(hooks): run the whole quality gate from the pre-push hook`**
       Outside the run, in the quality gate. One read-only task holds the four checks, and sending code
       runs it over the whole project: linting, formatting checked, the strict type check and the
       tests. A value that cannot be what the code says it is stops here.
