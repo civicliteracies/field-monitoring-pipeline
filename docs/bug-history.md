@@ -2,7 +2,8 @@
 
 Serious faults in Fieldbook: what went wrong, what caused it, and what stops it returning. Open
 faults come first, so a reader sees what is wrong today before reading what was wrong before. A fault
-keeps its number when it is fixed, and its entry moves down into the section of fixed faults.
+keeps its number when it is fixed, and its entry moves down among the fixed faults, which are kept in
+two groups: those fixed in earlier work on this design, and those fixed here.
 
 An entry is opened among the open faults when a serious fault is found, and completed in the same
 pull request as the fix. Where a fault produced a rule that changes how the tool works, the rule is
@@ -88,3 +89,33 @@ rules file: each item is stored as one JSON file, which reads back the same on e
 quote is compared after whitespace is collapsed, so a changed line ending cannot make it fail. A rules
 file returns if raw page files are ever stored as they arrived. Test that now fails on the old
 behaviour: none yet.
+
+## 2. Faults fixed in this build
+
+### BUG-004: two copies of the same tool, at two versions, checked the same code
+
+**Severity:** medium. **Class:** correctness of the checks. **Status:** fixed in this build.
+
+**Summary.** The checks git runs before a commit fetched their own copies of ruff and commitizen, at
+versions written by hand in the hook settings, while the project installed the versions the lock file
+named. The two copies of ruff disagreed about what counts as a mistake: a function whose default
+argument calls `range` is an error to 0.16.0 and not to 0.16.1, so the commit hook refused code that
+`mise run check` accepted. No wrong result reached this repository, which holds no code to check yet.
+
+**Root cause.** The version of a tool was answered in two places: the lock file, written by the
+package manager, and the hook settings, written by hand. A comment in the hook settings asked for ruff
+to be kept in step with the lock file, but nothing enforced it, and the two numbers differed from the
+day they were written.
+
+**Fix.** Every hook runs its tool from the project's own environment, so the hook settings name no
+version at all.
+
+**Prevention.** The hook settings name no version. Every hook runs its tool through `uv run`, so it
+uses the copy `uv.lock` pins, the same copy the matching `mise run` task uses.
+
+**Technical detail.** The hooks are local, with `language: system`, and keep what the published hooks
+carried: `--force-exclude`, so a folder the project excludes is left alone even though pre-commit
+names files explicitly; the file types the published hooks named, which are Python, stub and
+notebook files; and serial execution, because ruff works in parallel by itself. Test that now fails on the
+old behaviour: none yet, because this repository holds no code. What can be checked instead is that
+the hook settings contain no version number at all.

@@ -1,3 +1,6 @@
+# Every hook runs its tool from this project's own environment, at the version
+# uv.lock names, so no version is written here and no hook can disagree with
+# the matching `mise run` task.
 repos:
 -   repo: local
     hooks:
@@ -9,21 +12,26 @@ repos:
         pass_filenames: false
         always_run: true
 
--   repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.9.1
-    hooks:
     -   id: commitizen
+        name: Check the commit message
+        entry: uv run cz check --allow-abort --commit-msg-file
+        language: system
         stages: [commit-msg]
 
--   repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version — keep in lockstep with the pinned ruff in uv.lock so the
-    # hook lints with the same ruleset (0.16 preview default) as `mise run lint`.
-    rev: v0.16.0
-    hooks:
     # Run the linter.
-      - id: ruff-check
-        args: [ --fix ]
+    -   id: ruff-check
+        name: Lint with ruff
+        entry: uv run ruff check --force-exclude --fix
+        language: system
+        types_or: [python, pyi, jupyter]
+        require_serial: true
         stages: [pre-commit]
+
     # Run the formatter.
-      - id: ruff-format
+    -   id: ruff-format
+        name: Format with ruff
+        entry: uv run ruff format --force-exclude
+        language: system
+        types_or: [python, pyi, jupyter]
+        require_serial: true
         stages: [pre-commit]

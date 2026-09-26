@@ -67,6 +67,8 @@ Without mise, the underlying commands are `uv run ruff check . --fix`, `uv run r
 * **On `git commit` (commit-msg)** — `commitizen` checks your commit message matches [Conventional Commits](https://www.conventionalcommits.org/) (`type(scope): summary`, e.g. `feat(pipeline): add CSV ingest step`). Common types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
 * **On `git push`** — the full `pytest` suite runs. A failing test blocks the push.
 
+Every hook runs its tool through `uv run`, at the version `uv.lock` names, so a hook and the matching `mise run` task cannot disagree about what counts as a mistake. `.pre-commit-config.yaml` names no version at all.
+
 Run any of them by hand without committing/pushing:
 
 ```sh
