@@ -1,0 +1,44 @@
+{
+ "totalResults": 4,
+ "results": [
+  {
+   "metadata": {
+    "identifier": [
+     "EP-COMM-SUBV-NAT-E-2023-CIVIL-SOCIETY"
+    ],
+    "title": [
+     "CIVIL SOCIETY ENGAGEMENT ACTIONS"
+    ],
+    "status": [
+     "31094502"
+    ],
+    "deadlineDate": [
+     "2023-05-25T17:00:00.000+0000",
+     "2023-09-28T17:00:00.000+0000"
+    ],
+    "url": [
+     "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/EP-COMM-SUBV-NAT-E-2023-CIVIL-SOCIETY.json"
+    ]
+   }
+  },
+  {
+   "metadata": {
+    "identifier": [
+     "HORIZON-CL2-2027-01-HERITAGE-06"
+    ],
+    "title": [
+     "Future-proofing sustainable cultural tourism"
+    ],
+    "status": [
+     "31094501"
+    ],
+    "deadlineDate": [
+     "2027-09-23T00:00:00.000+0000"
+    ],
+    "url": [
+     "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL2-2027-01-HERITAGE-06"
+    ]
+   }
+  }
+ ]
+}

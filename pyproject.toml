@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Field monitoring data pipeline."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "httpx2>=2.13.1",
+]
 
 [build-system]
 requires = ["hatchling"]
