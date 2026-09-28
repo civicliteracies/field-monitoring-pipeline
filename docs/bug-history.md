@@ -100,7 +100,7 @@ behaviour: none yet.
 versions written by hand in the hook settings, while the project installed the versions the lock file
 named. The two copies of ruff disagreed about what counts as a mistake: a function whose default
 argument calls `range` is an error to 0.16.0 and not to 0.16.1, so the commit hook refused code that
-`mise run check` accepted. No wrong result reached this repository, which holds no code to check yet.
+`mise run check` accepted. No wrong result reached this repository, which held no code to check then.
 
 **Root cause.** The version of a tool was answered in two places: the lock file, written by the
 package manager, and the hook settings, written by hand. A comment in the hook settings asked for ruff
@@ -118,5 +118,5 @@ push hook by way of `mise run verify`, so it uses the copy `uv.lock` pins, the s
 carried: `--force-exclude`, so a folder the project excludes is left alone even though pre-commit
 names files explicitly; the file types the published hooks named, which are Python, stub and
 notebook files; and serial execution, because ruff works in parallel by itself. Test that now fails on the
-old behaviour: none yet, because this repository holds no code. What can be checked instead is that
-the hook settings contain no version number at all.
+old behaviour: none, because the fault was in the hook settings, not in the code. What can be
+checked instead is that the hook settings contain no version number at all.

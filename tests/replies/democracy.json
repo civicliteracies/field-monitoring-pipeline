@@ -1,0 +1,82 @@
+{
+ "totalResults": 41,
+ "results": [
+  {
+   "metadata": {
+    "identifier": [
+     "HORIZON-CL2-2024-DEMOCRACY-01-07"
+    ],
+    "title": [
+     "Digital democracy"
+    ],
+    "status": [
+     "31094501"
+    ],
+    "deadlineDate": [
+     "2024-02-07T17:00:00.000+0000"
+    ],
+    "url": [
+     "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/HORIZON-CL2-2024-DEMOCRACY-01-07.json"
+    ]
+   }
+  },
+  {
+   "metadata": {
+    "identifier": [
+     "HORIZON-CL2-2027-02-DEMOCRACY-09-two-stage"
+    ],
+    "title": [
+     "Open topic on reinvigorating and shielding European democracy"
+    ],
+    "status": [
+     "31094501"
+    ],
+    "deadlineDate": [
+     "2027-05-04T00:00:00.000+0000",
+     "2027-09-30T00:00:00.000+0000"
+    ],
+    "url": [
+     "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL2-2027-02-DEMOCRACY-09-two-stage"
+    ]
+   }
+  },
+  {
+   "metadata": {
+    "identifier": [
+     "CERV-2023-CITIZENS-TOWN-TT"
+    ],
+    "title": [
+     "Town-Twinning"
+    ],
+    "status": [
+     "31094502"
+    ],
+    "deadlineDate": [
+     "2023-09-20T17:00:00.000+0000"
+    ],
+    "url": [
+     "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/CERV-2023-CITIZENS-TOWN-TT.json"
+    ]
+   }
+  },
+  {
+   "metadata": {
+    "identifier": [
+     "HORIZON-CL2-2027-01-HERITAGE-06"
+    ],
+    "title": [
+     "Future-proofing sustainable cultural tourism"
+    ],
+    "status": [
+     "31094501"
+    ],
+    "deadlineDate": [
+     "2027-09-23T00:00:00.000+0000"
+    ],
+    "url": [
+     "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL2-2027-01-HERITAGE-06"
+    ]
+   }
+  }
+ ]
+}
