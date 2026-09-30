@@ -21,10 +21,11 @@ changes sit outside the run, in the records and in the checks that guard the cod
       Outside the run, in the quality gate. One read-only task holds the four checks, and sending code
       runs it over the whole project: linting, formatting checked, the strict type check and the
       tests. A value that cannot be what the code says it is stops here.
-- [ ] **4. `feat(fetch): fetch the open calls of the source on the watch list`**
-      Fetch (ingestion). A plain text file names each source Fieldbook reads and its address, and
-      Fieldbook asks that source for the calls it has open, leaving out any whose closing date has
-      already passed.
+- [x] **4. `feat(fetch): fetch the open calls of the source on the watch list`**
+      Fetch (ingestion). A plain text file names each source Fieldbook reads, its address and the
+      words it searches for, and Fieldbook asks that source for the calls it has open or has
+      announced, leaving out any whose closing date has already passed, and can bring back a call's
+      web page.
 - [ ] **5. `feat(store): store each call once`**
       Store the raw (raw storage with provenance) and Identify (stable identifiers). Each call is
       written down once, exactly as it arrived, in one file named by a code made from the source's

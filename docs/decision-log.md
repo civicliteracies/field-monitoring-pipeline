@@ -11,23 +11,6 @@ that decides something adds its entry here, in the same pull request.
 
 ## 0. Pending decisions
 
-### Which source goes on the watch list first?
-
-**Situation.** Fieldbook reads only the sources named on its watch list, and the list carried from
-earlier work holds one source that publishes essays and announcements rather than funding calls.
-
-**Question.** Which source is first, and does it publish its calls as feed entries or only as web
-pages?
-
-**Status quo.** No source is on the list. A run over the source carried from earlier work would reach
-it, store what it served and produce no cards, which proves the plumbing and nothing about the
-reading. The cost of waiting is that the reading step can only be tried on pages fetched by hand, so
-the one uncertain part of the tool stays unproven against a real source.
-
-**Technical detail.** CLI names the source. If it publishes a feed or a public data service, the
-collecting change reads that; if it publishes calls only on web pages, the collecting change also
-keeps each page and takes its text from it.
-
 ### When is the key for the reading step set?
 
 **Situation.** The reading step sends the text of a stored item to a language model, and that request
@@ -101,7 +84,35 @@ Three things stay apart inside every step: the data, declared in files a person 
 behaviour, plain functions that act on it; and the coordination, a single command that calls the
 steps in order and holds no rules of its own.
 
-## 3. Storage
+## 3. Sources
+
+### Which source goes on the watch list first?
+
+**Situation.** Fieldbook reads only the sources named on its watch list, and the first had to
+publish funding calls in a form a program can read.
+
+**Decision.** The EU Funding and Tenders Portal, reached through its public search service, which
+answers in JSON. Fieldbook asks it, in English, for the grant topics that match each search word,
+open or announced, and leaves out any call whose last closing date has passed. Each call's web page
+is fetched as the portal serves it.
+
+**Rationale.** Of the sources on CLI's list, it is the one that publishes open and announced calls a
+program can read, each with its full text; the others publish news and essays, or grants already
+given. Only grant topics are read for now, because the portal's other kinds each need their own
+design: EU aid calls keep their details in attached documents, and cascade calls share identifiers
+with other calls. Announced calls are kept because an application takes months to prepare; each is
+captured once, when first seen, and not updated. Closed calls are left out by their dates rather than
+by the portal's status, because the portal still marks some old calls as open or forthcoming. A
+failed request is not tried again. The failure seen is the portal redirecting a call's page to a
+page that no longer exists. When asked again, the portal served the page normally, so the next run
+asks again. The page is kept whole, so the stored copy is the page itself and not a reading of it.
+For this portal the page is a frame that the browser fills from the record, so the record carries
+the text. What it gives up: a call published only in a language other than English is not seen.
+
+**Technical detail.** Each search word is its own search, because the portal's search mishandles
+several phrases in one query.
+
+## 4. Storage
 
 ### Where does everything the tool collects live?
 
@@ -137,9 +148,10 @@ they are useful for applying, and never appear on a card.
 
 **Technical detail.** An item is written only when its file does not exist yet, so a second run over
 the same item changes nothing, and the time of collection never makes a new commit. BUG-002 in the bug
-history is where that rule came from.
+history is where that rule came from. The fetch may leave out a whole call, by its identifier or its
+closing date, but never changes one: each call it keeps is stored whole, as the source served it.
 
-## 4. Reading with a model
+## 5. Reading with a model
 
 ### How many steps use a language model?
 
