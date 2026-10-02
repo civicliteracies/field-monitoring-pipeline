@@ -20,8 +20,8 @@ needs a key.
 produced by hand?
 
 **Status quo.** No key is set, and no step that would use one is built yet. Collecting and storing
-never need a key. The cost arrives with the daily run: it will collect and store without reading, so
-the archive will grow while the cards do not.
+need no secret key. The cost arrives with the daily run: it will collect and store without reading,
+so the archive will grow while the cards do not.
 
 **Technical detail.** The key is never written into a file of this repository. A run reads it from
 the repository's settings, in a form chosen when the key is set.
@@ -60,9 +60,9 @@ else the tool uses, the model runs on a free tier.
 
 **Question.** At what point is a paid model worth what it costs?
 
-**Status quo.** A free tier model reads every item and nothing is paid. The condition for paying is
-that the model is shown to be what holds the tool back. The cost of waiting is that a free tier's
-limits and terms can change without notice.
+**Status quo.** No model reads anything yet. The plan is a free tier model for every item, with
+nothing paid. The condition for paying is that the model is shown to be what holds the tool back.
+The cost of waiting is that a free tier's limits and terms can change without notice.
 
 **Technical detail.** When the reading step is built, it names its model in one place and every card
 records which model read it, so a move to a paid model changes one setting.
@@ -76,13 +76,15 @@ derived from what was kept.
 ## 2. The shape of a run
 
 A run takes each item through seven steps, in order. Reach the sources on the watch list and bring
-back what they published. Write down what came back, once and unchanged, together with where it came from.
-Give each item a stable name of its own. Read the facts the item states, with one language model
-call. Check what was read against what was stored. Write the card. Save the cards and build the feed.
+back what they published. Write down each item collected, once and whole, together with where it
+came from. Give each item a stable name of its own. Read the facts the item states, with one
+language model call. Check what was read against what was stored. Write the card. Save the cards and
+build the feed.
 
 Three things stay apart inside every step: the data, declared in files a person can read; the
 behaviour, plain functions that act on it; and the coordination, a single command that calls the
-steps in order and holds no rules of its own.
+steps in order. The command decides what to skip and what to do when a step fails, and holds no rule
+about the items themselves.
 
 ## 3. Sources
 
@@ -101,13 +103,19 @@ program can read, each with its full text; the others publish news and essays, o
 given. Only grant topics are read for now, because the portal's other kinds each need their own
 design: EU aid calls keep their details in attached documents, and cascade calls share identifiers
 with other calls. Announced calls are kept because an application takes months to prepare; each is
-captured once, when first seen, and not updated. Closed calls are left out by their dates rather than
-by the portal's status, because the portal still marks some old calls as open or forthcoming. A
-failed request is not tried again. The failure seen is the portal redirecting a call's page to a
-page that no longer exists. When asked again, the portal served the page normally, so the next run
-asks again. The page is kept whole, so the stored copy is the page itself and not a reading of it.
-For this portal the page is a frame that the browser fills from the record, so the record carries
-the text. What it gives up: a call published only in a language other than English is not seen.
+captured once, as it stood on the day it was saved, and not updated. Closed calls are left out by
+their dates rather than by the portal's status, because the portal still marks some old calls as
+open or forthcoming. A failed request is not tried again in the same run. The failures seen are the
+portal redirecting a call's page to a page that no longer exists, and its search timing out and then
+answering with an error. When asked again, the portal served the page normally, so the next run asks
+again. A call whose page fails is skipped and written in the log of calls with the error. Its record
+is not kept without its page, because the search sends the record again on the next run. The other
+calls are saved, and the run ends with a failure. A search that fails is written in the log too, and
+stops the run. Nothing more is built for a failure until the log shows what is needed. The page is
+kept whole, so the stored copy is the page itself and not a reading of it. For this portal the page
+is a frame that the browser fills from the record, so the record carries the text. What it gives up:
+a call published only in a language other than English is not seen. A call whose page fails on every
+run until it closes is never saved.
 
 **Technical detail.** Each search word is its own search, because the portal's search mishandles
 several phrases in one query.
@@ -119,17 +127,25 @@ several phrases in one query.
 **Situation.** The system has to keep every item it collects, for years, on free services, and stay
 readable without specialist tools.
 
-**Decision.** One plain file per item in this repository. No server, no database engine, no committed
-index. Anything derived is rebuilt from the files and never stored beside them.
+**Decision.** Plain files in this repository. Each source has a folder, which holds every call's web
+page and the source's record of it. One log beside the folders has a row for each call the run tried
+and for a search that failed. No server, no database engine, no committed index. Anything derived is
+rebuilt from the files and never stored beside them.
 
-**Rationale.** The history of the repository becomes the audit log, its permissions become the access
-control, and nothing in it can be withdrawn by a supplier. What it gives up is querying: there is no
-way to ask the store a question except by reading files, which is why searching the whole archive
-belongs to a separate page that reads the same files.
+**Rationale.** The history of the repository becomes the audit log, its permissions become the
+access control, and nothing in it can be withdrawn by a supplier. The log of calls is one table,
+written as it happens: where each call came from, when it was collected and whether it was saved. It
+takes the place of a note beside each call. It is not a derived index. The identifier, title and
+link it repeats are copied from the source's record when a row is written, and never updated. The
+log is never rebuilt from the files. A call's files are named by a code made from its identifier,
+not by the identifier itself. Some identifiers cannot be file names (web addresses, or names that
+carry slashes), and a name cannot change once a call is saved. The log pairs each code with the
+call's identifier, title and link, so a person can find a call's files there. What plain files give
+up is querying: there is no way to ask the store a question except by reading files, which is why
+searching the whole archive belongs to a separate page that reads the same files.
 
 **Technical detail.** Collected items and cards live on the `data` branch, which shares no history
-with the code. The storing change writes them, through one function that owns every path under the
-data folder.
+with the code. One module writes everything under the data folder and owns every path there.
 
 ### Is a page read before or after it is stored?
 
@@ -137,19 +153,26 @@ data folder.
 together, a change to the reading means going back to the source, and the source may have changed or
 gone.
 
-**Decision.** Write what a source served to disk before anything reads it: one file per item, holding
-what the source served together with where it came from, its link and the time it was collected.
-Every later step works from that copy.
+**Decision.** Write what a source served to disk before the reading step sees it: the call's web
+page, exactly as downloaded, and the source's record of the call, every value as sent. Every later
+step works from that copy. The log holds where each call came from, its link and the time it was
+collected.
 
 **Rationale.** Any step can be run again over the same text, a card can be checked against what was
-really served, and a source is never asked twice for the same item. What it gives up is space, and it
-means the stored copy may hold contact details that a page published. Those stay in the copy, where
-they are useful for applying, and never appear on a card.
+really served, and once a call is saved its page is never asked for again. What it gives up is
+space, and it means the stored copy may hold contact details that a page published. Those stay in
+the copy, where they are useful for applying, and never appear on a card.
 
-**Technical detail.** An item is written only when its file does not exist yet, so a second run over
-the same item changes nothing, and the time of collection never makes a new commit. BUG-002 in the bug
-history is where that rule came from. The fetch may leave out a whole call, by its identifier or its
-closing date, but never changes one: each call it keeps is stored whole, as the source served it.
+**Technical detail.** A call's files are written first and its row in the log last, and a call
+counts as stored once it has a `saved` row. A run that stops partway therefore never leaves a call
+marked as saved with a file missing, and the next run does that call again. A run stores a call only
+when it has no `saved` row, so a run with nothing new and nothing failing changes nothing. BUG-002
+in the bug history is where that rule came from. A call that keeps failing adds one row each run.
+That is deliberate: recording each failure is what the log is for. The fetch may leave out a whole
+call, by its identifier or its closing date, but never changes one: each saved call is stored whole,
+as the source served it. The record is its own file because, for the first source, the page holds
+none of the call's text. It is not kept inside the log. The records of 33 calls came to 1.2 MB, and
+GitHub shows a log as a table only up to 512 KB.
 
 ## 5. Reading with a model
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import httpx2
 import pytest
 
-from field_monitoring_pipeline.fetch import fetch, fetch_page
+from field_monitoring_pipeline.fetch import fetch, fetch_page, new_client
 
 ROOT = Path(__file__).parent.parent
 REPLIES = Path(__file__).parent / "replies"
@@ -26,6 +26,7 @@ def replay(files: dict[tuple[str, str], str], seen: list[httpx2.Request] | None 
 
 def test_watch_list_shape() -> None:
     source = tomllib.loads((ROOT / "config" / "sources.toml").read_text(encoding="utf-8"))["source"][0]
+    assert source["id"]
     assert source["name"]
     assert source["url"]
     assert source["words"]
@@ -37,6 +38,15 @@ def test_one_call_per_identifier() -> None:
         calls = fetch(URL, ["democracy", '"civil society"'], client, TODAY)
     identifiers = [c.identifier for c in calls]
     assert identifiers.count("HORIZON-CL2-2027-01-HERITAGE-06") == 1
+
+
+def test_each_call_carries_its_title() -> None:
+    with replay({("digital", "1"): "digital_page_1.json", ("digital", "2"): "digital_page_2.json"}) as client:
+        calls = fetch(URL, ["digital"], client, TODAY)
+    assert [c.title for c in calls] == [
+        "Digital Investigations",
+        "Additional activities for the European Partnership of Agriculture of Data",
+    ]
 
 
 def test_closed_calls_are_left_out() -> None:
@@ -54,6 +64,9 @@ def test_every_page_is_read() -> None:
     with replay(files) as client:
         calls = fetch(URL, ["digital"], client, TODAY)
     assert [c.identifier for c in calls] == ["ISF-2026-TF2-AG-CYBER-DIGITAL", "HORIZON-CL6-2026-04-GOVERNANCE-01"]
+    assert [c.record for c in calls] == [
+        json.loads((REPLIES / name).read_bytes())["results"][0] for name in files.values()
+    ]
 
 
 def test_request_is_right() -> None:
@@ -62,9 +75,11 @@ def test_request_is_right() -> None:
         fetch(URL, ["democracy"], client, TODAY)
     body = seen[0].read()
     assert seen[0].url.params["apiKey"] == "SEDIA"
+    assert b'name="query"' in body
     assert b'"type": ["1"]' in body
-    assert json.dumps(["en"]).encode() in body
     assert b'"status": ["31094501", "31094502"]' in body
+    assert b'name="languages"' in body
+    assert b'["en"]' in body
 
 
 def test_page_is_kept_whole() -> None:
@@ -81,6 +96,16 @@ def test_page_is_kept_whole() -> None:
         fetched = fetch_page(link, client)
     assert fetched == page
     assert asked == [link]
+
+
+def test_the_client_names_itself_and_waits_thirty_seconds(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NO_PROXY", "*")
+    with new_client() as client:
+        assert (
+            client.headers["User-Agent"] == "Fieldbook (https://github.com/civicliteracies/field-monitoring-pipeline)"
+        )
+        assert client.timeout == httpx2.Timeout(30)
+        assert not client.follow_redirects
 
 
 def test_a_redirect_stops_the_fetch() -> None:

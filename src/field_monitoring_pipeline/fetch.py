@@ -27,6 +27,7 @@ PAGE_SIZE = 100
 class FetchedCall:
     identifier: str
     link: str
+    title: str
     record: JSON
 
 
@@ -48,12 +49,12 @@ def fetch(url: str, words: list[str], client: httpx2.Client, today: dt.date) -> 
             body = client.post(address, files=files).raise_for_status().json()
             for record in body["results"]:
                 metadata = record["metadata"]
-                identifier: str = metadata["identifier"][0]
+                identifier = metadata["identifier"][0]
                 if (
                     identifier not in found
                     and max(dt.date.fromisoformat(date[:10]) for date in metadata["deadlineDate"]) >= today
                 ):
-                    found[identifier] = FetchedCall(identifier, metadata["url"][0], record)
+                    found[identifier] = FetchedCall(identifier, metadata["url"][0], metadata["title"][0], record)
             if page * PAGE_SIZE >= body["totalResults"]:
                 break
             page += 1

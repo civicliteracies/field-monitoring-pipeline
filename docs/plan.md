@@ -23,19 +23,22 @@ changes sit outside the run, in the records and in the checks that guard the cod
       tests. A value that cannot be what the code says it is stops here.
 - [x] **4. `feat(fetch): fetch the open calls of the source on the watch list`**
       Fetch (ingestion). A plain text file names each source Fieldbook reads, its address and the
-      words it searches for, and Fieldbook asks that source for the calls it has open or has
+      words it searches for, and Fieldbook asks that source for the grant topics it has open or has
       announced, leaving out any whose closing date has already passed, and can bring back a call's
       web page.
-- [ ] **5. `feat(store): store each call once`**
+- [x] **5. `feat(store): store each call once`**
       Store the raw (raw storage with provenance) and Identify (stable identifiers). Each call is
-      written down once, exactly as it arrived, in one file named by a code made from the source's
-      own identifier, together with where it came from and when it was collected. A call already
-      stored is left alone. One command now runs the steps in order.
+      written down once: its web page exactly as downloaded, and the source's record of it with
+      every value as sent. Both go in the source's folder, and both are named by a code made from
+      the call's identifier. One log records where each call came from, when it was collected, and
+      whether it was saved or failed and why. A call already saved is left alone, and one that
+      failed is tried again by the next run. One command now runs the steps in order.
 - [ ] **6. `ci(schedule): run the command every morning`**
       Fetch (ingestion) and Publish (publishing). GitHub runs that command every morning and commits
       what it stored to the `data` branch, which holds the archive and shares no history with the
       code. It commits what was stored even when the run stopped with an error, and only when
-      something has changed.
+      something has changed. This change also adds a rules file to that branch, which tells git to
+      leave stored pages exactly as they arrived, and rewrites the branch's front page.
 - [ ] **7. `feat(models): define what a funding call is made of`**
       Validate (validation). One template names the fields of a card: the title, the type, the
       funder, the budget, the summary, who can apply and where, and the closing date, which is empty
