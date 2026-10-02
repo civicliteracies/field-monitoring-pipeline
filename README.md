@@ -4,7 +4,7 @@ Most of what the Civic Literacy Initiative (CLI) needs to know already reaches i
 
 Every morning it visits the sources CLI has chosen, keeps a copy of what they published, and turns each funding call into a card: what the call is, who can apply, how much it offers, when it closes. Under each fact read from the page sits the funder's own sentence, so it can be checked against the funder's words in seconds. The cards are plain files on the `data` branch of this repository, and an RSS feed carries each new one into a feed reader. It is built to run on GitHub, on free services, with no one tending it.
 
-None of this runs yet. The code arrives one change at a time, in the order [`docs/plan.md`](docs/plan.md) sets out, and this page describes Fieldbook as it will work once those changes are in.
+None of this runs by itself yet. The code arrives one change at a time, in the order [`docs/plan.md`](docs/plan.md) sets out, and this page describes Fieldbook as it will work once those changes are in.
 
 ## What it does
 
@@ -12,9 +12,9 @@ It finds the opportunities CLI can act on, for funding and for paid work: grants
 
 ## How a run works
 
-Fieldbook watches a named list of sources and never searches the open web. Each morning it reaches every source by the route that source publishes, and writes down what came back, once, before reading a word of it, together with where it came from. Then it reads: one language model call per item, asked for what the page states and nothing else, with the sentence each fact rests on. Every quoted sentence is checked word for word against the stored copy, and an item that fails twice produces nothing. What survives becomes a Markdown card, saved to the `data` branch, which holds the archive and shares no history with the code, and carried into the RSS feed.
+Fieldbook watches a named list of sources and never searches the open web. Each morning it reaches every source by the route that source publishes, and writes down each item it collects, once and whole, before the reading step sees a word of it, together with where it came from. Then it reads: one language model call per item, asked for what the page states and nothing else, with the sentence each fact rests on. Every quoted sentence is checked word for word against the stored copy, and an item that fails twice produces nothing. What survives becomes a Markdown card, saved to the `data` branch, which holds the archive and shares no history with the code, and carried into the RSS feed.
 
-Everything collected and everything written stays in this repository as plain files, one per item, on the `data` branch.
+Everything collected and everything written stays in this repository as plain files, on the `data` branch.
 
 ## What it does not promise
 
