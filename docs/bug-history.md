@@ -58,13 +58,16 @@ differs on every run, so every item looked new every day.
 **Fix.** The note was changed to record the date the source published the item rather than the time
 it was collected, and the run was changed to commit only when something had changed.
 
-**Prevention.** Nothing written to the archive may carry a value that changes between runs when the
-item has not changed. The same item stored twice produces the same bytes.
+**Prevention.** Nothing stored is ever rewritten, and a call already saved is not stored again. A
+run adds rows to the log only for the calls it tried and for a search that failed, so a run with
+nothing new and nothing failing changes nothing.
 
-**Technical detail.** The rule lands with change 5, which writes each item only when its file does not
-exist yet, so nothing stored is ever rewritten, and with change 6, which makes the daily commit and asks
-git whether anything is there to commit before making one. Test that now fails on the old behaviour:
-none yet.
+**Technical detail.** The rule lands with change 5, which stores a call only when the log has no
+`saved` row for it, so nothing stored is ever rewritten, and with change 6, which makes the daily
+commit and asks git whether anything is there to commit before making one. This build records the
+time of collection again, in the log. Once a call is saved, it gets no further row. Test that now
+fails on the old behaviour: the command's test of a second run, which must download no page and
+leave every stored byte unchanged.
 
 ### BUG-003: line endings were rewritten, so a quote checked on one machine failed on another
 
@@ -84,11 +87,13 @@ files were written with one kind of line ending, stated explicitly.
 **Prevention.** Anything stored as evidence is written byte for byte and protected from conversion.
 Unchanged has to mean unchanged on every machine, including the ones that did not write the file.
 
-**Technical detail.** The setting is git's `core.autocrlf`. In this build the rule is kept without a
-rules file: each item is stored as one JSON file, which reads back the same on every machine, and a
-quote is compared after whitespace is collapsed, so a changed line ending cannot make it fail. A rules
-file returns if raw page files are ever stored as they arrived. Test that now fails on the old
-behaviour: none yet.
+**Technical detail.** The setting is git's `core.autocrlf`. Change 5 stores each call's web page as
+it arrived, and writes its record and the log with one kind of line ending, stated explicitly. A
+page stored as it arrived keeps its own line endings, which git would convert. So the rules file
+returns with change 6, the first to commit stored pages, on the `data` branch. A quote is compared
+after whitespace is collapsed, so a changed line ending cannot make it fail. Test that now fails on
+the old behaviour: none yet for git's own conversion. The store's tests check the writing: the
+record file holds exactly the expected bytes, and the log holds no Windows line ending.
 
 ## 2. Faults fixed in this build
 
