@@ -20,8 +20,8 @@ needs a key.
 produced by hand?
 
 **Status quo.** No key is set, and no step that would use one is built yet. Collecting and storing
-need no secret key. The cost arrives with the daily run: it will collect and store without reading,
-so the archive will grow while the cards do not.
+need no secret key. The cost is that the daily run collects and stores without reading, so the archive
+grows while the cards do not.
 
 **Technical detail.** The key is never written into a file of this repository. A run reads it from
 the repository's settings, in a form chosen when the key is set.
@@ -33,9 +33,9 @@ directly.
 
 **Question.** Is that page built here, or elsewhere by whoever wants it?
 
-**Status quo.** There is no such page, and no archive to search yet. Once cards exist they are
-browsed as folders on github.com and searched with the search built into the site. The cost is that
-finding an old call will mean knowing roughly where to look.
+**Status quo.** There is no such page. Stored calls are browsed as folders on github.com, on the
+`data` branch, and cards will be browsed the same way. The cost is that finding an old call means
+knowing roughly where to look.
 
 **Technical detail.** Whoever builds it reads the card files and builds an index outside this
 repository. Nothing here changes for that, provided the card keeps its shape.

@@ -6,9 +6,9 @@ keeps its number when it is fixed, and its entry moves down among the fixed faul
 two groups: those fixed in earlier work on this design, and those fixed here.
 
 An entry is opened among the open faults when a serious fault is found, and completed in the same
-pull request as the fix. Where a fault produced a rule that changes how the tool works, the rule is
-written in [`docs/decision-log.md`](decision-log.md) as well, because the code can show the guard but
-not the reason for it.
+pull request as the fix. Where a fault produced a rule that changes how the tool works, the reason
+is written where the rule lives. That is a comment beside the rule, or
+[`docs/decision-log.md`](decision-log.md) when the code cannot show it.
 
 ## 0. Open faults
 
@@ -42,7 +42,9 @@ down is kept even when the run does not finish.
 **Prevention.** No step may make its own success a condition of another step's output being kept.
 
 **Technical detail.** The rule lands with change 6 in the plan, whose daily commit saves what was
-stored even when the run stopped with an error. Test that now fails on the old behaviour: none yet.
+stored even when the run stopped with an error. Test that now fails on the old behaviour: none,
+because no test in the suite can run a workflow. What can be checked instead is the commit step's
+condition in `.github/workflows/calls.yml`, which lets it run after a step has failed.
 
 ### BUG-002: every day produced a commit, even when nothing had changed
 
@@ -77,23 +79,26 @@ rule it produced is carried here.
 **Summary.** A sentence that matched the stored page on the machine that collected it failed the same
 check elsewhere, which would have made honest cards look invented.
 
-**Root cause.** Git converts line endings by itself, through a setting that is on by default on
-Windows. The stored text was therefore not the same text everywhere, while the check compares it
-exactly.
+**Root cause.** The project's own rules file told git to give every file the same line endings.
+That is right for code and wrong for a stored page. A page served with Windows line endings was one
+text during the run and another after a clone, while the check compared it exactly.
 
-**Fix.** A rules file on each branch was added to tell git to leave stored text alone, and stored
-files were written with one kind of line ending, stated explicitly.
+**Fix.** The archive was taken out of that rule, so a stored page comes back exactly as the source
+sent it.
 
 **Prevention.** Anything stored as evidence is written byte for byte and protected from conversion.
 Unchanged has to mean unchanged on every machine, including the ones that did not write the file.
 
-**Technical detail.** The setting is git's `core.autocrlf`. Change 5 stores each call's web page as
-it arrived, and writes its record and the log with one kind of line ending, stated explicitly. A
-page stored as it arrived keeps its own line endings, which git would convert. So the rules file
-returns with change 6, the first to commit stored pages, on the `data` branch. A quote is compared
-after whitespace is collapsed, so a changed line ending cannot make it fail. Test that now fails on
-the old behaviour: none yet for git's own conversion. The store's tests check the writing: the
-record file holds exactly the expected bytes, and the log holds no Windows line ending.
+**Technical detail.** Change 5 stores each call's web page as it arrived, and writes its record and
+the log with one kind of line ending, stated explicitly. This build has no rule that makes line
+endings the same. What can still change a stored page is git's own setting, `core.autocrlf`, which
+is on by default on Windows. So change 6, the first to commit stored pages, puts a rules file on the
+`data` branch that tells git to convert nothing there. A quote is compared after whitespace is
+collapsed, so a changed line ending cannot make it fail. Test that now fails on the old behaviour:
+none, because the rules file is on the `data` branch, where the tests do not run. What can be
+checked instead is that the rules file there holds the one rule, `* -text`. The store's tests check
+the writing: the record file holds exactly the expected bytes, and the log holds no Windows line
+ending.
 
 ## 2. Faults fixed in this build
 

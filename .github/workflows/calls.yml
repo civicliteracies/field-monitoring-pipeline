@@ -1,0 +1,34 @@
+# The daily run. Every morning GitHub runs the one command and commits what it
+# stored to the `data` branch. The commit step runs even when the command
+# stopped with an error, so calls already stored are kept. It commits only when
+# something changed, so a quiet morning leaves no commit.
+name: Daily run
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+jobs:
+  calls:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: data
+          path: .archive
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Run the command
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: uv run --locked --no-dev python -m field_monitoring_pipeline.calls .archive/data
+      - name: Commit what was stored
+        if: ${{ !cancelled() }}
+        working-directory: .archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --staged --quiet || git commit -m "chore(data): store the run of $(date -u +%Y-%m-%d)"
+          git push
