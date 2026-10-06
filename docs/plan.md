@@ -34,7 +34,7 @@ changes sit outside the run, in the records and in the checks that guard the cod
       whether it was saved or failed and why. It also records how each run ended for each source:
       successful, failed or nothing new. A call already saved is left alone, and one that
       failed is tried again by the next run. One command now runs the steps in order.
-- [ ] **6. `ci(schedule): run the command every morning`**
+- [x] **6. `ci(schedule): run the command every morning`**
       Fetch (ingestion) and Publish (publishing). GitHub runs that command every morning and commits
       what it stored to the `data` branch, which holds the archive and shares no history with the
       code. It commits what was stored even when the run stopped with an error, and only when
