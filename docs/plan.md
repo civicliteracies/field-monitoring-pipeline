@@ -39,11 +39,12 @@ changes sit outside the run, in the records and in the checks that guard the cod
       code. It commits what was stored even when the run stopped with an error, and only when
       something has changed. This change also adds a rules file to that branch, which tells git to
       leave stored pages exactly as they arrived, and rewrites the branch's front page.
-- [ ] **7. `feat(models): define what a funding call is made of`**
+- [x] **7. `feat(models): define what a funding call is made of`**
       Validate (validation). One template names the fields of a card: the title, the type, the
-      funder, the budget, the summary, who can apply and where, and the closing date, which is empty
-      when the call stays open. Each value read from a page's prose carries the sentence it came
-      from.
+      funder, the opening date, the deadline, the budget, the summary, who can apply and where, and
+      the link. A call with no deadline stays open. Both dates, the budget, the summary, who can
+      apply and where each carry a sentence beside the value, so a person can check it. The template
+      refuses a record that does not fit.
 - [ ] **8. `feat(extract): read one stored call into a call record`**
       Read the stated facts (extraction). One language model call reads a stored call under a fixed
       instruction and answers with the facts it states, each with the sentence it rests on. The

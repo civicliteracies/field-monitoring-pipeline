@@ -213,3 +213,22 @@ figure its sentence does not.
 **Technical detail.** The comparison is made after whitespace is collapsed, against the text taken
 from the stored copy rather than the live page, so a page edited after collection cannot change the
 result.
+
+### How does a card hold the dates of a call?
+
+**Situation.** A funding call opens on one date and closes on another, its deadline. Some calls have
+no deadline and stay open. A reader has to tell a call that has not opened yet from one that takes
+applications now.
+
+**Decision.** A card holds one opening date and one deadline. The opening date is empty when the
+source gives none, and the deadline is empty when the call stays open. Each of the two dates carries
+a sentence beside it.
+
+**Rationale.** With one deadline that may be empty, every card says exactly one of two things: the
+call closes on a date, or it stays open. What it gives up: only the sentence says in what way a call
+stays open, and a call with several deadlines keeps one of them. The opening date carries a sentence
+for the same reason as the deadline: a person can check each date against its sentence.
+
+**Technical detail.** The deadline and its sentence are one block that every card has. A second
+block holds the opening date and its sentence. Every card names that block too, and leaves the whole
+block empty when the source gives no opening date.
