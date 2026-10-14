@@ -16,12 +16,12 @@ that decides something adds its entry here, in the same pull request.
 **Situation.** The reading step sends the text of a stored item to a language model, and that request
 needs a key.
 
-**Question.** Is the key set before the reading step is built, or after the first card has been
-produced by hand?
+**Question.** Is the key set before the daily run reads, or after the first card has been produced
+by hand?
 
-**Status quo.** No key is set, and no step that would use one is built yet. Collecting and storing
-need no secret key. The cost is that the daily run collects and stores without reading, so the archive
-grows while the cards do not.
+**Status quo.** No key is set in the repository. The reading step is built and is run by hand, with
+a key kept outside the repository. Collecting and storing need no secret key. The cost is that the
+daily run collects and stores without reading, so the archive grows while the cards do not.
 
 **Technical detail.** The key is never written into a file of this repository. A run reads it from
 the repository's settings, in a form chosen when the key is set.
@@ -60,12 +60,13 @@ else the tool uses, the model runs on a free tier.
 
 **Question.** At what point is a paid model worth what it costs?
 
-**Status quo.** No model reads anything yet. The plan is a free tier model for every item, with
-nothing paid. The condition for paying is that the model is shown to be what holds the tool back.
-The cost of waiting is that a free tier's limits and terms can change without notice.
+**Status quo.** The reading step uses Gemini 3.5 Flash-Lite on its free tier, the model its
+instructions were tried on. The plan is a free tier model for every item, with nothing paid. The
+condition for paying is that the model is shown to be what holds the tool back. The cost of waiting
+is that a free tier's limits and terms can change without notice.
 
-**Technical detail.** When the reading step is built, it names its model in one place and every card
-records which model read it, so a move to a paid model changes one setting.
+**Technical detail.** The reading step names its model in one place and every record notes which
+model read it, so a move to a paid model changes one setting.
 
 ## 1. The goal
 
@@ -77,8 +78,9 @@ derived from what was kept.
 
 A run takes each item through seven steps, in order. Reach the sources on the watch list and bring
 back what they published. Write down each item collected, once and whole, together with where it
-came from. Give each item a stable name of its own. Read the facts the item states, with one
-language model call. Check what was read against what was stored. Write the card. Save the cards and
+came from. Give each item a stable name of its own. Read the facts the item states: copy those the
+source gives in its own fields, and name the rest with one language model call. Check what was read
+against what was stored. Write the card. Save the cards and
 build the feed.
 
 Three things stay apart inside every step: the data, declared in files a person can read; the
@@ -196,7 +198,9 @@ gives the same answer every time it runs. What it gives up is convenience: the p
 would be quicker, such as sorting items into topics, are done by rules instead.
 
 **Technical detail.** The call sends one stored item as plain text under one fixed instruction, kept
-in its own file and versioned, and the card records which version and which model read it.
+in its own file and versioned, and the card records which version and which model read it. The model
+is asked once, and a failed request is raised as it is. While the reading is run by hand, the person
+running it sees the failure; a second try returns once a reading is lost in the daily run.
 
 ### What has to travel with a value read from a page?
 
@@ -205,17 +209,20 @@ on a funding card is worse than no card at all.
 
 **Decision.** Each value read from the prose travels with the sentence it was read from, and that
 sentence must appear word for word in the stored copy. A value whose sentence cannot be found is
-refused rather than repaired: the reason goes back once, and a second failure writes nothing.
+refused rather than repaired: the reason goes back once, and a second failure writes nothing. A date
+or the budget that the source gives in a labelled field is copied rather than read, and its sentence
+is that field written out as one line.
 
 **Rationale.** It makes a card checkable in seconds by a person who has never seen the tool. What it
-gives up: the title and the funder's name are taken as the page gives them, because they are not read
-out of a sentence, and the check proves that a sentence is present. It cannot prove that the sentence
-supports the value beside it.
+gives up: the title, the type, the funder's name and the link are taken as given, because they are
+not read out of a sentence, and the check proves that a sentence is present. It cannot prove that
+the sentence supports the value beside it.
 
 No check yet requires a figure in the budget to appear in the budget's own sentence. A check of that
 kind, tried in earlier work, refused honest summaries on real pages, and the only fault it ever caught
 had been typed in by hand. It returns, in that narrow form, once a card is seen whose budget states a
-figure its sentence does not.
+figure its sentence does not. Where the source gives the budget in a field, the budget and its line
+are written together from that field.
 
 **Technical detail.** The comparison is made after whitespace is collapsed, against the text taken
 from the stored copy rather than the live page, so a page edited after collection cannot change the
@@ -229,13 +236,56 @@ applications now.
 
 **Decision.** A card holds one opening date and one deadline. The opening date is empty when the
 source gives none, and the deadline is empty when the call stays open. Each of the two dates carries
-a sentence beside it.
+a sentence beside it. A call in two stages keeps its first deadline, and the line beside it names
+both stages with their dates.
 
 **Rationale.** With one deadline that may be empty, every card says exactly one of two things: the
 call closes on a date, or it stays open. What it gives up: only the sentence says in what way a call
-stays open, and a call with several deadlines keeps one of them. The opening date carries a sentence
-for the same reason as the deadline: a person can check each date against its sentence.
+stays open, and a call with several deadlines keeps one of them as its date. The opening date
+carries a sentence for the same reason as the deadline: a person can check each date against its
+sentence.
 
 **Technical detail.** The deadline and its sentence are one block that every card has. A second
 block holds the opening date and its sentence. Every card names that block too, and leaves the whole
 block empty when the source gives no opening date.
+
+### Which facts are copied from the source, and which does the model name?
+
+**Situation.** The EU portal gives each call's title, opening date, deadlines and budget in labelled
+fields of its own record, and states them in a sentence only now and then: of 33 calls the portal
+served, the prose states an opening date in 5, a deadline in 6 and the call's own budget in none.
+In trials, a model asked to name these facts copied them wrongly or wrote flags its instructions
+never offered.
+
+**Decision.** The code copies the title, the two dates and the budget from the record's fields, and
+writes each date and the budget out as one plain line that serves as its sentence. The model names
+the rest: the type, the funder, the summary, who can apply and where. Where the prose also states a
+date, the field's value and line are kept. The budget names the call's whole amount, then in
+brackets what one winning project can get, with the euro sign after each amount. Where the topics
+of one call share one amount, the portal gives each topic's line the whole of it, and the budget
+says it is shared and by how many topics.
+
+**Rationale.** A fact the source already gives in a field needs no judgement, so copying it cannot
+misread it. What it gives up: where the prose and the field disagree, the card shows the field and
+says nothing of the prose. The euro sign is not in the stored record: the portal's own page prints
+it beside each amount. It is the one thing on a card that is not derived from what was kept.
+
+**Technical detail.** The four lines come first in the text the model reads, so the check of
+sentences finds each line in that text like any other sentence.
+
+### Why does the model answer with one command line?
+
+**Situation.** A model can be asked to fill a shape the provider enforces, or to write its answer
+as text that the code reads.
+
+**Decision.** The model writes its reasoning, then one line that begins with a fixed word and names
+each fact with a flag. The code finds that line, reads its flags, and builds the record through the
+template.
+
+**Rationale.** The record's shape lives in this repository, so any model that can write a line can
+be used. What it gives up: the code reads that one line and nothing else, and a line it cannot read
+is refused rather than repaired.
+
+**Technical detail.** Each free-text value is written as a JSON string, so a funder's own quotation
+marks reach the record unbroken. A flag the instructions never offered, a flag given twice and a flag
+with no value are refused.
