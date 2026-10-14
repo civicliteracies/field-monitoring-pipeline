@@ -1,5 +1,8 @@
 # The watch list: the sources Fieldbook reads and the words it searches for. Edit the words freely.
+# A source's id names its folder in the archive and its rows in the log. Never change it once calls
+# are saved.
 [[source]]
+id = "eu-funding-tenders"
 name = "EU Funding and Tenders Portal"
 url = "https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA"
 words = [

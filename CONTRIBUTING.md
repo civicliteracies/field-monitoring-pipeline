@@ -34,8 +34,10 @@ uv.lock          # exact resolved versions — committed, never hand-edited
 config/          # the watch list: the sources Fieldbook reads and the words it searches for
 src/field_monitoring_pipeline/   # the package
 tests/           # pytest suite, mirrors src/
+docs/            # the records: the plan, the decision log, the bug history, the map of every file
 mise.toml        # task runner: setup, check, verify, lint, format, typecheck, test
 .pre-commit-config.yaml   # git hook definitions
+.github/workflows/   # the daily run: GitHub collects and stores funding calls every morning
 ```
 
 Everything lives in one `pyproject.toml`:

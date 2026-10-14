@@ -1,8 +1,8 @@
 # Architecture
 
-What every file in this repository is, and what it does. One entry per file. A change adds an entry
-for each file it adds, and updates the entry of any file whose job it changes, so this map grows with
-the code rather than ahead of it.
+What every file in this repository is, and what it does. One entry per file where the code lives,
+and one per kind of file in the archive. A change adds an entry for each file it adds, and updates
+the entry of any file whose job it changes, so this map grows with the code rather than ahead of it.
 
 ## The front of the repository
 
@@ -30,19 +30,42 @@ the code rather than ahead of it.
 | `mise.toml` | The short commands: set the project up, fix what can be fixed while you work, and run the quality gate, which checks linting, formatting, types and tests without changing anything. |
 | `.pre-commit-config.yaml` | The checks git runs by itself, at three moments: on commit, the code checker and then the formatter; on the commit message, its shape; on push, the whole quality gate. |
 | `.gitignore` | What git leaves alone: caches, the virtual environment, local settings. |
-| `config/sources.toml` | The watch list: each source Fieldbook reads, with its name, its search address and the words it searches for. |
+| `config/sources.toml` | The watch list: each source Fieldbook reads, with its ID, its name, its search address and the words it searches for. The ID is the name of the source's folder in the archive, and marks its rows in the log of calls. |
+
+## The daily run
+
+| File | What it is and does |
+|---|---|
+| `.github/workflows/calls.yml` | The daily run. Every morning, or when started by hand from the Actions tab, GitHub runs the one command and commits what it stored to the `data` branch. What was stored before an error is still committed. A run adds a row to the log for each source it finishes, so a morning with no new call still leaves a commit. |
 
 ## The code
 
 | File | What it is and does |
 |---|---|
 | `src/field_monitoring_pipeline/__init__.py` | Marks the folder as the package the run lives in. The file itself is empty. |
-| `src/field_monitoring_pipeline/fetch.py` | Asks the EU Funding and Tenders Portal for the calls that match each search word, in English, open or announced, reading every page, and keeps each call once as the portal sent it, leaving out those already closed. It also fetches a call's web page as the portal serves it. |
+| `src/field_monitoring_pipeline/fetch.py` | Asks the EU Funding and Tenders Portal for the grant topics that match each search word, in English, open or announced, reading every page, and keeps each call once as the portal sent it, with its identifier, its link and its title, leaving out those already closed. It also fetches a call's web page as the portal serves it. |
+| `src/field_monitoring_pipeline/store.py` | Writes everything under the data folder. For each saved call it writes two files in the source's folder: the call's web page as downloaded and the source's record of it. Both are named by a code made from the call's identifier. In one log beside the folders it adds a row for each call the run tried, saved or failed. For each source it adds one more, saying how the run ended for it. It also tells the run which calls are already saved. |
+| `src/field_monitoring_pipeline/calls.py` | The one command. It reads the watch list, fetches each source's calls, skips those already saved, and downloads and stores the rest. When a call's page or a search fails, it has the store write that in the log. Once a source's calls are done, it has the store write how the run ended: `successful`, `failed` or `nothing new`, with the numbers it counted. It prints what it did. |
 | `tests/__init__.py` | Marks the tests folder as part of the project. |
 | `tests/test_placeholder.py` | One passing test, from the project's first setup. |
-| `tests/test_fetch.py` | Checks the fetch against recorded portal replies, so no test needs the internet: the watch list's shape, one call per identifier, closed calls left out, every page read, what the request asks for, a web page kept whole, and a redirect that stops the fetch. |
+| `tests/test_fetch.py` | Checks the fetch against recorded portal replies, so no test needs the internet: the watch list's shape, one call per identifier, each call's title and whole record, closed calls left out, every page read, what the request asks for, a web page kept whole, the client's own settings, and a redirect that stops the fetch. |
+| `tests/test_store.py` | Checks the store in a temporary folder: the code that names a call's files, the page kept byte for byte, the record written with every value as sent, the files written before the log row, a record that cannot be written, which calls count as saved, the log's rows and its first line, a failed call's row, and the run's row in each of its three words. |
+| `tests/test_calls.py` | Checks the command against recorded portal replies, so no test needs the internet: a first run that saves every call, a second that adds only the run's row, closed calls left out by the run's clock, a call whose page fails and is tried again, a page that cannot be downloaded and is logged on every run, a link that cannot be read, every failed call counted, a search that fails, a search reply that is not JSON, a reply the fetch cannot read stopping the run with nothing written, any other error stopping the run with no row written for it, two sources kept apart, each with its own row for the run holding its own word and numbers, a watch list with a field missing, the command ending with a failure when a call has failed, and the file run as the command. |
 | `tests/replies/democracy.json` | A recorded reply for "democracy", cut down to four calls: two closed ones, one marked open and one marked announced, and two current ones, one in two stages. |
 | `tests/replies/civil_society.json` | A recorded reply for "civil society", cut down to two calls, one of them also in the democracy reply. |
 | `tests/replies/digital_page_1.json` | The first of two recorded pages for "digital", cut down to one call. Its total is set to 150 by hand, so the fetch reads exactly two pages. |
-| `tests/replies/digital_page_2.json` | The second recorded page for "digital", cut down to one call. |
-| `tests/replies/page.html` | A small hand-written web page that points to one other file, for the test that a page is kept whole and the file it points to is not fetched. |
+| `tests/replies/digital_page_2.json` | The second recorded page for "digital", cut down to one call. Its record keeps one key beside its metadata, so a test can tell the whole record from a part of it. |
+| `tests/replies/page.html` | A small hand-written web page that points to one other file, for the test that a page is kept whole and the file it points to is not fetched. The command's tests also serve it as a call's page. It holds one byte that is not UTF-8, so a page changed on its way would not match. |
+
+## The archive, on the `data` branch
+
+The `data` branch holds the archive and shares no history with the code. The log appears with the
+first run, and a call's two files once that call is saved.
+
+| File | What it is and does |
+|---|---|
+| `.gitattributes` | Tells git to convert no line endings on this branch, so a stored page is the same bytes on every machine. |
+| `README.md` | The branch's front page: what the branch is for. |
+| `data/raw/log.csv` | The log of calls: one row for each call a run tried, saved or failed, and one for each source, saying how the run ended for it. |
+| `data/raw/<source ID>/<code>.html` | A saved call's web page, exactly as downloaded. |
+| `data/raw/<source ID>/<code>.json` | The source's record of the same call, every value as sent. |
