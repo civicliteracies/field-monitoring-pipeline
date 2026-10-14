@@ -1,0 +1,14 @@
+# The watch list: the sources Fieldbook reads and the words it searches for. Edit the words freely.
+[[source]]
+name = "EU Funding and Tenders Portal"
+url = "https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA"
+words = [
+    "transparency AND accountability",
+    '"civil society"',
+    "disinformation",
+    "democracy",
+    '"digital skills"',
+    "literacy AND digital",
+    '"open data"',
+    '"information integrity"',
+]
