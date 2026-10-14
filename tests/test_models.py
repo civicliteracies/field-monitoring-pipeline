@@ -18,6 +18,8 @@ CALL: dict[str, Any] = {
     "eligibility": None,
     "area": None,
     "link": LINK,
+    "model": "gemini-3.5-flash-lite",
+    "instructions": "v3",
 }
 OPENING: dict[str, Any] = {"date": "2019-03-01", "quote": "Opening for submission: 1 March 2019."}
 KNOWN: list[tuple[type[BaseModel], dict[str, Any]]] = [
