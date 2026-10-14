@@ -34,13 +34,14 @@ The first version will carry one funding call, from one source, the whole way: c
 mise run setup
 ```
 
-Installs dependencies and git hooks (pre-commit lint/format, pre-push tests, commit-msg linting). See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the dependency setup, pre-commit hooks, and commit conventions.
+Installs dependencies and git hooks (pre-commit lint/format, pre-push quality gate, commit-msg linting). See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the dependency setup, pre-commit hooks, and commit conventions.
 
 ## Common tasks
 
 | Command | Description |
 | --- | --- |
-| `mise run check` | Quality gate: format + lint + typecheck + test |
+| `mise run check` | While you work: lint + format with fixes, then typecheck + test |
+| `mise run verify` | Quality gate: the same four checks, read-only. The pre-push hook runs it before every push |
 | `mise run lint` | Lint and auto-fix with ruff |
 | `mise run format` | Format with ruff |
 | `mise run typecheck` | Type-check with basedpyright |

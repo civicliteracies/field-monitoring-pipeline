@@ -27,8 +27,8 @@ the code rather than ahead of it.
 | `pyproject.toml` | Names the project and the tools it installs, and holds every tool's settings: the code checker, the type checker, the test runner and the commit message check. |
 | `uv.lock` | The exact version of every tool and library, so every machine installs the same ones. |
 | `.python-version` | The version of Python this project runs on. |
-| `mise.toml` | The short commands: set the project up, and run the quality gate of formatting, checking, type checking and tests. |
-| `.pre-commit-config.yaml` | The checks git runs by itself, at three moments: on commit, the code checker and then the formatter; on the commit message, its shape; on push, the tests. |
+| `mise.toml` | The short commands: set the project up, fix what can be fixed while you work, and run the quality gate, which checks linting, formatting, types and tests without changing anything. |
+| `.pre-commit-config.yaml` | The checks git runs by itself, at three moments: on commit, the code checker and then the formatter; on the commit message, its shape; on push, the whole quality gate. |
 | `.gitignore` | What git leaves alone: caches, the virtual environment, local settings. |
 
 ## The code

@@ -110,8 +110,9 @@ day they were written.
 **Fix.** Every hook runs its tool from the project's own environment, so the hook settings name no
 version at all.
 
-**Prevention.** The hook settings name no version. Every hook runs its tool through `uv run`, so it
-uses the copy `uv.lock` pins, the same copy the matching `mise run` task uses.
+**Prevention.** The hook settings name no version. Every hook runs its tool through `uv run`, the
+push hook by way of `mise run verify`, so it uses the copy `uv.lock` pins, the same copy the matching
+`mise run` task uses.
 
 **Technical detail.** The hooks are local, with `language: system`, and keep what the published hooks
 carried: `--force-exclude`, so a folder the project excludes is left alone even though pre-commit
