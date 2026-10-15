@@ -1,0 +1,237 @@
+{
+ "apiVersion": "2.157",
+ "reference": "50140083TOPICSen",
+ "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-HLTH-2027-01-STAYHLTH-01",
+ "contentType": "text/plain",
+ "language": "en",
+ "databaseLabel": "SEDIA",
+ "database": "SEDIA",
+ "summary": "Addressing disabilities through the life course to support independent living and inclusion",
+ "weight": 7.002738,
+ "groupById": "2",
+ "content": "Addressing disabilities through the life course to support independent living and inclusion",
+ "accessRestriction": false,
+ "checksum": "6C052C2B7E83F65207FAC4299E6079C75E1A1769CA68A6AFA410EED9A6AB9A1E",
+ "metadata": {
+  "latestInfos": [
+   "[]"
+  ],
+  "es_SortDate": [
+   "2026-10-29T00:00:00.000+0000"
+  ],
+  "keywords": [
+   "HORIZON-HLTH-2027-01-STAYHLTH-01",
+   "HORIZON-HLTH-2027-01",
+   "Basic medicine",
+   "Child health",
+   "Disease prevention",
+   "Empowerment",
+   "Health care",
+   "Health care sciences and services (including hospital administration, health care financing)",
+   "Health data",
+   "Health sciences",
+   "Health services, health care research",
+   "Homecare",
+   "Human genetics",
+   "Integrated care",
+   "Medical service",
+   "Medical statistics",
+   "Neurosciences (including psychophysiology)",
+   "Paediatrics",
+   "Pathology",
+   "Patient care",
+   "Perinatal health",
+   "Personalised care solutions",
+   "Personalised interventions",
+   "Personalised medicine",
+   "Personalised prevention",
+   "Prevention programme",
+   "Primary prevention",
+   "Quality of health care",
+   "Rare diseases"
+  ],
+  "language": [
+   "en"
+  ],
+  "type": [
+   "1"
+  ],
+  "focusArea": [],
+  "destinationDetails": [
+   "<p>Topics under this destination are directed towards the Key Strategic Orientations \"A<em> more resilient, competitive, inclusive, and democratic Europe</em>” and “<em>The Digital transition</em>” of Horizon Europe’s strategic plan 2025-2027<sup>[1]</sup>.</p><p>Research and Innovation supported under this destination should contribute to the following expected impact, set out in the strategic plan impact summary for the Health Cluster: <em>“people of all ages in the EU stay healthy, resilient, and independent even as society changes fast. This will arise from healthier lifestyles and behaviour, healthier diets, healthier environments, improved evidence-informed health policies, and more effective solutions for health and well-being promotion, disease prevention and monitoring, and rehabilitation”.</em></p><p>People´s healthcare needs are different depending on their age, gender, stage of life, health status and socioeconomic background. In 2021, nearly 860,000 premature deaths across the EU<sup>[2]</sup> could have been prevented with effective primary prevention and other public health measures. In addition, an estimated 135 million people in Europe live with a disability<sup>[3]</sup>, highlighting the critical need for healthcare systems that are both accessible and adaptable. This number is expected to rise due to population ageing and the increasing prevalence of chronic conditions resulting from noncommunicable diseases and injuries. It is also important to consider disabilities arising from other causes, such as war-related injuries and Post-Traumatic Stress Disorder (PTSD), which add to the complexity and diversity of healthcare needs.</p><p>Aligning with the Commission's Political Guidelines for 2024-2029<sup>[4]</sup>, which call for stepping up work on preventive health, this destination aims to strengthen disease prevention and early detection, placing support and empowerment of individuals regarding their own health, well-being and living and working conditions at the core of future public health programmes.</p><p>Research and Innovation under this destination should help enhance the dialogue and coordination among stakeholders and policymakers, ensuring integration across different care settings for holistic health promotion and disease prevention. Funded activities should seek to leverage the wealth of data sources, including real-world health data and establish a European interconnected health data ecosystem to develop integrated and personalised health promotion and disease prevention strategies. These activities will benefit from and actively support and enrich emerging data resources such as the European Health Data Space (EHDS)<sup>[5]</sup> and European Open Science Cloud (EOSC)<sup>[6]</sup>, and contribute to the European care strategy<sup>[7]</sup> and the digital transformation of health and care in the EU<sup>[8]</sup>. Since Horizon Europe’s launch in 2021, this destination has addressed important issues such as obesity prevention, understanding health-to-disease transitions, life course approaches to physical and mental health, healthy ageing, digital health literacy, and Artificial Intelligence (AI) for chronic disease risk prediction.</p><p>In this Work Programme part, destination “<em>Staying healthy in a rapidly changing society</em>” will focus on: i) addressing disabilities through the life course to support independent living and inclusion, with an emphasis on empowering persons with disabilities and their families. This priority aligns with the EU Strategy for the Rights of Persons with Disabilities 2021-2030; and ii) developing behavioural interventions as primary prevention for Non-Communicable Diseases (NCDs), with an emphasis on promoting healthy habits and sustained behavioural change among youth. This priority aligns with the ‘Healthier together’ EU non-communicable diseases initiative.</p><p>To increase the impact of EU investments under Horizon Europe, the Commission encourages collaboration between EU-funded projects to foster synergies through networking, joint workshops, knowledge exchange, best practices, and joint communication activities. Synergies can be explored between projects funded under the same or different topics, Clusters or Pillars of Horizon Europe. This includes collaborations between projects funded under the Health Cluster and the 'Culture, Creativity and Inclusive Society' Cluster for complementary actions, such as promoting social inclusion, health equity (including gender equality and support for groups at risk of discrimination), and mental health initiatives in education, work, and daily life (including through culture, the arts and sports).</p><p><u>Expected impacts</u>:</p><p>Proposals for topics under this destination should set out a credible pathway to contributing to staying healthy in a rapidly changing society, and more specifically to one or several of the following impacts:</p><ul level=\"0\"><li>Citizens, including persons with disabilities and other groups in a vulnerable situation, adopt and maintain healthier lifestyles and behaviours, make healthier choices, and achieve, where applicable, longer healthy, independent, and active lives with a reduced burden of preventable disease throughout the life course.</li><li>Citizens are empowered to effectively manage their physical and mental health and well-being, monitor their health status, and interact with healthcare providers to optimise their well-being throughout life through improved health literacy, increased engagement in and adherence to health promotion strategies.</li><li>Children and young people are aware and empowered to better monitor and manage their physical, social and mental health with a view to lifelong healthy lifestyles.</li><li>Society benefits from reduced economic and health burdens due to preventable illness and premature mortality, with efficiency increased by targeting scarce resources in appropriate, cost-effective ways to areas of high social return, thereby driving improvements in health and well-being for all citizens, and specifically reducing health inequalities.</li> </ul><p>Health policies and actions for health promotion and disease prevention are knowledge-based, people-centred, personalised and thus targeted and tailored to citizens’ needs, and designed to reduce health inequalities.</p><p>Legal entities established in China are not eligible to participate in both Research and Innovation Actions (RIAs) and Innovation Actions (IAs) falling under this destination. For additional information please see “Restrictions on the participation of legal entities established in China” found in the Annex B of the General Annexes of this Work Programme.</p><p>The protection of European communication networks has been identified as an important security interest of the Union and its Member States. Entities that are assessed as high-risk suppliers<sup>[9]</sup> of mobile network communication equipment (and any entities they own or control) are not eligible to participate as beneficiaries, affiliated entities and associated partners to topics identified as “subject to restrictions for the protection of European communication networks”. Please refer to the Annex B of the General Annexes of this Work Programme for further details.</p><p class=\"eui-u-font-s\">[1] <a href=\"https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/strategic-plan_en\">https://research-and-innovation.ec.europa.eu/funding/funding-opportunities/funding-programmes-and-open-calls/horizon-europe/strategic-plan_en</a></p><p class=\"eui-u-font-s\">[2] “Health at a Glance: Europe 2024”, available from <a href=\"https://health.ec.europa.eu/state-health-eu/health-glance-europe_en\">https://health.ec.europa.eu/state-health-eu/health-glance-europe_en</a></p><p class=\"eui-u-font-s\">[3] <a href=\"https://www.who.int/europe/news-room/fact-sheets/item/disability\">https://www.who.int/europe/news-room/fact-sheets/item/disability</a> The WHO European Region comprises 53 countries, covering a vast geographical region from the Atlantic to the Pacific oceans.</p><p class=\"eui-u-font-s\">[4] <a href=\"https://commission.europa.eu/about/commission-2024-2029_en\">https://commission.europa.eu/about/commission-2024-2029_en</a></p><p class=\"eui-u-font-s\">[5] <a href=\"https://health.ec.europa.eu/ehealth-digital-health-and-care/european-health-data-space-regulation-ehds_en\">https://health.ec.europa.eu/ehealth-digital-health-and-care/european-health-data-space-regulation-ehds_en</a></p><p class=\"eui-u-font-s\">[6] <a href=\"https://research-and-innovation.ec.europa.eu/strategy/strategy-2020-2024/our-digital-future/open-science/european-open-science-cloud-eosc_en\">https://research-and-innovation.ec.europa.eu/strategy/strategy-2020-2024/our-digital-future/open-science/european-open-science-cloud-eosc_en</a></p><p class=\"eui-u-font-s\">[7] Communication from the European Commission on the European care strategy, COM(2022) 440, 7.9.2022</p><p class=\"eui-u-font-s\">[8] Communication from the European Commission on enabling the digital transformation of health and care in the Digital Single Market; empowering citizens and building a healthier society, COM(2018) 233, 25.4.2018</p><p class=\"eui-u-font-s\">[9] Entities assessed as “high-risk suppliers”, are currently set out in the second report on Member States’ progress in implementing the EU toolbox on 5G cybersecurity of 2023 (NIS Cooperation Group, Second report on Member States’ progress in implementing the EU Toolbox on 5G Cybersecurity, June 2023) and the related Communication on the implementation of the 5G cybersecurity toolbox of 2023 (Communication from the Commission: Implementation of the 5G cybersecurity Toolbox, Brussels, 15.6.2023 C(2023) 4049 final).</p>"
+  ],
+  "typeOfMGAs": [
+   "43027849"
+  ],
+  "callIdentifier": [
+   "HORIZON-HLTH-2027-01"
+  ],
+  "callccm2Id": [
+   "50140305"
+  ],
+  "destinationGroup": [
+   "45355238"
+  ],
+  "DATASOURCE": [
+   "SEDIA"
+  ],
+  "links": [
+   "[]"
+  ],
+  "callTitle": [
+   "Cluster 1 - Health (Single stage - 2027/1)"
+  ],
+  "frameworkProgramme": [
+   "43108390"
+  ],
+  "descriptionByte": [
+   "<p class=\"topicdescriptionkind\">Expected Outcome:</p><p>This topic aims at supporting activities that are enabling or contributing to one or several expected impacts of destination “Staying healthy in a rapidly changing society”. To that end, proposals under this topic should aim to deliver results that are directed at, tailored towards and contributing to all the following expected outcomes:</p><ul level=\"0\"><li>Persons with disabilities are empowered and can enjoy their rights to live independently, participate in society and be included in the community on an equal basis with others.</li><li>The scientific community develops innovative solutions with a focus on removing barriers faced by persons with disabilities to live independently and they are provided with community support services where they live in the community.</li><li>Policymakers, health and care services, social and service providers, disability organisations, funders, the scientific community, and other relevant bodies are informed of the research advances and best practices addressing the health and needs of persons with disabilities to support them living independently and being included in society.</li> </ul><p class=\"topicdescriptionkind\">Scope:</p><p>The focus of this topic is human-centred on persons with long-term disabilities<sup>[1]</sup> -physical, mental, intellectual or sensory- aiming at supporting independent living across the life-course from a health perspective. Persons with disabilities have an equal right to live independently and be included in the community. Independent living requires a differentiated landscape of quality, accessible, person-centred and affordable, community- and family-based services comprising personal assistance, medical and social care and interventions by social workers, thereby facilitating everyday activities and providing choice to persons with disabilities and their families<sup>[2]</sup>.</p><p>The objective of this topic is to explore new ways to promote independent living and inclusion in society of persons with disabilities, reducing to the maximum possible the impact of barriers faced in their daily lives, and supporting the transition from institutions to living in the community while addressing all-encompassing aspects of personal support, such as community transformation, service provision, assistive and accessible technologies and environments.</p><p>Research actions under this topic should address at least three of the following areas:</p><ul level=\"0\"><li>Health related research addressing disabilities that stem from health conditions and health conditions associated to disabilities. Thus, research may look into finding the causes of the disease(s) leading to the disability and/or disease treatment with the purpose of supporting independent living. Innovative solutions could also include among others diagnoses, medicines, treatments, protocols, technologies, digital tools, low-tech solutions, etc. helping to improve the autonomy of persons with disabilities.</li><li>Children with disabilities from the perinatal period, and/or young people with disabilities transitioning to adulthood, and/or older persons<sup>[3]</sup>. Proposals should foster ways to improve autonomy and quality of life.</li><li>Access to habilitation and rehabilitation services, including psychological rehabilitation and innovative rehabilitation with assistive technologies when appropriate, to increase, maintain, substitute or improve functional capabilities of persons with disabilities or for, alleviation and compensation of impairments, activity limitations or participation restrictions contributing to increasing independence.</li><li>Prevention of disabilities through the life-course. Different aspects that could have an impact on persons with disabilities may be addressed, such as gender, age, socio-economic background, ethnicity, detection of risks factors leading to a loss of autonomy, the risk of overweight/obesity and related co-morbidities (e.g. diabetes, cardiovascular diseases), hospitalisation, nutrition (e.g. mother and child nutrition from pregnancy), high level of inactivity/sedentary lifestyle and related co-morbidities (e.g. frailty), physical activity/sports, screen-time dependency, smoking, drug use<sup>[4]</sup>, alcohol use, stress, psychiatric and somatic diseases, loneliness and/or isolation, etc.</li><li>Conditions for a successful transition from institutions to living in the community, including different tools to achieve it, such as needs assessments, service provision, budget and resources, management plans, monitoring, quality control, etc. Community support services to live independently may include personal assistance or support for decision-making, and/or disability inclusive and accessible community-based services -medical, technological, digital or other supportive initiatives- ensuring prevention of isolation or segregation and supporting deinstitutionalisation. Special attention is to be paid to children and young people transitioning to adulthood and older persons to facilitate they remain living at their homes<sup>[5]</sup>.</li><li>Innovative solutions, care models and strategies for high quality person-centred, accessible and targeted social and healthcare services to prevent barriers and to support independent living, including if possible, self-care to empower persons with disabilities, as well as different choices of care across the life-course. For many persons with disabilities, the lack of support and care services and insufficient support for families and unavailability of personal assistance undermines their independence and inclusion in the community.</li> </ul><p>Data collection is essential to understand the living situation of persons with disabilities and remains a challenge to collect data disaggregated per type of disability, sex, and age. In addition, data collected often lacks comparability as it follows different definitions in each Member State and Associated Country. Thus, applicants are encouraged to ensure harmonised data collection by using Eurostat standards and existing international sets of questions in their areas of research.</p><p>Persons with disabilities should be involved in the research through their representative organisations as actors in the research process. Research can also involve their families, friends, colleagues, supporters and carers and other service providers. Policymakers and public authorities, social services, and civil society organisations, could also be considered.</p><p>The relevant European research infrastructures<sup>[6]</sup> in the area of health may be exploited for available digital tools and services for dataset creation, standardisation, data discovery, secure access, management, visualization, harmonization, analysis and other functions as appropriate.</p><p>This topic requires the effective contribution of social sciences and humanities (SSH) disciplines and the involvement of SSH experts, organisations as well as the inclusion of relevant SSH expertise, in order to produce meaningful and significant effects enhancing the societal impact of the related research activities.</p><p>Projects are also encouraged to explore potential complementarities with projects funded under topic HORIZON-CL2-2025-01-TRANSFO-09: “Good practices for increased autonomy of persons with disabilities, including physical, mental, intellectual and sensory disabilities” and topic HORIZON-HLTH-2025-03-STAYHLTH-01-two-stage: “Improving the quality of life of persons with intellectual disabilities and their families”.</p><p>Applicants envisaging to include clinical studies<sup>[7]</sup> should provide details of their clinical studies in the dedicated annex using the template provided in the submission system.</p><p class=\"eui-u-font-s\">[1] Persons with disabilities include those who have long-term physical, mental, intellectual or sensory impairments which in interaction with various barriers may hinder their full and effective participation in society on an equal basis with others (Art. 1 of the Convention on the Rights of Persons with Disabilities - <a href=\"https://www.ohchr.org/en/instruments-mechanisms/instruments/convention-rights-persons-disabilities\">https://www.ohchr.org/en/instruments-mechanisms/instruments/convention-rights-persons-disabilities</a>).</p><p class=\"eui-u-font-s\">[2] <a href=\"https://op.europa.eu/en/publication-detail/-/publication/3e1e2228-7c97-11eb-9ac9-01aa75ed71a1/language-en\">https://op.europa.eu/en/publication-detail/-/publication/3e1e2228-7c97-11eb-9ac9-01aa75ed71a1/language-en</a></p><p class=\"eui-u-font-s\">[3] An older person is defined by the United Nations as a person who is over 60 years of age.</p><p class=\"eui-u-font-s\">[4] If proposals concern drug addiction, they are encouraged to liaise with the EU Drugs Agency.</p><p class=\"eui-u-font-s\">[5] <a href=\"https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=OJ:C_202407188\">https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=OJ:C_202407188</a></p><p class=\"eui-u-font-s\">[6] The catalogue of European Strategy Forum on Research Infrastructures (ESFRI) research infrastructures portfolio can be browsed on the ESFRI website: <a href=\"https://ri-portfolio.esfri.eu\">https://ri-portfolio.esfri.eu</a></p><p class=\"eui-u-font-s\">[7] Please note that the definition of clinical studies (see introduction to this Work Programme part) is broad and it is recommended that you review it thoroughly before submitting your application.</p>"
+  ],
+  "identifier": [
+   "HORIZON-HLTH-2027-01-STAYHLTH-01"
+  ],
+  "es_ContentType": [
+   "text/plain"
+  ],
+  "programmePeriod": [
+   "2021 - 2027"
+  ],
+  "deadlineDate": [
+   "2027-02-17T00:00:00.000+0000"
+  ],
+  "es_Combine": [
+   "2"
+  ],
+  "esST_URL": [
+   "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-HLTH-2027-01-STAYHLTH-01"
+  ],
+  "tags": [
+   "Disabilities",
+   "Independent living",
+   "Long-term disabilities"
+  ],
+  "cenTagsA": [
+   "TOPICS-018287",
+   "TOPICS-018288",
+   "TOPICS-000894",
+   "TOPICS-018289",
+   "TOPICS-015117",
+   "TOPICS-011018",
+   "TOPICS-018290",
+   "TOPICS-018291",
+   "TOPICS-009228",
+   "TOPICS-003570",
+   "TOPICS-005387",
+   "TOPICS-000791",
+   "TOPICS-003740",
+   "TOPICS-007977",
+   "TOPICS-000325",
+   "TOPICS-003915",
+   "TOPICS-003576",
+   "TOPICS-000345",
+   "TOPICS-014080",
+   "TOPICS-003579",
+   "TOPICS-005389",
+   "TOPICS-007982",
+   "TOPICS-001907",
+   "TOPICS-010758",
+   "TOPICS-003584",
+   "TOPICS-009466",
+   "TOPICS-003650",
+   "TOPICS-003745",
+   "TOPICS-005392",
+   "TOPICS-018292",
+   "TOPICS-010853",
+   "TOPICS-012095",
+   "TOPICS-001216",
+   "TOPICS-005511",
+   "TOPICS-013298"
+  ],
+  "esDA_QueueDate": [
+   "2026-10-07T11:53:17.418+0200"
+  ],
+  "destinationDescription": [
+   "Staying healthy in a rapidly changing society (2026-27)"
+  ],
+  "actions": [
+   "[{\"types\":[{\"typeOfAction\":\"HORIZON-RIA HORIZON  Research and Innovation Actions\",\"typeOfMGA\":[{\"id\":43027849,\"abbreviation\":\"HORIZON-AG-LS\",\"description\":\"HORIZON Lump Sum Grant\"}]}],\"status\":{\"id\":31094501,\"abbreviation\":\"Forthcoming\",\"description\":\"Forthcoming\"},\"plannedOpeningDate\":\"2026-10-29\",\"submissionProcedure\":{\"id\":31094504,\"abbreviation\":\"single-stage\",\"description\":\"single-stage\"},\"deadlineDates\":[\"2027-02-17\"]}]"
+  ],
+  "startDate": [
+   "2026-10-29T00:00:00.000+0000"
+  ],
+  "deadlineModel": [
+   "single-stage"
+  ],
+  "status": [
+   "31094501"
+  ],
+  "supportInfo": [
+   "<p><a href=\"https://webgate.ec.europa.eu/funding-tenders-opportunities/display/OM/Online+Manual\" rel=\"noopener noreferrer\" target=\"_blank\">Online Manual</a> is your guide on the procedures from proposal submission to managing your grant.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Horizon Europe Programme Guide</a> contains the detailed guidance to the structure, budget and political priorities of Horizon Europe.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/faq?isExactMatch=true&amp;status=0&amp;type=0,1&amp;order=DESC&amp;pageNumber=1&amp;pageSize=50&amp;sortBy=publicationDate\" rel=\"noopener noreferrer\" target=\"_blank\">Funding &amp; Tenders Portal FAQ</a> – find the answers to most frequently asked questions on submission of proposals, evaluation and grant management.</p><p><a href=\"https://research-and-innovation.ec.europa.eu/contact-us/research-enquiry-service_en\" rel=\"noopener noreferrer\" target=\"_blank\">Research Enquiry Service</a> – ask questions about any aspect of European research in general and the EU Research Framework Programmes in particular.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp\" rel=\"noopener noreferrer\" target=\"_blank\">National Contact Points (NCPs)</a> – get guidance, practical information and assistance on participation in Horizon Europe. There are also NCPs in many non-EU and non-associated countries (‘third-countries’).</p><p><a href=\"https://een.ec.europa.eu/\" rel=\"noopener noreferrer\" target=\"_blank\">Enterprise Europe Network</a> – contact your EEN national contact for advice to businesses with special focus on SMEs. The support includes guidance on the EU research funding.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/helpdesks/contact-form\" rel=\"noopener noreferrer\" target=\"_blank\">IT Helpdesk</a> – contact the Funding &amp; Tenders Portal IT helpdesk for questions such as forgotten passwords, access rights and roles, technical aspects of submission of proposals, etc.</p><p><a href=\"https://intellectual-property-helpdesk.ec.europa.eu/index_en\" rel=\"noopener noreferrer\" target=\"_blank\">European IPR Helpdesk</a> assists you on intellectual property issues.</p><p><a href=\"mailto:research@cencenelec.eu\" rel=\"noopener noreferrer\" target=\"_blank\">CEN-CENELEC Research Helpdesk</a> and <a href=\"https://www.etsi.org/research/helpdesk\" rel=\"noopener noreferrer\" target=\"_blank\">ETSI Research Helpdesk</a> – the European Standards Organisations advise you how to tackle standardisation in your project proposal.</p><p><a href=\"https://euraxess.ec.europa.eu/sites/default/files/am509774cee_en_e4.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">The European Charter for Researchers and the Code of Conduct for their recruitment</a> – consult the general principles and requirements specifying the roles, responsibilities and entitlements of researchers, employers and funders of researchers.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search?order=DESC&amp;pageNumber=1&amp;pageSize=50&amp;sortBy=lastModified&amp;isExactMatch=true&amp;type=ORGANISATION,PERSON&amp;frameworkProgramme=43108390\" rel=\"noopener noreferrer\" target=\"_blank\">Partner Search</a> help you find a partner organisation for your proposal.</p>"
+  ],
+  "sepTemplate": [
+   "<p>The submission system is planned to be opened on the date stated on the topic header.</p>"
+  ],
+  "sortStatus": [
+   "2"
+  ],
+  "destination": [
+   "48080595"
+  ],
+  "topicConditions": [
+   "<div class=\"eui-u-mt-l>\"><h4>General conditions</h4><div><h4>1. Admissibility Conditions, proposal page limit and layout</h4><div class=\"eui-u-mt-s\"><p>Admissibility conditions are <strong><em>﻿</em></strong>described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex A</a> and <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex E</a> of the Horizon Europe Work Programme General Annexes.</p><p>Proposal page limits and layout are described in Part B of the Application Form available in the Submission System.</p><p><br></br></p></div></div><div><h4>2. Eligible Countries</h4><div class=\"eui-u-mt-s\"><p>Eligible countries are described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex B</a> of the Work Programme General Annexes.</p><p>A number of non-EU/non-Associated Countries that are not automatically eligible for funding have made specific provisions for making funding available for their participants in Horizon Europe projects. See the information in the <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Horizon Europe Programme Guide</a>.</p><p><br></br></p></div></div><div><h4>3. Other Eligibility Conditions</h4><div class=\"eui-u-mt-s\"><p>In recognition of the opening of the US National Institutes of Health’s programmes to European researchers, any legal entity established in the United States of America is eligible to receive Union funding.</p></div><div class=\"eui-u-mt-s\"><p>If projects use satellite-based earth observation, positioning, navigation and/or related timing data and services, beneficiaries must make use of Copernicus and/or Galileo/EGNOS (other data and services may additionally be used).</p></div><div class=\"eui-u-mt-s\"><p>Subject to restrictions for the protection of European communication networks.</p></div><div class=\"eui-u-mt-s\"><p>Other eligibility conditions are described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex B</a> of the Work Programme General Annexes.</p><p><br></br></p></div></div><div><h4>4. Financial and operational capacity and exclusion</h4><div class=\"eui-u-mt-s\"><p>Financial and operational capacity and exclusion are described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex C</a> of the Work Programme General Annexes.</p><p><br></br></p></div></div><div><h4>5a. Evaluation and award: Award criteria, scoring and thresholds</h4><div class=\"eui-u-mt-s\"><p>Award criteria, scoring and thresholds are described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex D</a> of the Work Programme General Annexes.</p></div></div><div><h4>5b. Evaluation and award: Submission and evaluation processes</h4><div class=\"eui-u-mt-s\"><p>The thresholds for each criterion will be 4 (Excellence), 4 (Impact) and 4 (Implementation). The cumulative threshold will be 12.</p></div><div class=\"eui-u-mt-s\"><p>Submission and evaluation processes are described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex F</a> of the Work Programme General Annexes and the <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/om_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Online Manual</a>.</p></div></div><div><h4>5c. Evaluation and award: Indicative timeline for evaluation and grant agreement</h4><div class=\"eui-u-mt-s\"><p>Indicative timeline for evaluation and grant agreement are described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex F</a> of the Work Programme General Annexes.</p><p><br></br></p></div></div><div><h4>6. Legal and financial set-up of the grants</h4><div class=\"eui-u-mt-s\"><p>The granting authority may, up to 4 years after the end of the action, object to a transfer of ownership or to the exclusive licensing of results, as set out in the specific provision of Annex 5.</p></div><div class=\"eui-u-mt-s\"><p>Eligible costs will take the form of a lump sum as defined in the Decision of 7 July 2021 authorising the use of lump sum contributions under the Horizon Europe Programme – the Framework Programme for Research and Innovation (2021-2027) – and in actions under the Research and Training Programme of the European Atomic Energy Community (2021-2025) [[This <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-decision_he_en.pdf\"><u>decision</u></a> is available on the Funding and Tenders Portal, in the reference documents section for Horizon Europe, under ‘Simplified costs decisions’ or through this link: <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-decision_he_en.pdf\"><u>https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-decision_he_en.pdf</u></a>]].</p></div><div class=\"eui-u-mt-s\"><p>Legal and financial set-up of the grants are described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex G</a> of the Work Programme General Annexes.</p><p><br></br></p></div></div></div><div class=\"eui-u-mt-l\"><h4>Specific conditions</h4> <div class=\"eui-u-mt-s\"><p>Specific conditions are described in the specific topic of the Work Programme.</p><p><br></br></p></div></div><div class=\"eui-u-mt-l\"><div class=\"eui-u-mt-s\">\n</div><h4>Application and evaluation forms and additional documents:</h4> <div class=\"eui-u-mt-s\"><p><strong>Application and evaluation form templates</strong></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/temp-form/af/af_he-ria-ia_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Standard application form (HE RIA, IA)</a> - the application form specific to this call is available in the Submission System</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/temp-form/ef/ef_he-ria-ia_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Standard evaluation form (HE RIA, IA)</a> - will be used with the necessary adaptations</p><p><strong>Guidance</strong></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Programme Guide</a></p><p><strong>Model Grant Agreement (MGA)</strong></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/agr-contr/ls-mga_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Lump Sum MGA</a> </p><p><strong>Call-specific instructions</strong>&#xa0;</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/temp-form/af/information-on-clinical-studies_he_en.docx\" rel=\"noopener noreferrer\" target=\"_blank\">Information on clinical studies (HE)</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/temp-form/af/detailed-budget-table_he-ls-euratom_en.xlsm\" rel=\"noopener noreferrer\" target=\"_blank\">Detailed budget table (HE LS)</a>&#xa0;</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-funding-what-do-i-need-to-know_he_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Guidance: \"Lump sums - what do I need to know?\"</a></p></div><h4>Additional documents</h4> <div class=\"eui-u-mt-s\"><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-1-general-introduction_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Main Work Programme 2026-2027 – 1. General Introduction</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-4-health_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Main Work Programme 2026-2027 – 4. Health</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Main Work Programme 2026-2027 – 15. General Annexes</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Programme Guide</a></p><p><a href=\"https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32021R0695\" rel=\"noopener noreferrer\" target=\"_blank\">HE Framework Programme 2021/695</a></p><p><a href=\"https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32021D0764\" rel=\"noopener noreferrer\" target=\"_blank\">HE Specific Programme Decision 2021/764</a></p><p><a href=\"https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ:L_202402509\" rel=\"noopener noreferrer\" target=\"_blank\">EU Financial Regulation 2024/2509</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-decision_he_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Decision authorising the use of lump sum contributions under the Horizon Europe Programme</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/rules-lev-lear-fca_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Rules for Legal Entity Validation, LEAR Appointment and Financial Capacity Assessment</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">EU Grants AGA — Annotated Model Grant Agreement</a></p><p><a href=\"https://webgate.ec.europa.eu/funding-tenders-opportunities/display/OM/Online+Manual\" rel=\"noopener noreferrer\" target=\"_blank\">Funding &amp; Tenders Portal Online Manual</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/tc_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Funding &amp; Tenders Portal Terms and Conditions</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/legalnotice\" rel=\"noopener noreferrer\" target=\"_blank\">Funding &amp; Tenders Portal Privacy Statement</a></p></div></div>"
+  ],
+  "title": [
+   "Addressing disabilities through the life course to support independent living and inclusion"
+  ],
+  "esST_checksum": [
+   "6C052C2B7E83F65207FAC4299E6079C75E1A1769CA68A6AFA410EED9A6AB9A1E"
+  ],
+  "esST_FileName": [
+   "file.txt"
+  ],
+  "ccm2Id": [
+   "50140083"
+  ],
+  "REFERENCE": [
+   "50140083TOPICSen"
+  ],
+  "programmeDivision": [
+   "43108390",
+   "43108541",
+   "43108557",
+   "43108591",
+   "43108618",
+   "43108638",
+   "43108642"
+  ],
+  "crossCuttingPriorities": [
+   "SocietalEngagement",
+   "DigitalAgenda",
+   "AI",
+   "SSH"
+  ],
+  "esDA_FirstIngestDate": [
+   "2025-12-12T00:03:15.517+0100"
+  ],
+  "esDA_IngestDate": [
+   "2026-10-07T11:53:17.426+0200"
+  ],
+  "typesOfAction": [
+   "HORIZON  Research and Innovation Actions"
+  ],
+  "url": [
+   "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-HLTH-2027-01-STAYHLTH-01"
+  ],
+  "allowPartnerSearch": [
+   "true"
+  ],
+  "budgetOverview": [
+   "{\"budgetYearsColumns\":[\"2027\"],\"budgetTopicActionMap\":{\"113107\":[{\"action\":\"HORIZON-HLTH-2027-01-ENVHLTH-MISSCLIMA-03 - HORIZON-PCP HORIZON Pre-commercial Procurement\",\"expectedGrants\":4,\"minContribution\":4000000,\"maxContribution\":5000000,\"budgetYearMap\":{\"2027\":\"20000000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}],\"113106\":[{\"action\":\"HORIZON-HLTH-2027-01-DISEASE-08 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":5,\"minContribution\":8000000,\"maxContribution\":10000000,\"budgetYearMap\":{\"2027\":\"44200000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}],\"113109\":[{\"action\":\"HORIZON-HLTH-2027-01-CARE-02 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":4,\"minContribution\":8000000,\"maxContribution\":10000000,\"budgetYearMap\":{\"2027\":\"38000000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}],\"113108\":[{\"action\":\"HORIZON-HLTH-2027-01-ENVHLTH-02 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":4,\"minContribution\":10000000,\"maxContribution\":11000000,\"budgetYearMap\":{\"2027\":\"45000000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}],\"113111\":[{\"action\":\"HORIZON-HLTH-2027-01-DISEASE-05 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":5,\"minContribution\":9000000,\"maxContribution\":11000000,\"budgetYearMap\":{\"2027\":\"44200000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}],\"113110\":[{\"action\":\"HORIZON-HLTH-2027-01-STAYHLTH-01 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":5,\"minContribution\":6000000,\"maxContribution\":8000000,\"budgetYearMap\":{\"2027\":\"39300000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}],\"113113\":[{\"action\":\"HORIZON-HLTH-2027-01-DISEASE-06 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":4,\"minContribution\":9000000,\"maxContribution\":10000000,\"budgetYearMap\":{\"2027\":\"37300000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}],\"113112\":[{\"action\":\"HORIZON-HLTH-2027-01-DISEASE-07 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":4,\"minContribution\":9000000,\"maxContribution\":10000000,\"budgetYearMap\":{\"2027\":\"37300000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}],\"113115\":[{\"action\":\"HORIZON-HLTH-2027-01-DISEASE-10 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"11800000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}],\"113114\":[{\"action\":\"HORIZON-HLTH-2027-01-IND-01 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":4,\"minContribution\":6000000,\"maxContribution\":8000000,\"budgetYearMap\":{\"2027\":\"24500000\"},\"plannedOpeningDate\":\"2026-10-29\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-02-17\"]}]}}"
+  ],
+  "specificObjective": []
+ },
+ "enrichedMetadata": {},
+ "children": [],
+ "highlightedFragments": [],
+ "citation": "Addressing disabilities through the life course to support independent living and inclusion. Available at: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-HLTH-2027-01-STAYHLTH-01"
+}

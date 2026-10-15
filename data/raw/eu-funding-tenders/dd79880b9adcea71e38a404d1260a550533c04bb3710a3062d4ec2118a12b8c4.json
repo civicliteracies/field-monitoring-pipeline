@@ -1,0 +1,199 @@
+{
+ "apiVersion": "2.157",
+ "reference": "50149084TOPICSen",
+ "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL2-2027-01-DEMOCRACY-01",
+ "contentType": "text/plain",
+ "language": "en",
+ "databaseLabel": "SEDIA",
+ "database": "SEDIA",
+ "summary": "Advisory support and network for countering and preventing radicalisation, extremism, hate speech and polarisation",
+ "weight": 9.707287,
+ "groupById": "2",
+ "content": "Advisory support and network for countering and preventing radicalisation, extremism, hate speech and polarisation",
+ "accessRestriction": false,
+ "checksum": "DC8D87F884C23410384111B5811577EDF9E3F44AB1998E1B865D04F58B401878",
+ "metadata": {
+  "latestInfos": [
+   "[]"
+  ],
+  "es_SortDate": [
+   "2027-05-13T00:00:00.000+0000"
+  ],
+  "keywords": [
+   "HORIZON-CL2-2027-01-DEMOCRACY-01",
+   "HORIZON-CL2-2027-01",
+   "Human sciences, including research and studies",
+   "Political science",
+   "Social Networks",
+   "Social sciences, interdisciplinary"
+  ],
+  "language": [
+   "en"
+  ],
+  "type": [
+   "1"
+  ],
+  "focusArea": [],
+  "destinationDetails": [
+   "<p>The rule of law, respect for human rights and democracy are foundational values of the EU laid down in Article 2 of the Treaty on European Union. These values provide the Union with principled orientations to meet the inevitable geopolitical economic, social and demographic changes that could not be foreseen at the time the Treaties were drafted. This includes how the digital transformation would affect how the debate and political processes would be shaped.</p><p>Democracy is cultural practice as much as it is a political system. It is a key strength of European societies, helping ensure respect for equality, the rule of law, fundamental rights and liberty. Actors with anti-democratic tendencies attack democracies and their institutions because democracy is a safeguard against them[[The <a href=\"https://v-dem.net/documents/60/V-dem-dr__2025_lowres.pdf\">2025 report of the V-Dem Institute</a> (“25 years of Autocratization-Democracy Trumped?”) confirms the appalling signs, indicators and tendencies captured over previous years of measurement: “The trend of the ‘third wave of autocratization’ is deepening and spreading. That includes weakening of democracy in some established liberal democracies, breakdown of democracy in countries that were democratic for most of the 21st century, as well as deepening of autocracy in already autocratic states […] The global democratic decline deepens, regardless of how we slice the data and whichever measure we use” (pp. 9 and 10)]]. Even traditionally well-functioning democracies face many challenges, which means that they also continuously need to adapt as conditions change. Social sciences and humanities (SSH) research plays a crucial role in understanding current challenges and threats and mapping future pathways for innovative solutions. Building on historical, cultural, social, legal and philosophical perspectives, research will foster the further development of democracy with a view to enhancing citizen participation and inclusive policymaking, promoting equality and inclusiveness, addressing the impact of AI and the digital transformation of democracy. It will also reinforce democratic resilience and civic preparedness, and preserve the role of free, independent and plural media as key tenets of democracy, among other objectives.</p><p><u>Expected impact</u>:</p><p>Proposals for topics under this destination should set out a credible pathway to contributing to the following expected impact of the Horizon Europe Strategic Plan:</p><ul level=\"0\"><li>Reinvigorating democratic governance by improving the independence, accountability, transparency, effectiveness and trustworthiness of institutions and policies based on rule of law, and through the expansion of active and inclusive citizens’ participation and engagement empowered by the safeguarding of fundamental rights. </li> </ul><p>The aim of the research investment supporting this impact is to develop a robust evidence base that can inform the establishment of effective, relevant and sensible policies, which bolster the resilience of democratic systems and protect them from threats. At the same time, it seeks to foster critical thinking while also reinforcing citizens’ trust in democracy, its institutions, and the sense of political participation in its widest possible sense.</p><p>The destination seeks synergies with other relevant EU programmes, in particular for the uptake of research results and innovative solutions developed under Horizon Europe. Interaction – among others – with the following programmes is encouraged: Digital Europe (DIGITAL), Technical Support Instrument, CERV (Citizens, Equality, Rights and Values), Erasmus+, ESF+ and Global Europe: Neighbourhood, Development and International Cooperation Instrument.</p><p>Applicants are encouraged to consider, where relevant, the services offered by the current and future EU-funded European Research Infrastructures, particularly those in the social sciences and humanities domain<sup>[1]</sup>. Where applicable, proposals should leverage the data and services available through European Research Infrastructures federated under the European Open Science Cloud, as well as data from relevant Data Spaces.</p><p>As the destination aims directly at citizen engagement and at producing lasting change, it is of particular importance that the research and innovation actions promote the highest standards of transparency and openness. Particular efforts should be made to ensure that the data produced in the context of this destination is FAIR (Findable, Accessible, Interoperable and Re-usable). When applicable, it is encouraged to open up the process, criteria, methodologies and data to civil society in the course of the research.</p><p>To maximise the impacts of R&amp;I under this Destination in line with EU priorities, international cooperation is encouraged whenever relevant in the proposed topics.</p><p class=\"eui-u-font-s\">[1] <sup> </sup>For a full list see <a href=\"https://ri-portfolio.esfri.eu/ri-portfolio/table\">https://ri-portfolio.esfri.eu/ri-portfolio/table</a>. In the social sciences domain, see for example: CESSDA - Consortium of European Social Science Data Archives (<a href=\"https://www.cessda.eu/\">https://www.cessda.eu/</a>), ESS – European Social Survey (<a href=\"https://www.europeansocialsurvey.org/\">https://www.europeansocialsurvey.org/</a>), SHARE - Survey of Health, Ageing and Retirement in Europe (<a href=\"https://www.share-eric.eu/\">https://www.share-eric.eu/</a>) or the European Holocaust Research Infrastructure (<a href=\"https://ehri-project.eu/\">https://ehri-project.eu/</a>)</p>"
+  ],
+  "typeOfMGAs": [
+   "43027849"
+  ],
+  "callIdentifier": [
+   "HORIZON-CL2-2027-01"
+  ],
+  "callccm2Id": [
+   "50149973"
+  ],
+  "destinationGroup": [
+   "45355256"
+  ],
+  "DATASOURCE": [
+   "SEDIA"
+  ],
+  "links": [
+   "[]"
+  ],
+  "callTitle": [
+   "Culture, Creativity and Inclusive Society - 2027"
+  ],
+  "frameworkProgramme": [
+   "43108390"
+  ],
+  "descriptionByte": [
+   "<p class=\"topicdescriptionkind\">Expected Outcome:</p><p>Projects should contribute to all of the following expected outcomes:</p><ul level=\"0\"><li>Political, societal, educational stakeholders, and researchers have an improved understanding of theoretical models and provided pathways for implementing solutions to combat extremism, radicalisation, hate speech and polarisation.</li><li>Public authorities, law enforcement agencies, local authorities, NGOs, and community actors are more engaged in implementing and adapting solutions addressing radicalisation, extremism, hate speech, and polarisation in their respective contexts.</li><li>EU institutions, national policymakers and judicial bodies can draw on an enhanced evidence-base for their decision-making through scientific, political, and legal assessments of research results in real-life contexts, enabling replication of methods, legislative changes, and innovation.</li><li>Improved understanding of the root causes of hate and polarisation, of methodologies to combat online hate ecosystems and of the role of traditional media in shaping public opinion, including the correlation between media consumption and polarisation, to inform strategies for protecting victims and addressing hate crimes and speech.</li> </ul><p class=\"topicdescriptionkind\">Scope:</p><p>The European Union has been actively working to combat racism, xenophobia, hate speech, hate crimes, and extremism in recent years, developing and implementing various strategies to address these issues<sup>[1]</sup>. Horizon 2020 and Horizon Europe have also played a crucial role in funding projects that aim to develop research and collect evidence on how to counter and prevent radicalisation, polarisation, hate speech and extremism. These phenomena pose significant risks, as they can undermine trust in democratic institutions, weaken the social contract, and contribute to rising inequalities and instability. </p><p>European research (including research by SSH disciplines) should combine a clear understanding of the mechanisms that play a fundamental role in the circulation of online hate speech, radicalisation, extremism, and polarisation with the development of strategies to prevent and counter these phenomena. At the same time, it should promote the Union values enshrined in the Treaty on European Union, such as human dignity, freedom, democracy, equality, the rule of law and respect for human rights, and the protection of democratic institutions, as a condition for everyone's talents to flourish and for fostering a cohesive society and a culture of tolerance and pluralism. This will contribute to enhance the prevention of violent extremism, hate speech and hate crime and the promotion of a more inclusive and resilient society. </p><p>The spread of hate speech and extremist ideologies online has become a major concern, and the need for effective solutions to address these issues is pressing. Hate speech and extremism can be criminal offences, but also more broadly contribute to polarisation and have a chilling effect on freedom of expression, also limiting the engagement of individuals in public life (e.g. elected officials stepping down from elections because of hate attacks). Moreover, the polarisation of society and the erosion of trust in institutions pose a threat to social cohesion and democratic values.</p><p>To address these challenges, it is essential also to foster the understanding on the root causes of radicalisation, extremism, hate and polarisation, including as concerns the impact of socio-economic factors. This requires also collaboration with end-users, such as civil society organisations and practitioners<sup>[2]</sup>, who can provide valuable insights and help develop solutions that are tailored to their specific needs and contexts. </p><p>Proposals are encouraged to identify other EU-funded projects related to preventing radicalisation, extremism, hate speech, and polarisation, financed by the Horizon programmes (Horizon 2020 and Horizon Europe) and complementary funding schemes (such as the Citizens, Equality, Rights and Values Programme, the Internal Security Fund, or others) and to explore potential opportunities for collaboration with them. Proposals should integrate a gender-sensitive and intersectional approach to illustrate how radicalisation, extremism, hate speech and polarisation disproportionately affect different groups and groups of different ages.</p><p>Initiatives of research such as the ones in the EU Knowledge Hub on Prevention of Radicalisation<sup>[3]</sup> (previously Radicalisation Awareness Network) or the forthcoming online knowledge hub under the Code of conduct on countering illegal hate speech online should be considered when developing initiatives to upscale and exploit solutions to combat extremism, hate speech and radicalisation. Research activities should meaningfully involve a wide range of stakeholders and societal actors, particularly civil society organisations, including non-academic and non-scientific actors. Projects should link appropriately with the envisaged European Centre for Democratic Resilience and seek to make best use of its stakeholder platform.</p><p class=\"eui-u-font-s\">[1] <sup> </sup><a href=\"https://commission.europa.eu/strategy-and-policy/policies/justice-and-fundamental-rights/combatting-discrimination/racism-and-xenophobia/combating-hate-speech-and-hate-crime_en\">https://commission.europa.eu/strategy-and-policy/policies/justice-and-fundamental-rights/combatting-discrimination/racism-and-xenophobia/combating-hate-speech-and-hate-crime_en</a></p><p class=\"eui-u-font-s\">[2] <sup> </sup>See, for example: <a href=\"https://edmo.eu/\">https://edmo.eu/</a></p><p class=\"eui-u-font-s\">[3] <sup> </sup><a href=\"https://home-affairs.ec.europa.eu/networks/eu-knowledge-hub-prevention-radicalisation_en\">https://home-affairs.ec.europa.eu/networks/eu-knowledge-hub-prevention-radicalisation_en</a></p>"
+  ],
+  "identifier": [
+   "HORIZON-CL2-2027-01-DEMOCRACY-01"
+  ],
+  "es_ContentType": [
+   "text/plain"
+  ],
+  "programmePeriod": [
+   "2021 - 2027"
+  ],
+  "deadlineDate": [
+   "2027-09-23T00:00:00.000+0000"
+  ],
+  "es_Combine": [
+   "2"
+  ],
+  "esST_URL": [
+   "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL2-2027-01-DEMOCRACY-01"
+  ],
+  "tags": [
+   "Democratic values",
+   "Extremism",
+   "Hate speech",
+   "Online hate ecosystems",
+   "Polarisation",
+   "Racism",
+   "Radicalisation",
+   "Social cohesion",
+   "Xenophobia"
+  ],
+  "cenTagsA": [
+   "TOPICS-031001",
+   "TOPICS-003709",
+   "TOPICS-031002",
+   "TOPICS-000026",
+   "TOPICS-003775",
+   "TOPICS-002202",
+   "TOPICS-008765",
+   "TOPICS-003802",
+   "TOPICS-008312",
+   "TOPICS-017868",
+   "TOPICS-008817",
+   "TOPICS-010045",
+   "TOPICS-031003",
+   "TOPICS-001548",
+   "TOPICS-005113",
+   "TOPICS-001581",
+   "TOPICS-000853"
+  ],
+  "esDA_QueueDate": [
+   "2026-03-02T10:52:59.768+0100"
+  ],
+  "destinationDescription": [
+   "Innovative Research on Democracy and Governance (2026-27)"
+  ],
+  "actions": [
+   "[{\"types\":[{\"typeOfAction\":\"HORIZON-CSA HORIZON Coordination and Support Actions\",\"typeOfMGA\":[{\"id\":43027849,\"abbreviation\":\"HORIZON-AG-LS\",\"description\":\"HORIZON Lump Sum Grant\"}]}],\"status\":{\"id\":31094501,\"abbreviation\":\"Forthcoming\",\"description\":\"Forthcoming\"},\"plannedOpeningDate\":\"2027-05-13\",\"submissionProcedure\":{\"id\":31094504,\"abbreviation\":\"single-stage\",\"description\":\"single-stage\"},\"deadlineDates\":[\"2027-09-23\"]}]"
+  ],
+  "startDate": [
+   "2027-05-13T00:00:00.000+0000"
+  ],
+  "deadlineModel": [
+   "single-stage"
+  ],
+  "status": [
+   "31094501"
+  ],
+  "supportInfo": [
+   "<p><a href=\"https://webgate.ec.europa.eu/funding-tenders-opportunities/display/OM/Online+Manual\" rel=\"noopener noreferrer\" target=\"_blank\">Online Manual</a> is your guide on the procedures from proposal submission to managing your grant.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Horizon Europe Programme Guide</a> contains the detailed guidance to the structure, budget and political priorities of Horizon Europe.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/faq?isExactMatch=true&amp;status=0&amp;type=0,1&amp;order=DESC&amp;pageNumber=1&amp;pageSize=50&amp;sortBy=publicationDate\" rel=\"noopener noreferrer\" target=\"_blank\">Funding &amp; Tenders Portal FAQ</a> – find the answers to most frequently asked questions on submission of proposals, evaluation and grant management.</p><p><a href=\"https://research-and-innovation.ec.europa.eu/contact-us/research-enquiry-service_en\" rel=\"noopener noreferrer\" target=\"_blank\">Research Enquiry Service</a> – ask questions about any aspect of European research in general and the EU Research Framework Programmes in particular.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/ncp\" rel=\"noopener noreferrer\" target=\"_blank\">National Contact Points (NCPs)</a> – get guidance, practical information and assistance on participation in Horizon Europe. There are also NCPs in many non-EU and non-associated countries (‘third-countries’).</p><p><a href=\"https://een.ec.europa.eu/\" rel=\"noopener noreferrer\" target=\"_blank\">Enterprise Europe Network</a> – contact your EEN national contact for advice to businesses with special focus on SMEs. The support includes guidance on the EU research funding.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/helpdesks/contact-form\" rel=\"noopener noreferrer\" target=\"_blank\">IT Helpdesk</a> – contact the Funding &amp; Tenders Portal IT helpdesk for questions such as forgotten passwords, access rights and roles, technical aspects of submission of proposals, etc.</p><p><a href=\"https://intellectual-property-helpdesk.ec.europa.eu/index_en\" rel=\"noopener noreferrer\" target=\"_blank\">European IPR Helpdesk</a> assists you on intellectual property issues.</p><p><a href=\"mailto:research@cencenelec.eu\" rel=\"noopener noreferrer\" target=\"_blank\">CEN-CENELEC Research Helpdesk</a> and <a href=\"https://www.etsi.org/research/helpdesk\" rel=\"noopener noreferrer\" target=\"_blank\">ETSI Research Helpdesk</a> – the European Standards Organisations advise you how to tackle standardisation in your project proposal.</p><p><a href=\"https://euraxess.ec.europa.eu/sites/default/files/am509774cee_en_e4.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">The European Charter for Researchers and the Code of Conduct for their recruitment</a> – consult the general principles and requirements specifying the roles, responsibilities and entitlements of researchers, employers and funders of researchers.</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search?order=DESC&amp;pageNumber=1&amp;pageSize=50&amp;sortBy=lastModified&amp;isExactMatch=true&amp;type=ORGANISATION,PERSON&amp;frameworkProgramme=43108390\" rel=\"noopener noreferrer\" target=\"_blank\">Partner Search</a> help you find a partner organisation for your proposal.</p>"
+  ],
+  "sepTemplate": [
+   "<p>The submission system is planned to be opened on the date stated on the topic header.</p>"
+  ],
+  "sortStatus": [
+   "2"
+  ],
+  "destination": [
+   "48080699"
+  ],
+  "topicConditions": [
+   "<div class=\"eui-u-mt-l>\"><h4>General conditions</h4><div><h4>1. Admissibility Conditions: Proposal page limit and layout</h4><div class=\"eui-u-mt-s\"><p>As described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex A</a> and <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex E</a> of the Horizon Europe Work Programme General Annexes.</p><p><strong>Proposal page limits and layout:</strong> described in Part B of the Application Form available in the Submission System.</p></div></div><div><h4>2. Eligible Countries</h4><div class=\"eui-u-mt-s\"><p>As described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex B</a> of the Work Programme General Annexes.</p><p>A number of non-EU/non-Associated Countries that are not automatically eligible for funding have made specific provisions for making funding available for their participants in Horizon Europe projects. See the information in the <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Horizon Europe Programme Guide</a>.</p></div></div><div><h4>3. Other Eligible Conditions</h4><div class=\"eui-u-mt-s\"><p>Due to the scope of this topic, legal entities established in non-associated third countries may exceptionally participate in this Coordination and Support Action as a beneficiary or affiliated entity and are exceptionally eligible for Union funding.</p></div><div class=\"eui-u-mt-s\"><p>As described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex B</a> of the Work Programme General Annexes.</p></div></div><div><h4>4. Financial and operational capacity and exclusion</h4><div class=\"eui-u-mt-s\"><p>As described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex C</a> of the Work Programme General Annexes.</p></div></div><div><h4>5a. Evaluation and award: Award criteria, scoring and thresholds</h4><div class=\"eui-u-mt-s\"><p>As described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex D</a> of the Work Programme General Annexes.</p></div></div><div><h4>5b. Evaluation and award: Submission and evaluation processes</h4><div class=\"eui-u-mt-s\"><p>As described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex F</a> of the Work Programme General Annexes and the <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/om_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Online Manual</a>.</p></div></div><div><h4>5c. Evaluation and award: Indicative timeline for evaluation and grant agreement</h4><div class=\"eui-u-mt-s\"><p>As described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex F</a> of the Work Programme General Annexes.</p></div></div><div><h4>6. Legal and financial set-up of the grants</h4><div class=\"eui-u-mt-s\"><p>Eligible costs will take the form of a lump sum as defined in the Decision of 7 July 2021 authorising the use of lump sum contributions under the Horizon Europe Programme – the Framework Programme for Research and Innovation (2021-2027) – and in actions under the Research and Training Programme of the European Atomic Energy Community (2021-2025) [[This <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-decision_he_en.pdf\"><u>decision</u></a> is available on the Funding and Tenders Portal, in the reference documents section for Horizon Europe, under ‘Simplified costs decisions’ or through this link: <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-decision_he_en.pdf\"><u>https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-decision_he_en.pdf</u></a>]].</p></div><div class=\"eui-u-mt-s\"><p>described in <a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Annex G</a> of the Work Programme General Annexes.</p></div></div></div><div class=\"eui-u-mt-l\"><h4>Specific conditions</h4> <div class=\"eui-u-mt-s\"><p>As described in the specific topic of the Work Programme.</p></div></div><div class=\"eui-u-mt-l\"><div class=\"eui-u-mt-s\">\n</div><h4>Application and evaluation forms and model grant agreement (MGA):</h4> <div class=\"eui-u-mt-s\"><p><strong>Application form templates</strong> <em>— the application form specific to this call is available in the Submission System</em></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/temp-form/af/af_he-csa_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Standard application form (HE CSA)</a> </p><p><strong>Evaluation form templates</strong> <em>— will be used with the necessary adaptations</em>&#xa0;</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/temp-form/ef/ef_he-csa_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Standard evaluation form (HE CSA)</a>&#xa0;</p><p><strong>Guidance</strong></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Programme Guide</a>&#xa0;</p><p><strong>Model Grant Agreements (MGA)</strong></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/agr-contr/ls-mga_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Lump Sum MGA</a>&#xa0;</p><p><strong>Call-specific instructions</strong>&#xa0;</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/temp-form/af/detailed-budget-table_he-ls-euratom_en.xlsm\" rel=\"noopener noreferrer\" target=\"_blank\">Detailed budget table (HE LS)</a>&#xa0;</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-funding-what-do-i-need-to-know_he_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Guidance: \"Lump sums - what do I need to know?\"</a></p></div><h4>Additional documents:</h4> <div class=\"eui-u-mt-s\"><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-1-general-introduction_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Main Work Programme 2026-2027 – 1. General Introduction</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-5-culture-creativity-and-inclusive-society_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Main Work Programme 2026-2027 – 5. Culture, Creativity and Inclusive Society</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/wp-call/2026-2027/wp-15-general-annexes_horizon-2026-2027_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Main Work Programme 2026-2027 – 15. General Annexes</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">HE Programme Guide</a></p><p><a href=\"https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32021R0695\" rel=\"noopener noreferrer\" target=\"_blank\">HE Framework Programme 2021/695</a></p><p><a href=\"https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32021D0764\" rel=\"noopener noreferrer\" target=\"_blank\">HE Specific Programme Decision 2021/764</a></p><p><a href=\"https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ:L_202402509\" rel=\"noopener noreferrer\" target=\"_blank\">EU Financial Regulation 2024/2509</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/ls-decision_he_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Decision authorising the use of lump sum contributions under the Horizon Europe Programme</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/rules-lev-lear-fca_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Rules for Legal Entity Validation, LEAR Appointment and Financial Capacity Assessment</a></p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">EU Grants AGA — Annotated Model Grant Agreement</a> </p><p><a href=\"https://webgate.ec.europa.eu/funding-tenders-opportunities/display/OM/Online+Manual\" rel=\"noopener noreferrer\" target=\"_blank\">Funding &amp; Tenders Portal Online Manual</a>&#xa0;</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/tc_en.pdf\" rel=\"noopener noreferrer\" target=\"_blank\">Funding &amp; Tenders Portal Terms and Conditions</a>&#xa0;</p><p><a href=\"https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/legalnotice\" rel=\"noopener noreferrer\" target=\"_blank\">Funding &amp; Tenders Portal Privacy Statement</a></p></div></div>"
+  ],
+  "title": [
+   "Advisory support and network for countering and preventing radicalisation, extremism, hate speech and polarisation"
+  ],
+  "esST_checksum": [
+   "DC8D87F884C23410384111B5811577EDF9E3F44AB1998E1B865D04F58B401878"
+  ],
+  "esST_FileName": [
+   "file.txt"
+  ],
+  "ccm2Id": [
+   "50149084"
+  ],
+  "REFERENCE": [
+   "50149084TOPICSen"
+  ],
+  "programmeDivision": [
+   "43108390",
+   "43108541",
+   "43118846",
+   "43118851"
+  ],
+  "crossCuttingPriorities": [
+   "SocietalEngagement",
+   "AI",
+   "SSH",
+   "DigitalAgenda"
+  ],
+  "esDA_FirstIngestDate": [
+   "2025-12-15T20:05:32.847+0100"
+  ],
+  "esDA_IngestDate": [
+   "2026-03-02T10:52:59.783+0100"
+  ],
+  "typesOfAction": [
+   "HORIZON Coordination and Support Actions"
+  ],
+  "url": [
+   "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL2-2027-01-DEMOCRACY-01"
+  ],
+  "allowPartnerSearch": [
+   "true"
+  ],
+  "budgetOverview": [
+   "{\"budgetYearsColumns\":[\"2027\"],\"budgetTopicActionMap\":{\"113253\":[{\"action\":\"HORIZON-CL2-2027-01-TRANSFO-02 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":3300000,\"budgetYearMap\":{\"2027\":\"10000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113255\":[{\"action\":\"HORIZON-CL2-2027-01-TRANSFO-01 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113254\":[{\"action\":\"HORIZON-CL2-2027-01-DEMOCRACY-04 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":5,\"minContribution\":3500000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"20000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113257\":[{\"action\":\"HORIZON-CL2-2027-01-DEMOCRACY-02 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3500000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113256\":[{\"action\":\"HORIZON-CL2-2027-01-TRANSFO-04 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113259\":[{\"action\":\"HORIZON-CL2-2027-01-HERITAGE-03 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":3500000,\"budgetYearMap\":{\"2027\":\"10500000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113258\":[{\"action\":\"HORIZON-CL2-2027-01-HERITAGE-05 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":3500000,\"budgetYearMap\":{\"2027\":\"10500000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113261\":[{\"action\":\"HORIZON-CL2-2027-01-TRANSFO-03 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113260\":[{\"action\":\"HORIZON-CL2-2027-01-HERITAGE-02 - HORIZON-CSA HORIZON Coordination and Support Actions\",\"expectedGrants\":1,\"minContribution\":4500000,\"maxContribution\":5000000,\"budgetYearMap\":{\"2027\":\"5000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113263\":[{\"action\":\"HORIZON-CL2-2027-01-HERITAGE-04 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":4,\"minContribution\":3000000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"16000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113262\":[{\"action\":\"HORIZON-CL2-2027-01-TRANSFO-06 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113265\":[{\"action\":\"HORIZON-CL2-2027-01-DEMOCRACY-07 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":2,\"minContribution\":3500000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"8000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113264\":[{\"action\":\"HORIZON-CL2-2027-01-DEMOCRACY-01 - HORIZON-CSA HORIZON Coordination and Support Actions\",\"expectedGrants\":1,\"minContribution\":3000000,\"maxContribution\":3500000,\"budgetYearMap\":{\"2027\":\"3500000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113267\":[{\"action\":\"HORIZON-CL2-2027-01-TRANSFO-05 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113266\":[{\"action\":\"HORIZON-CL2-2027-01-TRANSFO-07 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113269\":[{\"action\":\"HORIZON-CL2-2027-01-DEMOCRACY-08 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3500000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113268\":[{\"action\":\"HORIZON-CL2-2027-01-DEMOCRACY-06 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3500000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113271\":[{\"action\":\"HORIZON-CL2-2027-01-HERITAGE-07 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":5,\"minContribution\":2500000,\"maxContribution\":3000000,\"budgetYearMap\":{\"2027\":\"15000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113270\":[{\"action\":\"HORIZON-CL2-2027-01-HERITAGE-08 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3000000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113273\":[{\"action\":\"HORIZON-CL2-2027-01-HERITAGE-01 - HORIZON-CSA HORIZON Coordination and Support Actions\",\"expectedGrants\":1,\"minContribution\":4500000,\"maxContribution\":5000000,\"budgetYearMap\":{\"2027\":\"5000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113272\":[{\"action\":\"HORIZON-CL2-2027-01-TRANSFO-08 - HORIZON-IA HORIZON Innovation Actions\",\"expectedGrants\":4,\"minContribution\":3000000,\"maxContribution\":3750000,\"budgetYearMap\":{\"2027\":\"15000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113275\":[{\"action\":\"HORIZON-CL2-2027-01-HERITAGE-06 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":4000000,\"maxContribution\":4800000,\"budgetYearMap\":{\"2027\":\"14500000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113274\":[{\"action\":\"HORIZON-CL2-2027-01-DEMOCRACY-03 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3500000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}],\"113276\":[{\"action\":\"HORIZON-CL2-2027-01-DEMOCRACY-05 - HORIZON-RIA HORIZON  Research and Innovation Actions\",\"expectedGrants\":3,\"minContribution\":3500000,\"maxContribution\":4000000,\"budgetYearMap\":{\"2027\":\"12000000\"},\"plannedOpeningDate\":\"2027-05-13\",\"deadlineModel\":\"single-stage\",\"deadlineDates\":[\"2027-09-23\"]}]}}"
+  ],
+  "specificObjective": []
+ },
+ "enrichedMetadata": {},
+ "children": [],
+ "highlightedFragments": [],
+ "citation": "Advisory support and network for countering and preventing radicalisation, extremism, hate speech and polarisation. Available at: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL2-2027-01-DEMOCRACY-01"
+}
