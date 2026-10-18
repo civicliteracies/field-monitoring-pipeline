@@ -44,20 +44,23 @@ changes sit outside the run, in the records and in the checks that guard the cod
       Validate (validation). One template names the fields of a card: the title, the type, the
       funder, the opening date, the deadline, the budget, the summary, who can apply and where, and
       the link. A call with no deadline stays open. Both dates, the budget, the summary, who can
-      apply and where each carry a sentence beside the value, so a person can check it. The template
-      refuses a record that does not fit.
-- [ ] **8. `feat(extract): read one stored call into a call record`**
-      Read the stated facts (extraction). One language model call reads a stored call under a fixed
-      instruction and answers with the facts it states, each with the sentence it rests on. The
-      project's own code turns that answer into a record, which notes which instruction and which
-      model read it.
+      apply and where each carry a sentence beside the value, or for a date or the budget the
+      source's own field written out as one line, so a person can check it. The template refuses a
+      record that does not fit.
+- [x] **8. `feat(extract): read one stored call into a call record`**
+      Read the stated facts (extraction). The project's own code copies the title, the two dates
+      and the budget from the source's own record, each date and the budget with its field written
+      out as one line. One language model call reads the stored call under a fixed instruction and
+      names the type, the funder, the summary, who can apply and where, each with the sentence it
+      rests on. The code turns both into a record, which notes which instruction and which model
+      read it. It is run by hand.
 - [ ] **9. `feat(validate): refuse a record whose quotes are not in the stored text`**
       Validate (validation). Every quoted sentence is checked word for word against the stored text.
       A failure goes back to the model once; a second failure writes nothing.
 - [ ] **10. `feat(serialize): write each new record as a card`**
       Write the card (serialisation), with the coordination that sits on top of the steps. One
       record becomes one Markdown file that GitHub shows as a page: the fields on top for machines,
-      and below them each quoted fact with the funder's own sentence under it. A call that already
+      and below them each fact with what it rests on under it. A call that already
       has a card is not read again.
 - [ ] **11. `feat(publish): build the feed from the cards`**
       Publish (publishing). An RSS file is written from the cards, one entry per card, so a new

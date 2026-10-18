@@ -1,12 +1,13 @@
 """Define what a funding call is made of.
 
 A call has a title, a type, a funder, an opening date, a deadline, a budget, a summary, who can
-apply, where, and a link. Both dates, the budget, the summary, who can apply and where each carry a
-sentence beside the value, so a person can check it. The funder, the opening date, the budget, who
-can apply and where are empty when the source does not give them, and a call with no deadline stays
-open. This template refuses a call with a field missing, a field added, or a date it cannot read.
-It accepts a date in the past, and keeps the link exactly as given. A call cannot be changed once it
-is made.
+apply, where, and a link, and it names the model and the instructions that read it. Both dates, the
+budget, the summary, who can apply and where each carry a sentence beside the value, so a person can
+check it. Where the source gives a date or the budget in a labelled field, that sentence is the field
+written out as one plain line. The funder, the opening date, the budget, who can apply and where are
+empty when the source does not give them, and a call with no deadline stays open. This template
+refuses a call with a field missing, a field added, or a date it cannot read. It accepts a date in
+the past, and keeps the link exactly as given. A call cannot be changed once it is made.
 """
 
 import datetime as dt
@@ -53,3 +54,5 @@ class Call(BaseModel):
     eligibility: Quoted | None
     area: Quoted | None
     link: str
+    model: str
+    instructions: str
