@@ -11,11 +11,13 @@ from field_monitoring_pipeline.store import (
     Saved,
     card_name,
     carded,
+    cards,
     code,
     saved,
     store,
     store_card,
     store_failure,
+    store_feed,
     store_reading,
     store_run,
     stored_record,
@@ -163,6 +165,22 @@ def test_a_card_is_written_and_found_by_its_code(tmp_path: Path) -> None:
     assert b"\r" not in card.read_bytes()
     assert carded(tmp_path, SAVED)
     assert not carded(tmp_path, OTHER_SAVED)
+
+
+def test_the_cards_are_listed_with_their_paths_in_the_order_of_their_names(tmp_path: Path) -> None:
+    assert cards(tmp_path) == []
+    store_card(tmp_path, OTHER_SAVED, "two “x”")
+    store_card(tmp_path, SAVED, "one €")
+    assert cards(tmp_path) == [
+        ("calls/2026-09-27-tourism-for-all-b710c74df0.md", "one €"),
+        (f"calls/2026-09-28-two-{code(OTHER.identifier)[:10]}.md", "two “x”"),
+    ]
+
+
+def test_the_feed_is_written_as_utf_8_with_line_feeds(tmp_path: Path) -> None:
+    text = "<title>Tourism “for all” €</title>\n<link />\n"
+    store_feed(tmp_path, text)
+    assert (tmp_path / "feed.xml").read_bytes() == text.encode("utf-8")
 
 
 def test_a_stored_record_is_read_back(tmp_path: Path) -> None:

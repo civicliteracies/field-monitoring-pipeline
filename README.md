@@ -2,9 +2,9 @@
 
 Most of what the Civic Literacy Initiative (CLI) needs to know already reaches it. A funder opens a call, a peer publishes a report, a newsletter carries a link. It is read once and then lost, or found after the deadline has passed. Fieldbook is the memory that stops that happening.
 
-Every morning it visits the sources CLI has chosen, keeps a copy of what they published, and turns each funding call into a card: what the call is, who can apply, how much it offers, when it closes. Under the summary, who can apply and where sits the funder's own sentence, with a warning when it could not be found in what was collected. Under the dates and the budget sits a line written from the source's own record. Each can be checked against the source in seconds. The cards are plain files on the [`data` branch](https://github.com/civicliteracies/field-monitoring-pipeline/tree/data) of this repository, and an RSS feed carries each new one into a feed reader. It is built to run on GitHub, on free services, with no one tending it.
+Every morning it visits the sources CLI has chosen, keeps a copy of what they published, and turns each funding call into a card: what the call is, who can apply, how much it offers, when it closes. Under the summary, who can apply and where sits the funder's own sentence, with a warning when it could not be found in what was collected. Under the dates and the budget sits a line written from the source's own record. Each can be checked against the source in seconds. The cards are plain files on the [`data` branch](https://github.com/civicliteracies/field-monitoring-pipeline/tree/data) of this repository, and an [RSS feed](https://raw.githubusercontent.com/civicliteracies/field-monitoring-pipeline/data/data/feed.xml) carries each new one into a feed reader. It is built to run on GitHub, on free services, with no one tending it.
 
-Collecting, keeping, reading and checking run by themselves every morning, and each call read becomes a card. The feed is not built yet. The code arrives one change at a time, in the order [`docs/plan.md`](docs/plan.md) sets out, and this page describes Fieldbook as it will work once those changes are in.
+Collecting, keeping, reading, checking, the cards and the feed run by themselves every morning. The code arrives one change at a time, in the order [`docs/plan.md`](docs/plan.md) sets out.
 
 ## What it does
 
@@ -22,7 +22,7 @@ The check shows whether a quoted sentence is in what was collected, word for wor
 
 ## This version
 
-The first version will carry one funding call, from one source, the whole way: collected, kept, read, checked, written as a card and delivered to a feed reader, every morning. Topics on each card, more sources, the project reports, the quarterly reading, the proposals of funders to watch and a guide to adding a source follow it. [`docs/plan.md`](docs/plan.md) lists them in order.
+The first version carries the funding calls of one source the whole way: collected, kept, read, checked, written as a card and delivered to a feed reader, every morning. Topics on each card, more sources, the project reports, the quarterly reading, the proposals of funders to watch and a guide to adding a source follow it. [`docs/plan.md`](docs/plan.md) lists them in order.
 
 ## The records
 

@@ -1,6 +1,7 @@
 import datetime as dt
 import json
 import runpy
+import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ import pytest
 from field_monitoring_pipeline.calls import main, run
 from field_monitoring_pipeline.extract import ADDRESS
 from field_monitoring_pipeline.fetch import FetchedCall
+from field_monitoring_pipeline.publish import CARDS
 from field_monitoring_pipeline.store import COLUMNS, code, store
 from tests.test_extract import REPLY
 from tests.test_fetch import REPLIES, ROOT, URL
@@ -154,7 +156,7 @@ def test_a_first_run_saves_every_call_and_a_second_adds_only_its_row(
     )
     assert len(asked) == 4
     stored = files(data)
-    assert len(stored) == 13
+    assert len(stored) == 14
     assert stored[f"raw/{SOURCE}/{code(IDENTIFIER)}.html"] == (REPLIES / "page.html").read_bytes()
     rows = log(data)
     assert [*ROW, "saved", ""] in rows
@@ -202,6 +204,21 @@ def test_each_saved_call_without_a_card_is_read_once_and_in_order(tmp_path: Path
     ]
 
 
+def test_the_feed_is_built_from_every_card_after_the_reading(tmp_path: Path, watch_list: Path) -> None:
+    data = tmp_path / "data"
+    with portal() as client:
+        assert run(data, watch_list, client, FETCHED, KEY) == 0
+    cards = sorted(name for name in files(data) if name.startswith("calls/"))
+    built = files(data)["feed.xml"]
+    entries = ET.fromstring(built).findall("channel/item")
+    assert [entry.findtext("link") for entry in entries] == [CARDS + name for name in cards]
+    assert len(cards) == 4
+    (data / "feed.xml").unlink()
+    with portal() as client:
+        assert run(data, watch_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
+    assert files(data)["feed.xml"] == built
+
+
 @pytest.mark.parametrize(
     ("answer", "reason"),
     [
@@ -224,6 +241,7 @@ def test_a_reading_that_fails_is_logged_counted_and_read_again_the_next_run(
     assert failed[REASON].startswith(reason)
     assert f"{IDENTIFIER}: {failed[REASON]}\n" in out
     assert not any(name.endswith(f"{code(IDENTIFIER)[:10]}.md") for name in files(data))
+    assert len(ET.fromstring(files(data)["feed.xml"]).findall("channel/item")) == 3
 
     with portal() as client:
         assert run(data, watch_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
@@ -246,6 +264,7 @@ def test_any_other_error_in_a_reading_stops_the_run_and_keeps_what_was_written(
     assert [row[2] for row in rows if row[STATUS] == "card written"] == [IDENTIFIER]
     assert [name for name in files(data) if name.startswith("calls/")] == [HERITAGE_CARD]
     assert rows[-1][2] == IDENTIFIER
+    assert "feed.xml" not in files(data)
 
 
 def test_a_morning_with_no_key_saves_every_call_and_fails_every_reading(
@@ -300,7 +319,7 @@ def test_a_failed_page_is_logged_and_tried_again(
     assert failed[0][:STATUS] == ROW
     assert failed[1] == [*RUN, STAMP, "failed", "4 calls, 3 new, 1 failed"]
     assert failed[0][REASON].startswith("httpx2.HTTPStatusError: Redirect response '301 Moved Permanently'")
-    assert len(files(data)) == 10
+    assert len(files(data)) == 11
     out = capsys.readouterr().out
     assert out.startswith("EU Funding and Tenders Portal: 4 calls, 3 new, 1 failed\n")
     assert f"{IDENTIFIER}: {failed[0][REASON]}\n" in out
@@ -315,7 +334,7 @@ def test_a_failed_page_is_logged_and_tried_again(
         [*RUN, STAMP, "successful", "4 calls, 1 new, 0 failed"],
         [*ROW, "card written", NOTE],
     ]
-    assert len(files(data)) == 13
+    assert len(files(data)) == 14
 
 
 @pytest.mark.parametrize(
@@ -398,7 +417,7 @@ def test_two_sources_are_kept_apart(tmp_path: Path, watch_list: Path, capsys: py
     assert [line for line in lines if line.startswith("EU")] == [
         "EU Funding and Tenders Portal: 4 calls, 0 new, 1 failed"
     ] * 2
-    assert len(files(data)) == 16
+    assert len(files(data)) == 17
     assert [row for row in log(data)[1:] if not row[CODE]] == [
         [*RUN, STAMP, "failed", "4 calls, 3 new, 1 failed"],
         [*RUN, STAMP, "failed", "4 calls, 0 new, 1 failed"],

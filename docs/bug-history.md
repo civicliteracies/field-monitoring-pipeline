@@ -61,19 +61,21 @@ differs on every run, so every item looked new every day.
 **Fix.** The note was changed to record the date the source published the item rather than the time
 it was collected, and the run was changed to commit only when something had changed.
 
-**Prevention.** Nothing stored is ever rewritten, and a call already saved is not stored again. A
-run adds rows to the log only for the calls it tried or read, and one row for each source, saying
-how the run ended for it. So a run with nothing new, nothing failing and nothing left to read adds
-that one row for each source and changes nothing else.
+**Prevention.** Nothing stored is ever rewritten, and a call already saved is not stored again. The
+feed is rebuilt on every run, and comes out the same when no card was added. A run adds rows to the
+log only for the calls it tried or read, and one row for each source, saying how the run ended for
+it. So a run with nothing new, nothing failing and nothing left to read adds that one row for each
+source and changes nothing else.
 
 **Technical detail.** The rule lands with change 5, which stores a call only when the log has no
-`saved` row for it, so nothing stored is ever rewritten, and with change 6, which makes the daily
-commit and asks git whether anything is there to commit before making one. This build records the
-time of collection again, in the log. Once a call is saved, it gets a row each time it is read,
-until its card is written, and none after. This build also writes a row for each source a run
-finishes, so every finished run adds to the log. Test that now fails on the old behaviour: the
-command's test of a second run. It must download no page, leave every page and record as it was,
-keep every earlier row of the log, and add only the run's row.
+`saved` row for it, so nothing stored is ever rewritten, and with change 11, which rebuilds the feed
+with no date of the build, so an unchanged feed leaves nothing to commit, and with change 6, which
+makes the daily commit and asks git whether anything is there to commit before making one. This
+build records the time of collection again, in the log. Once a call is saved, it gets a row each
+time it is read, until its card is written, and none after. This build also writes a row for each
+source a run finishes, so every finished run adds to the log. Test that now fails on the old
+behaviour: the command's test of a second run. It must download no page, leave every page and record
+as it was, keep every earlier row of the log, and add only the run's row.
 
 ### BUG-003: line endings were rewritten, so a quote checked on one machine failed on another
 

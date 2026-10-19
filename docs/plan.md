@@ -8,7 +8,7 @@ the raw (raw storage with provenance), Identify (stable identifiers), Read the s
 (extraction), Validate (validation), Write the card (serialisation), Publish (publishing). Three
 changes sit outside the run, in the records and in the checks that guard the code.
 
-## This version: one funding call, from one source, to a card and into a feed reader
+## This version: the funding calls of one source, each to a card and into a feed reader
 
 - [x] **1. `docs: add README overview, decision log, bug history and architecture map`**
       Outside the run. The front page says what Fieldbook is, and `docs` gains this plan, the
@@ -69,9 +69,10 @@ changes sit outside the run, in the records and in the checks that guard the cod
       a row for each call read, `card written` with its notes or `failed` with its reason. A call
       that has a card is not read again, and one whose reading failed is read again the next
       morning.
-- [ ] **11. `feat(publish): build the feed from the cards`**
-      Publish (publishing). An RSS file is written from the cards, one entry per card, so a new
-      funding call arrives in a feed reader the day it is found.
+- [x] **11. `feat(publish): build the feed from the cards`**
+      Publish (publishing). An RSS file is rebuilt from the cards each morning, one entry per card,
+      so a new funding call arrives in a feed reader the day it is found. Each entry carries the title
+      with the closing date, a link to the card, the summary, and the call's code as its identity.
 
 ## After this version
 
