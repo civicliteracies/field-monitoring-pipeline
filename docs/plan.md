@@ -53,18 +53,22 @@ changes sit outside the run, in the records and in the checks that guard the cod
       as one line. A language model reads the stored call under fixed instructions. It names the
       type, the funder, the summary, who can apply and where, the last three each with the sentence
       it rests on. The code turns both into a record, which notes which instructions and which model
-      read it. It is run by hand.
+      read it. It was run by hand until item 10.
 - [x] **9. `feat(validate): check each quote against the stored text`**
       Validate (validation). Every quoted sentence is looked for word for word in the stored text,
       and the record marks each one found or not found. When a sentence is not found, or the model's
       answer cannot be used, the model is asked once more, with a message the code writes naming
       each problem. A sentence still not found stays on the record, marked. The code writes a note
       for it, and one for each problem and each empty field.
-- [ ] **10. `feat(serialize): write each new record as a card`**
-      Write the card (serialisation), with the coordination that sits on top of the steps. One
-      record becomes one Markdown file that GitHub shows as a page: the fields on top for machines,
-      and below them each fact with what it rests on under it. A call that already
-      has a card is not read again.
+- [x] **10. `feat(serialize): write each new record as a card`**
+      Write the card (serialisation), with the coordination that sits on top of the steps. The daily
+      run now reads every stored call that has no card. One record becomes one Markdown file that
+      GitHub shows as a page: the fields on top for machines, and each fact below them. The funder's
+      own sentence sits under the summary, who can apply and where, a line from the source's own
+      record under the dates and the budget, and a warning under a sentence not found. The log gains
+      a row for each call read, `card written` with its notes or `failed` with its reason. A call
+      that has a card is not read again, and one whose reading failed is read again the next
+      morning.
 - [ ] **11. `feat(publish): build the feed from the cards`**
       Publish (publishing). An RSS file is written from the cards, one entry per card, so a new
       funding call arrives in a feed reader the day it is found.

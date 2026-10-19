@@ -11,21 +11,6 @@ that decides something adds its entry here, in the same pull request.
 
 ## 0. Pending decisions
 
-### When is the key for the reading step set?
-
-**Situation.** The reading step sends the text of a stored item to a language model, and that request
-needs a key.
-
-**Question.** Is the key set before the daily run reads, or after the first card has been produced
-by hand?
-
-**Status quo.** No key is set in the repository. The reading step is built and is run by hand, with
-a key kept outside the repository. Collecting and storing need no secret key. The cost is that the
-daily run collects and stores without reading, so the archive grows while the cards do not.
-
-**Technical detail.** The key is never written into a file of this repository. A run reads it from
-the repository's settings, in a form chosen when the key is set.
-
 ### Who builds the page that searches the whole archive?
 
 **Situation.** The cards are plain files with a stable shape, which a searchable page can read
@@ -34,7 +19,7 @@ directly.
 **Question.** Is that page built here, or elsewhere by whoever wants it?
 
 **Status quo.** There is no such page. Stored calls are browsed as folders on github.com, on the
-`data` branch, and cards will be browsed the same way. The cost is that finding an old call means
+`data` branch, and cards are browsed the same way. The cost is that finding an old call means
 knowing roughly where to look.
 
 **Technical detail.** Whoever builds it reads the card files and builds an index outside this
@@ -130,27 +115,30 @@ several phrases in one query.
 readable without specialist tools.
 
 **Decision.** Plain files in this repository. Each source has a folder, which holds every call's web
-page and the source's record of it. One log beside the folders has a row for each call the run tried
-and a row for each source, saying how the run ended for it. No server, no database engine, no
-committed index. Anything derived is rebuilt from the files and never stored beside them.
+page and the source's record of it, and one folder holds a card for each call read. One log beside
+the folders has a row for each call the run tried and for each call it read. It also has a row for
+each source, saying how the run ended for it. No server, no database engine, no committed index. The
+cards are derived from the stored files and kept beside them, because a reading costs a request to
+the model and may not come out the same twice. Nothing else derived is kept.
 
 **Rationale.** The history of the repository becomes the audit log, its permissions become the
 access control, and nothing in it can be withdrawn by a supplier. The log of calls is one table,
-written as it happens: where each call came from, when it was collected and whether it was saved. It
-takes the place of a note beside each call. It is not a derived index. The identifier, title and
-link it repeats are copied from the source's record when a row is written, and never updated. The
-run's row for a source holds one of three words: `successful`, `failed` or `nothing new`. It also
-holds the numbers the run counted: how many calls were fetched, how many were new and how many
-failed. When the search itself failed, the row holds the error. The store writes it once, when the
-run is done with that source, and never updates it. The log is never rebuilt from the files. A
-call's files are named by a code made from its identifier, not by the identifier itself. Some
-identifiers cannot be file names (web addresses, or names that carry slashes), and a name cannot
-change once a call is saved. The log pairs each code with the call's identifier, title and link, so
-a person can find a call's files there. What plain files give up is querying: there is no way to ask
-the store a question except by reading files, which is why searching the whole archive belongs to a
-separate page that reads the same files. A row for every finished run gives up one thing. The log
-grows on a day that brought no new call, so the archive's history does not show by itself which days
-brought one. The numbers in the run's row show it.
+written as it happens: where each call came from, when it was collected, whether it was saved and,
+once read, whether its card was written. It takes the place of a note beside each call. It is not a
+derived index. The identifier, title and link it repeats are copied from the source's record when a
+row is written, and never updated. The run's row for a source holds one of three words:
+`successful`, `failed` or `nothing new`. It also holds the numbers the run counted: how many calls
+were fetched, how many were new and how many failed. When the search itself failed, the row holds
+the error. The store writes it once, when the run is done with that source, and never updates it.
+The log is never rebuilt from the files. A call's files are named by a code made from its
+identifier, not by the identifier itself. Some identifiers cannot be file names (web addresses, or
+names that carry slashes), and a name cannot change once a call is saved. The log pairs each code
+with the call's identifier, title and link, so a person can find a call's files there. What plain
+files give up is querying: there is no way to ask the store a question except by reading files,
+which is why searching the whole archive belongs to a separate page that reads the same files. A row
+for every finished run gives up one thing. The log grows on a day that brought no new call, so the
+archive's history does not show by itself which days brought one. The numbers in the run's row show
+it.
 
 **Technical detail.** Collected items and cards live on the `data` branch, which shares no history
 with the code. One module writes everything under the data folder and owns every path there.
@@ -174,14 +162,40 @@ the copy, where they are useful for applying, and never appear on a card.
 **Technical detail.** A call's files are written first and its row in the log last, and a call
 counts as stored once it has a `saved` row. A run that stops partway therefore never leaves a call
 marked as saved with a file missing, and the next run does that call again. A run stores a call only
-when it has no `saved` row, so a run with nothing new and nothing failing rewrites nothing. It adds
-the run's row for each source, and every other stored byte stays as it was. BUG-002 in the bug
-history is where that rule came from. A call that keeps failing adds one row each run. That is
-deliberate: recording each try, and how each run ended, is what the log is for. The fetch may leave
-out a whole call, by its identifier or its closing date, but never changes one: each saved call is
-stored whole, as the source served it. The record is its own file because, for the first source, the
-page holds none of the call's text. It is not kept inside the log. The records of 33 calls came to
-1.2 MB, and GitHub shows a log as a table only up to 512 KB.
+when it has no `saved` row, and reads it only when it has no card. So a run with nothing new,
+nothing failing and nothing left to read rewrites nothing. It adds the run's row for each source,
+and every other stored byte stays as it was. BUG-002 in the bug history is where that rule came
+from. A call that keeps failing adds one row each run. That is deliberate: recording each try, and
+how each run ended, is what the log is for. The fetch may leave out a whole call, by its identifier
+or its closing date, but never changes one: each saved call is stored whole, as the source served
+it. The record is its own file because, for the first source, the page holds none of the call's
+text. It is not kept inside the log. The records of 33 calls came to 1.2 MB, and GitHub shows a log
+as a table only up to 512 KB.
+
+### What does a card hold, and how is it named?
+
+**Situation.** A card has two readers: a person on github.com, and the code that reads cards back.
+
+**Decision.** A card is one Markdown file. On top, between two `---` lines, sits the record, one
+field per line, each value written in JSON. A field that holds a sentence is written over several
+lines, its parts indented under it. Below is the half for people: the title, then each fact. The
+funder's own sentence sits under the summary, who can apply and where, and the source's own line
+under the dates and the budget. A sentence not found has a warning under it, and an empty field says
+"not stated". The link and the model and instructions that read it come last. A card is named by the
+day the call was saved, its title made into a short name, and the first ten characters of the call's
+code. All cards sit in one folder, and a call with a card is never read again.
+
+**Rationale.** The block on top is what GitHub shows as a table and what the code reads back.
+Written in JSON, a colon or a quotation mark in a value cannot break it. The day saved puts the
+cards in the order the calls were found. The title gives a name a person can recognise, and the code
+keeps two calls with the same title apart. What it gives up: a card is never updated. A call changed
+at its source keeps the card of the day it was read, as its stored copy keeps the page of the day it
+was saved.
+
+**Technical detail.** Each fact and its line are set apart by a blank line, because github.com joins
+lines that touch and takes a line after a quote into the quote. A card counts as written once its
+file exists, and its row in the log follows it. Only small letters, digits and hyphens reach a
+card's name.
 
 ## 5. Reading with a model
 
@@ -203,9 +217,27 @@ be quicker, such as sorting items into topics, are done by rules instead.
 
 **Technical detail.** The first request sends one stored item as plain text under fixed
 instructions, kept in their own file and versioned, and the record notes which version and which
-model read it. A request the model service turns away is raised as it is and not sent again. While
-the reading is run by hand, the person running it sees the failure. Trying a failed request again is
-brought back once a reading is lost in the daily run.
+model read it. A request the model service turns away is raised as it is and not sent again. A
+request that fails in the daily run is written in the log as a failed reading, and the call is read
+again the next morning. Nothing tries a failed request again within a run; that is brought back once
+the log shows readings lost to a dropped connection.
+
+### When is the key for the reading step set?
+
+**Situation.** The reading step sends the text of a stored item to a language model, and that
+request needs a key.
+
+**Decision.** The key is saved as a repository secret after the first card has been made by hand,
+and the daily run reads from then on.
+
+**Rationale.** A card made by hand shows the reading works on a real call before the daily run sends
+requests for the whole archive. What it gives up: until the secret is saved, every reading in the
+daily run fails and is written in the log, and the morning ends with a failure. Collecting and
+storing go on.
+
+**Technical detail.** The key is never written into a file of this repository. The daily run hands
+it to the command from the secret `GEMINI_API_KEY`, in the step that runs the command, and nowhere
+else.
 
 ### What has to travel with a value read from a page?
 
