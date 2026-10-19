@@ -79,9 +79,9 @@ derived from what was kept.
 A run takes each item through seven steps, in order. Reach the sources on the watch list and bring
 back what they published. Write down each item collected, once and whole, together with where it
 came from. Give each item a stable name of its own. Read the facts the item states: copy those the
-source gives in its own fields, and name the rest with one language model call. Check what was read
-against what was stored. Write the card. Save the cards and
-build the feed.
+source gives in its own fields, and name the rest with a language model. The model is asked once
+more when its answer cannot be used or a sentence it quotes is not found. Check what was read
+against what was stored. Write the card. Save the cards and build the feed.
 
 Three things stay apart inside every step: the data, declared in files a person can read; the
 behaviour, plain functions that act on it; and the coordination, a single command that calls the
@@ -190,17 +190,22 @@ page holds none of the call's text. It is not kept inside the log. The records o
 **Situation.** Turning a page of prose into fields needs judgement that plain rules cannot supply.
 Everything else the system does is mechanical.
 
-**Decision.** One language model call, in the reading step. No second call, no agent framework, and
-no model anywhere else, including the tagging of cards and the quarterly reading.
+**Decision.** One step uses a language model: the reading. It asks the model once, and once more
+when the answer cannot be used or a sentence it quotes is not in the stored text. No agent
+framework, and no model anywhere else, including the tagging of cards and the quarterly reading.
 
-**Rationale.** One call is cheap, repeatable and easy to reason about, and every other step then
-gives the same answer every time it runs. What it gives up is convenience: the places where a model
-would be quicker, such as sorting items into topics, are done by rules instead.
+**Rationale.** One step with at most two requests is cheap and easy to reason about, and every other
+step then gives the same answer every time it runs. The second request is the same conversation: the
+instructions and the text, the model's first answer, and a message the code writes naming each
+problem and its rule. The message holds no text of the call, so the model's job does not change: it
+answers the same instructions again. What it gives up is convenience: the places where a model would
+be quicker, such as sorting items into topics, are done by rules instead.
 
-**Technical detail.** The call sends one stored item as plain text under one fixed instruction, kept
-in its own file and versioned, and the card records which version and which model read it. The model
-is asked once, and a failed request is raised as it is. While the reading is run by hand, the person
-running it sees the failure; a second try returns once a reading is lost in the daily run.
+**Technical detail.** The first request sends one stored item as plain text under fixed
+instructions, kept in their own file and versioned, and the record notes which version and which
+model read it. A request the model service turns away is raised as it is and not sent again. While
+the reading is run by hand, the person running it sees the failure. Trying a failed request again is
+brought back once a reading is lost in the daily run.
 
 ### What has to travel with a value read from a page?
 
@@ -208,15 +213,15 @@ running it sees the failure; a second try returns once a reading is lost in the 
 on a funding card is worse than no card at all.
 
 **Decision.** Each value read from the prose travels with the sentence it was read from, and that
-sentence must appear word for word in the stored copy. A value whose sentence cannot be found is
-refused rather than repaired: the reason goes back once, and a second failure writes nothing. A date
-or the budget that the source gives in a labelled field is copied rather than read, and its sentence
-is that field written out as one line.
+sentence is looked for word for word in the stored copy. A sentence that cannot be found goes back
+to the model once. If it is still not found, it stays with its value, marked as not found, and is
+never repaired. A date or the budget that the source gives in a labelled field is copied rather than
+read, and its sentence is that field written out as one line.
 
 **Rationale.** It makes a card checkable in seconds by a person who has never seen the tool. What it
 gives up: the title, the type, the funder's name and the link are taken as given, because they are
-not read out of a sentence, and the check proves that a sentence is present. It cannot prove that
-the sentence supports the value beside it.
+not read out of a sentence. The check shows whether a sentence is present. It cannot show that the
+sentence supports the value beside it.
 
 No check yet requires a figure in the budget to appear in the budget's own sentence. A check of that
 kind, tried in earlier work, refused honest summaries on real pages, and the only fault it ever caught
@@ -227,6 +232,28 @@ are written together from that field.
 **Technical detail.** The comparison is made after whitespace is collapsed, against the text taken
 from the stored copy rather than the live page, so a page edited after collection cannot change the
 result.
+
+### What happens when the reading meets a fault?
+
+**Situation.** A model can quote a sentence that is not in the stored text, write an answer the code
+cannot read, or leave a field empty. Refusing such a record would hide the fault: nothing would
+reach the card, and nobody would see what went wrong.
+
+**Decision.** A fault is marked and noted, never hidden by refusing the record. A sentence not found
+after the second try stays on the record, marked as not found. The reading writes a note for each
+problem in either answer and for each sentence not found. Each empty field among the funder, who can
+apply and where gets a note saying what the answer did: the model marked it not stated, or did not
+mention it. Only two faults make no record: an answer that cannot be used on either try, and a
+request the model service turns away. The error then names the problems of each answer already
+received.
+
+**Rationale.** A marked fault can be seen and judged by the person reading the card; a refused
+record cannot. What it gives up: a card can carry a sentence the source never wrote, with its
+warning beside it. The notes say only what the code saw, never why the model chose it.
+
+**Technical detail.** Each sentence carries a mark, `found`. The notes are plain lines written by
+the code. Each problem note names the answer it came from, first or second, so a fault the second
+answer put right reads differently from one kept on the record.
 
 ### How does a card hold the dates of a call?
 
@@ -270,8 +297,8 @@ misread it. What it gives up: where the prose and the field disagree, the card s
 says nothing of the prose. The euro sign is not in the stored record: the portal's own page prints
 it beside each amount. It is the one thing on a card that is not derived from what was kept.
 
-**Technical detail.** The four lines come first in the text the model reads, so the check of
-sentences finds each line in that text like any other sentence.
+**Technical detail.** The four lines come first in the text the model reads. The three that carry a
+sentence, the two dates and the budget, are checked like any other sentence, and are always found.
 
 ### Why does the model answer with one command line?
 
@@ -284,7 +311,7 @@ template.
 
 **Rationale.** The record's shape lives in this repository, so any model that can write a line can
 be used. What it gives up: the code reads that one line and nothing else, and a line it cannot read
-is refused rather than repaired.
+goes back to the model once, with the rule it broke, and is never repaired by the code.
 
 **Technical detail.** Each free-text value is written as a JSON string, so a funder's own quotation
 marks reach the record unbroken. A flag the instructions never offered, a flag given twice and a flag
