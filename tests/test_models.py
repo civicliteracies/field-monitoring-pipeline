@@ -18,6 +18,7 @@ CALL: dict[str, Any] = {
     "eligibility": None,
     "area": None,
     "link": LINK,
+    "identifier": "CIVIC-DATA-2031-01",
     "model": "gemini-3.5-flash-lite",
     "instructions": "v3",
 }
@@ -59,6 +60,12 @@ def test_a_field_the_template_does_not_know_is_refused(shape: type[BaseModel], k
     shape.model_validate(known)
     with pytest.raises(ValidationError):
         shape.model_validate(known | {"added": "x"})
+
+
+@pytest.mark.parametrize("field", list(CALL))
+def test_a_call_with_a_field_left_out_is_refused(field: str) -> None:
+    with pytest.raises(ValidationError, match=field):
+        Call.model_validate({name: value for name, value in CALL.items() if name != field})
 
 
 @pytest.mark.parametrize(("shape", "known"), KNOWN[:3])

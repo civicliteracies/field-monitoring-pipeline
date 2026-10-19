@@ -199,6 +199,7 @@ def test_a_recorded_reply_becomes_a_record_with_every_sentence_found() -> None:
                 "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/"
                 "HORIZON-CL2-2027-01-DEMOCRACY-06"
             ),
+            "identifier": "HORIZON-CL2-2027-01-DEMOCRACY-06",
             "model": "gemini-3.5-flash-lite",
             "instructions": "v3",
         }),

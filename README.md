@@ -4,7 +4,7 @@ Most of what the Civic Literacy Initiative (CLI) needs to know already reaches i
 
 Every morning it visits the sources CLI has chosen, keeps a copy of what they published, and turns each funding call into a card: what the call is, who can apply, how much it offers, when it closes. Under the summary, who can apply and where sits the funder's own sentence, with a warning when it could not be found in what was collected. Under the dates and the budget sits a line written from the source's own record. Each can be checked against the source in seconds. The cards are plain files on the [`data` branch](https://github.com/civicliteracies/field-monitoring-pipeline/tree/data) of this repository, and an RSS feed carries each new one into a feed reader. It is built to run on GitHub, on free services, with no one tending it.
 
-Collecting and keeping run by themselves, every morning. Reading and the check of what was read are built and are run by hand, one stored call at a time. The cards and the feed are not built yet. The code arrives one change at a time, in the order [`docs/plan.md`](docs/plan.md) sets out, and this page describes Fieldbook as it will work once those changes are in.
+Collecting, keeping, reading and checking run by themselves every morning, and each call read becomes a card. The feed is not built yet. The code arrives one change at a time, in the order [`docs/plan.md`](docs/plan.md) sets out, and this page describes Fieldbook as it will work once those changes are in.
 
 ## What it does
 

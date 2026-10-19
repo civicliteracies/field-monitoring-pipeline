@@ -1,15 +1,18 @@
-"""Run the steps in order for every source on the watch list.
+"""Run the steps in order for every source on the watch list, then read every call without a card.
 
 Fetches each source's calls, skips those already saved, and downloads and stores the rest. A call
 whose page fails is written in the log and the run carries on. A search that fails is written in the
-log and stops the run. When a source's calls are done, writes one row for it in the log: failed if
-any call failed, successful if none failed and at least one was new, nothing new otherwise. The row
-holds how many calls were fetched, how many were new and how many failed. Prints those three numbers
-for each source, and then each failure.
+log and stops the run. When a source's calls are done, writes one row for it in the log: failed if any
+call failed, successful if none failed and at least one was new, nothing new otherwise. The row holds
+how many calls were fetched, how many were new and how many failed. Then reads each saved call that has
+no card, in a fixed order. Writes its card and a row with the reading's notes, or a failed row with the
+reason, so the next run reads it again. Prints the numbers for each source and for the reading, and
+then each failure.
 """
 
 import datetime as dt
 import json
+import os
 import sys
 import tomllib
 import traceback
@@ -17,18 +20,52 @@ from pathlib import Path
 
 import httpx2
 
+from field_monitoring_pipeline.extract import read
 from field_monitoring_pipeline.fetch import fetch, fetch_page, new_client
-from field_monitoring_pipeline.store import saved, store, store_failure, store_run
+from field_monitoring_pipeline.store import (
+    carded,
+    saved,
+    store,
+    store_card,
+    store_failure,
+    store_reading,
+    store_run,
+    stored_record,
+)
+from field_monitoring_pipeline.write import card
 
 
 def _reason(error: Exception) -> str:
     return "".join(traceback.format_exception_only(error)).rstrip("\n")
 
 
-def run(data: Path, watch_list: Path, client: httpx2.Client, fetched: dt.datetime) -> int:
+def _read(data: Path, client: httpx2.Client, fetched: dt.datetime, key: str) -> int:
+    unread = sorted(
+        (call for call in saved(data) if not carded(data, call)),
+        key=lambda call: (call.source, call.identifier),
+    )
+    failures: list[str] = []
+    for call in unread:
+        record = stored_record(data, call)
+        try:
+            made, notes = read(record, key, client)
+        except (ValueError, httpx2.HTTPError) as error:
+            reason = _reason(error)
+            store_reading(data, call, fetched, "failed", reason)
+            failures.append(f"{call.identifier}: {reason}")
+            continue
+        store_card(data, call, card(made))
+        store_reading(data, call, fetched, "card written", "; ".join(notes))
+    print(f"Read: {len(unread)} calls, {len(unread) - len(failures)} cards written, {len(failures)} failed")
+    for failure in failures:
+        print(failure)
+    return len(failures)
+
+
+def run(data: Path, watch_list: Path, client: httpx2.Client, fetched: dt.datetime, key: str) -> int:
     with watch_list.open("rb") as file:
         sources = tomllib.load(file)["source"]
-    done = saved(data)
+    done = {(call.source, call.identifier) for call in saved(data)}
     failed = 0
     for source in sources:
         source_id, name, url, words = source["id"], source["name"], source["url"], source["words"]
@@ -61,13 +98,13 @@ def run(data: Path, watch_list: Path, client: httpx2.Client, fetched: dt.datetim
         for failure in failures:
             print(failure)
         failed += len(failures)
-    return failed
+    return failed + _read(data, client, fetched, key)
 
 
 def main() -> None:
     fetched = dt.datetime.now(dt.UTC).replace(microsecond=0)
     with new_client() as client:
-        failed = run(Path(sys.argv[1]), Path("config/sources.toml"), client, fetched)
+        failed = run(Path(sys.argv[1]), Path("config/sources.toml"), client, fetched, os.environ["GEMINI_API_KEY"])
     if failed:
         sys.exit(1)
 
