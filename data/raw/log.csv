@@ -79,3 +79,4 @@ df44d0ef62fac90669b40501f1653ff00f418eb19589b4fefd9bfef8405dfcf9,eu-funding-tend
 ,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-10-23T11:34:56+00:00,successful,"54 calls, 11 new, 0 failed"
 ,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-10-24T10:54:59+00:00,nothing new,"54 calls, 0 new, 0 failed"
 ,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-10-25T11:22:19+00:00,nothing new,"54 calls, 0 new, 0 failed"
+,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-10-26T12:56:52+00:00,nothing new,"54 calls, 0 new, 0 failed"
