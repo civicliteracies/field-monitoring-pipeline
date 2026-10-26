@@ -48,15 +48,18 @@ changes sit outside the run, in the records and in the checks that guard the cod
       source's own field written out as one line, so a person can check it. The template refuses a
       record that does not fit.
 - [x] **8. `feat(extract): read one stored call into a call record`**
-      Read the stated facts (extraction). The project's own code copies the title, the two dates
-      and the budget from the source's own record, each date and the budget with its field written
-      out as one line. One language model call reads the stored call under a fixed instruction and
-      names the type, the funder, the summary, who can apply and where, each with the sentence it
-      rests on. The code turns both into a record, which notes which instruction and which model
+      Read the stated facts (extraction). The project's own code copies the title, the two dates and
+      the budget from the source's own record, each date and the budget with its field written out
+      as one line. A language model reads the stored call under fixed instructions. It names the
+      type, the funder, the summary, who can apply and where, the last three each with the sentence
+      it rests on. The code turns both into a record, which notes which instructions and which model
       read it. It is run by hand.
-- [ ] **9. `feat(validate): refuse a record whose quotes are not in the stored text`**
-      Validate (validation). Every quoted sentence is checked word for word against the stored text.
-      A failure goes back to the model once; a second failure writes nothing.
+- [x] **9. `feat(validate): check each quote against the stored text`**
+      Validate (validation). Every quoted sentence is looked for word for word in the stored text,
+      and the record marks each one found or not found. When a sentence is not found, or the model's
+      answer cannot be used, the model is asked once more, with a message the code writes naming
+      each problem. A sentence still not found stays on the record, marked. The code writes a note
+      for it, and one for each problem and each empty field.
 - [ ] **10. `feat(serialize): write each new record as a card`**
       Write the card (serialisation), with the coordination that sits on top of the steps. One
       record becomes one Markdown file that GitHub shows as a page: the fields on top for machines,

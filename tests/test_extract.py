@@ -6,14 +6,21 @@ from typing import Any
 import httpx2
 import pytest
 
-from field_monitoring_pipeline.extract import ask, build, text
+from field_monitoring_pipeline.extract import build, read, text
 from field_monitoring_pipeline.models import Call, Deadline, Quoted
 
 ROOT = Path(__file__).parent.parent
 REPLIES = Path(__file__).parent / "replies"
 INSTRUCTIONS = (ROOT / "src" / "field_monitoring_pipeline" / "instructions" / "v3.md").read_text(encoding="utf-8")
 REPLY = (REPLIES / "model_reply.txt").read_text(encoding="utf-8")
-LINE = 'fieldbook --type grant --summary "Funds news media." --summary-quote "We fund news media."'
+GUIDE = "See the information in the Horizon Europe Programme Guide."
+CONSUMPTION = "Users’ consumption patterns of news are identified (online and offline)."
+LINE = f'fieldbook --type grant --summary "Funds news media." --summary-quote "{GUIDE}"'
+# The recorded reply with words dropped from the middle of its summary's sentence.
+DROPPED = REPLY.replace("sectors at European level are addressed", "sectors are addressed")
+AGAIN = "This answer cannot be used as it is. Write the one command line again, with each problem below put right:"
+MISSED = "--summary-quote: the sentence must be in the text word for word"
+FUNDER = "funder: empty, because the model marked it not stated"
 
 
 def stored(deadlines: list[str] | None = None, topics: int = 1, **own: Any) -> Any:
@@ -30,8 +37,26 @@ def stored(deadlines: list[str] | None = None, topics: int = 1, **own: Any) -> A
     return record
 
 
+def model(*answers: str | httpx2.Response, seen: list[httpx2.Request]) -> httpx2.Client:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request)
+        answer = answers[len(seen) - 1]
+        if isinstance(answer, httpx2.Response):
+            return answer
+        return httpx2.Response(200, json={"choices": [{"message": {"content": answer}}]})
+
+    return httpx2.Client(transport=httpx2.MockTransport(handler))
+
+
+def reading(*answers: str) -> tuple[Call, list[str], list[Any]]:
+    seen: list[httpx2.Request] = []
+    with model(*answers, seen=seen) as client:
+        call, notes = read(stored(), "the key", client)
+    return call, notes, [json.loads(request.read())["messages"] for request in seen]
+
+
 def test_the_page_tags_are_stripped_and_a_sentence_keeps_its_stop() -> None:
-    assert "See the information in the Horizon Europe Programme Guide." in text(stored())
+    assert GUIDE in text(stored())
 
 
 def test_the_text_begins_with_the_four_lines_from_the_fields() -> None:
@@ -62,7 +87,8 @@ def test_the_description_comes_before_the_conditions() -> None:
     ],
 )
 def test_each_form_of_the_deadline_line(deadlines: list[str], date: dt.date, line: str) -> None:
-    assert build(stored(deadlines), REPLY).deadline == Deadline(date=date, quote=line)
+    call, _ = build(stored(deadlines), REPLY)
+    assert call.deadline == Deadline(date=date, quote=line, found=True)
 
 
 @pytest.mark.parametrize(
@@ -106,82 +132,90 @@ def test_each_form_of_the_deadline_line(deadlines: list[str], date: dt.date, lin
     ],
 )
 def test_each_form_of_the_budget_line(own: dict[str, Any], value: str, line: str) -> None:
-    assert build(stored(**own), REPLY).budget == Quoted(value=value, quote=line)
+    call, _ = build(stored(**own), REPLY)
+    assert call.budget == Quoted(value=value, quote=line, found=True)
 
 
 def test_a_pot_the_call_s_topics_share_says_so() -> None:
     record = stored(
         topics=5, budgetYearMap={"2026": "28000000"}, minContribution=0, maxContribution=0, expectedGrants=0
     )
-    assert build(record, REPLY).budget == Quoted(
+    call, _ = build(record, REPLY)
+    assert call.budget == Quoted(
         value="28 000 000 € (shared by the 5 topics of this call)",
         quote="Budget 2026: 28 000 000 € (shared by the 5 topics of this call)",
+        found=True,
     )
 
 
-def test_each_sentence_the_reply_quotes_is_in_the_text() -> None:
-    words = text(stored())
-    call = build(stored(), REPLY)
-    assert call.summary.quote in words
-    for fact in (call.eligibility, call.area):
-        assert fact is not None
-        assert fact.quote in words
+def test_a_recorded_reply_becomes_a_record_with_every_sentence_found() -> None:
+    assert build(stored(), REPLY) == (
+        Call.model_validate({
+            "title": "Identifying user-focused solutions to support news media freedom",
+            "type": "grant",
+            "funder": None,
+            "opening": {"date": "2027-05-13", "quote": "Opening date: 2027-05-13", "found": True},
+            "deadline": {"date": "2027-09-23", "quote": "Deadline: 2027-09-23", "found": True},
+            "budget": {
+                "value": "12 000 000 € (each winning project: 3 500 000 € to 4 000 000 €)",
+                "quote": (
+                    "Budget 2027: 12 000 000 € (each winning project: 3 500 000 € to 4 000 000 €); "
+                    "winning projects expected: 3"
+                ),
+                "found": True,
+            },
+            "summary": {
+                "value": (
+                    "Grants to address data gaps and develop innovative models that support news media freedom and "
+                    "independence."
+                ),
+                "quote": (
+                    "Key data gaps affecting the news media sectors at European level are addressed and all relevant "
+                    "stakeholders dispose of an updated and comprehensive knowledge base."
+                ),
+                "found": True,
+            },
+            "eligibility": {
+                "value": "academia, civil society organisations and news sectors representatives forming consortia",
+                "quote": (
+                    "Consortia should: bring together academia (including from SSH disciplines), civil society "
+                    "organisations and multiple news sectors representatives (including influencers and other "
+                    "content creators); where applicable, leverage the data and services available through European "
+                    "Research Infrastructures federated under the European Open Science Cloud (EOSC), as well as "
+                    "data from relevant Data Spaces"
+                ),
+                "found": True,
+            },
+            "area": {
+                "value": "Europe",
+                "quote": (
+                    "There are still important quantitative and qualitative data gaps at European level that can "
+                    "help the news media sectors address these concerns, including accurate diagnoses of the "
+                    "challenges and opportunities for the news sectors."
+                ),
+                "found": True,
+            },
+            "link": (
+                "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/"
+                "HORIZON-CL2-2027-01-DEMOCRACY-06"
+            ),
+            "model": "gemini-3.5-flash-lite",
+            "instructions": "v3",
+        }),
+        [FUNDER],
+    )
 
 
-def test_a_recorded_reply_becomes_a_record() -> None:
-    assert build(stored(), REPLY) == Call.model_validate({
-        "title": "Identifying user-focused solutions to support news media freedom",
-        "type": "grant",
-        "funder": None,
-        "opening": {"date": "2027-05-13", "quote": "Opening date: 2027-05-13"},
-        "deadline": {"date": "2027-09-23", "quote": "Deadline: 2027-09-23"},
-        "budget": {
-            "value": "12 000 000 € (each winning project: 3 500 000 € to 4 000 000 €)",
-            "quote": (
-                "Budget 2027: 12 000 000 € (each winning project: 3 500 000 € to 4 000 000 €); "
-                "winning projects expected: 3"
-            ),
-        },
-        "summary": {
-            "value": (
-                "Grants to address data gaps and develop innovative models that support news media freedom and "
-                "independence."
-            ),
-            "quote": (
-                "Key data gaps affecting the news media sectors at European level are addressed and all relevant "
-                "stakeholders dispose of an updated and comprehensive knowledge base."
-            ),
-        },
-        "eligibility": {
-            "value": "academia, civil society organisations and news sectors representatives forming consortia",
-            "quote": (
-                "Consortia should: bring together academia (including from SSH disciplines), civil society "
-                "organisations and multiple news sectors representatives (including influencers and other content "
-                "creators); where applicable, leverage the data and services available through European Research "
-                "Infrastructures federated under the European Open Science Cloud (EOSC), as well as data from "
-                "relevant Data Spaces"
-            ),
-        },
-        "area": {
-            "value": "Europe",
-            "quote": (
-                "There are still important quantitative and qualitative data gaps at European level that can help "
-                "the news media sectors address these concerns, including accurate diagnoses of the challenges and "
-                "opportunities for the news sectors."
-            ),
-        },
-        "link": (
-            "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/"
-            "HORIZON-CL2-2027-01-DEMOCRACY-06"
-        ),
-        "model": "gemini-3.5-flash-lite",
-        "instructions": "v3",
-    })
-
-
-@pytest.mark.parametrize("flag", [" --eligibility-not-stated", ""])
-def test_an_absent_optional_fact_is_not_stated(flag: str) -> None:
-    assert build(stored(), LINE + flag).eligibility is None
+@pytest.mark.parametrize(
+    ("line", "reason"),
+    [
+        (LINE, "the model's answer did not mention it"),
+        (LINE + " --area-not-stated --eligibility-not-stated --funder-not-stated", "the model marked it not stated"),
+    ],
+)
+def test_each_empty_box_gets_its_note_in_the_record_s_own_order(line: str, reason: str) -> None:
+    _, notes = build(stored(), line)
+    assert notes == [f"{name}: empty, because {reason}" for name in ("funder", "who can apply", "where")]
 
 
 def test_a_value_with_no_sentence_is_refused() -> None:
@@ -194,7 +228,7 @@ def test_a_value_with_no_sentence_is_refused() -> None:
     [
         (LINE + ' --title-quote "A title."', "--title-quote is not a flag the instructions offer"),
         (LINE + " --type grant", "--type is given twice"),
-        ('fieldbook --summary "Funds news media." --summary-quote "We fund news media." --type', "--type has no value"),
+        (f'fieldbook --summary "Funds news media." --summary-quote "{GUIDE}" --type', "--type has no value"),
     ],
 )
 def test_a_malformed_line_is_refused(line: str, refusal: str) -> None:
@@ -202,15 +236,153 @@ def test_a_malformed_line_is_refused(line: str, refusal: str) -> None:
         build(stored(), line)
 
 
-def test_the_model_is_asked_once_with_the_instructions_and_the_text() -> None:
+def test_a_sentence_in_the_text_is_found_and_the_model_asked_once() -> None:
+    call, notes, asked = reading(REPLY)
+    assert len(asked) == 1
+    assert call.summary.found
+    assert notes == [FUNDER]
+
+
+def test_a_quote_is_found_whatever_its_line_breaks_and_spaces() -> None:
+    quote = GUIDE.replace("information in", "information\\n in").replace("Horizon", " Horizon")
+    call, _ = build(stored(), f'fieldbook --type grant --summary "Funds news media." --summary-quote "{quote}"')
+    assert call.summary.quote == "See the information\n in the  Horizon Europe Programme Guide."
+    assert call.summary.found
+
+
+@pytest.mark.parametrize(
+    "quote",
+    [
+        pytest.param(CONSUMPTION.replace("’", "'"), id="straight apostrophe"),
+        pytest.param(CONSUMPTION.lower(), id="letter case"),
+    ],
+)
+def test_a_quote_is_found_only_letter_for_letter(quote: str) -> None:
+    line = 'fieldbook --type grant --summary "Funds news media." --summary-quote "{}"'
+    assert build(stored(), line.format(CONSUMPTION))[0].summary.found
+    assert not build(stored(), line.format(quote))[0].summary.found
+
+
+def test_a_sentence_with_words_dropped_is_caught_and_asked_about_once_more() -> None:
+    call, notes, asked = reading(DROPPED, REPLY)
+    first, second = asked
+    assert second == [
+        *first,
+        {"role": "assistant", "content": DROPPED},
+        {"role": "user", "content": f"{AGAIN}\n{MISSED}"},
+    ]
+    assert call == build(stored(), REPLY)[0]
+    assert notes == [f"first answer: {MISSED}", FUNDER]
+
+
+@pytest.mark.parametrize(
+    ("words", "changed", "flag"),
+    [
+        ("comprehensive knowledge base", "complete knowledge base", "summary"),
+        ("multiple news sectors", "many news sectors", "eligibility"),
+        ("accurate diagnoses", "exact diagnoses", "area"),
+    ],
+)
+def test_the_problem_line_of_a_sentence_not_found_names_its_flag(words: str, changed: str, flag: str) -> None:
+    _, _, asked = reading(REPLY.replace(words, changed), REPLY)
+    assert asked[1][-1]["content"] == f"{AGAIN}\n--{flag}-quote: the sentence must be in the text word for word"
+
+
+def test_a_sentence_with_one_figure_changed_is_missed_twice_and_kept_marked() -> None:
+    sentence = (
+        "The granting authority may, up to 4 years after the end of the action, object to a transfer of ownership"
+    )
+    assert sentence in text(stored())
+    changed = sentence.replace("4 years", "3 years")
+    answer = f'fieldbook --type grant --funder-not-stated --summary "Funds news media." --summary-quote "{changed}"'
+    call, notes, asked = reading(answer, answer)
+    assert len(asked) == 2
+    assert call.summary == Quoted(value="Funds news media.", quote=changed, found=False)
+    assert notes == [
+        f"first answer: {MISSED}",
+        f"second answer: {MISSED}",
+        FUNDER,
+        f"summary: this sentence was not found in the call: {changed}",
+        "who can apply: empty, because the model's answer did not mention it",
+        "where: empty, because the model's answer did not mention it",
+    ]
+
+
+def test_a_usable_second_answer_is_kept_even_when_it_misses_more() -> None:
+    first = REPLY.replace("comprehensive knowledge", "complete knowledge").replace("accurate", "exact")
+    second = first.replace("multiple news sectors", "many news sectors")
+    call, notes, asked = reading(first, second)
+    expected, expected_notes = build(stored(), second)
+    rule = "the sentence must be in the text word for word"
+    assert asked[1][-1]["content"] == f"{AGAIN}\n--summary-quote: {rule}\n--area-quote: {rule}"
+    assert call == expected
+    assert notes == [
+        *(f"first answer: --{flag}-quote: {rule}" for flag in ("summary", "area")),
+        *(f"second answer: --{flag}-quote: {rule}" for flag in ("summary", "eligibility", "area")),
+        *expected_notes,
+    ]
+
+
+def test_a_usable_first_answer_is_kept_when_the_second_cannot_be_used() -> None:
+    call, notes, _ = reading(DROPPED, "I could not decide.")
+    assert call == build(stored(), DROPPED)[0]
+    assert not call.summary.found
+    assert notes == [
+        f"first answer: {MISSED}",
+        "second answer: the answer must hold exactly one line beginning with fieldbook; it holds 0",
+        FUNDER,
+        f"summary: this sentence was not found in the call: {call.summary.quote}",
+    ]
+
+
+def test_a_second_request_that_fails_fails_the_reading_with_the_first_answer_s_problems() -> None:
     seen: list[httpx2.Request] = []
+    with model(DROPPED, httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError) as caught:
+        read(stored(), "the key", client)
+    assert caught.value.__notes__ == [f"first answer: {MISSED}"]
 
-    def handler(request: httpx2.Request) -> httpx2.Response:
-        seen.append(request)
-        return httpx2.Response(200, json={"choices": [{"message": {"content": "the reply"}}]})
 
-    with httpx2.Client(transport=httpx2.MockTransport(handler)) as client:
-        assert ask("the text", "the key", client) == "the reply"
+@pytest.mark.parametrize(
+    ("answer", "count"),
+    [pytest.param("I could not decide.", 0, id="none"), pytest.param(REPLY + "\n" + LINE, 2, id="two")],
+)
+def test_an_answer_with_no_command_line_or_two_is_sent_back_with_the_rule(answer: str, count: int) -> None:
+    problem = f"the answer must hold exactly one line beginning with fieldbook; it holds {count}"
+    call, notes, asked = reading(answer, REPLY)
+    assert asked[1][-1]["content"] == f"{AGAIN}\n{problem}"
+    assert call == build(stored(), REPLY)[0]
+    assert notes == [f"first answer: {problem}", FUNDER]
+
+
+def test_a_record_the_template_refuses_is_sent_back_and_noted_short() -> None:
+    problems = [
+        (
+            "type: Input should be 'grant', 'tender', 'rfp', 'eoi', 'framework', 'fellowship', 'prize', 'training', "
+            "'post' or 'other'"
+        ),
+        "summary.value: Input should be a valid string",
+    ]
+    _, notes, asked = reading(f'fieldbook --type gift --summary 5 --summary-quote "{GUIDE}"', REPLY)
+    message = asked[1][-1]["content"]
+    assert message == "\n".join([AGAIN, *problems])
+    assert notes == [*(f"first answer: {problem}" for problem in problems), FUNDER]
+
+
+def test_an_answer_unusable_twice_raises_naming_both_answers_problems() -> None:
+    seen: list[httpx2.Request] = []
+    with model("I could not decide.", LINE + "\n" + LINE, seen=seen) as client, pytest.raises(ValueError) as caught:
+        read(stored(), "the key", client)
+    assert str(caught.value) == (
+        "first answer: the answer must hold exactly one line beginning with fieldbook; it holds 0; "
+        "second answer: the answer must hold exactly one line beginning with fieldbook; it holds 2"
+    )
+    assert len(seen) == 2
+
+
+def test_the_first_request_holds_the_instructions_and_the_text() -> None:
+    seen: list[httpx2.Request] = []
+    with model(REPLY, seen=seen) as client:
+        read(stored(), "the key", client)
     [request] = seen
     assert str(request.url) == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
     assert request.headers["Authorization"] == "Bearer the key"
@@ -221,17 +393,16 @@ def test_the_model_is_asked_once_with_the_instructions_and_the_text() -> None:
     assert body["messages"] == [
         {
             "role": "user",
-            "content": f"{INSTRUCTIONS}\n-----BEGIN SOURCE TEXT-----\nthe text\n-----END SOURCE TEXT-----",
+            "content": f"{INSTRUCTIONS}\n-----BEGIN SOURCE TEXT-----\n{text(stored())}\n-----END SOURCE TEXT-----",
         }
     ]
 
 
 def test_a_request_the_service_refuses_is_raised() -> None:
-    def handler(request: httpx2.Request) -> httpx2.Response:
-        return httpx2.Response(503)
-
-    with httpx2.Client(transport=httpx2.MockTransport(handler)) as client, pytest.raises(httpx2.HTTPStatusError):
-        ask("the text", "the key", client)
+    seen: list[httpx2.Request] = []
+    with model(httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError) as caught:
+        read(stored(), "the key", client)
+    assert not hasattr(caught.value, "__notes__")
 
 
 def test_the_instructions_hold_what_the_code_writes_and_their_example_builds() -> None:
@@ -240,4 +411,5 @@ def test_the_instructions_hold_what_the_code_writes_and_their_example_builds() -
     assert "`-----BEGIN SOURCE TEXT-----`" in INSTRUCTIONS
     assert "`-----END SOURCE TEXT-----`" in INSTRUCTIONS
     [example] = [line for line in INSTRUCTIONS.splitlines() if line.startswith("fieldbook ")]
-    assert build(stored(), example).funder == "Example Foundation"
+    call, _ = build(stored(), example)
+    assert call.funder == "Example Foundation"

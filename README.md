@@ -2,9 +2,9 @@
 
 Most of what the Civic Literacy Initiative (CLI) needs to know already reaches it. A funder opens a call, a peer publishes a report, a newsletter carries a link. It is read once and then lost, or found after the deadline has passed. Fieldbook is the memory that stops that happening.
 
-Every morning it visits the sources CLI has chosen, keeps a copy of what they published, and turns each funding call into a card: what the call is, who can apply, how much it offers, when it closes. Under the summary, who can apply and where sits the funder's own sentence, and under the dates and the budget a line written from the source's own record, so each can be checked against the source in seconds. The cards are plain files on the [`data` branch](https://github.com/civicliteracies/field-monitoring-pipeline/tree/data) of this repository, and an RSS feed carries each new one into a feed reader. It is built to run on GitHub, on free services, with no one tending it.
+Every morning it visits the sources CLI has chosen, keeps a copy of what they published, and turns each funding call into a card: what the call is, who can apply, how much it offers, when it closes. Under the summary, who can apply and where sits the funder's own sentence, with a warning when it could not be found in what was collected. Under the dates and the budget sits a line written from the source's own record. Each can be checked against the source in seconds. The cards are plain files on the [`data` branch](https://github.com/civicliteracies/field-monitoring-pipeline/tree/data) of this repository, and an RSS feed carries each new one into a feed reader. It is built to run on GitHub, on free services, with no one tending it.
 
-Collecting and keeping run by themselves, every morning. Reading is built and is run by hand, one stored call at a time. The check of what was read, the cards and the feed are not built yet. The code arrives one change at a time, in the order [`docs/plan.md`](docs/plan.md) sets out, and this page describes Fieldbook as it will work once those changes are in.
+Collecting and keeping run by themselves, every morning. Reading and the check of what was read are built and are run by hand, one stored call at a time. The cards and the feed are not built yet. The code arrives one change at a time, in the order [`docs/plan.md`](docs/plan.md) sets out, and this page describes Fieldbook as it will work once those changes are in.
 
 ## What it does
 
@@ -12,13 +12,13 @@ It finds the opportunities CLI can act on, for funding and for paid work: grants
 
 ## How a run works
 
-Fieldbook watches a named list of sources and never searches the open web. Each morning it reaches every source by the route that source publishes, and writes down each item it collects, once and whole, before the reading step sees a word of it, together with where it came from. Then it reads: the title, the dates and the budget are copied from the source's own record where it gives them in fields, and one language model call per item names the rest, asked for what the text states and nothing else, with the sentence each fact rests on. Every quoted sentence is checked word for word against the stored copy, and an item that fails twice produces nothing. What survives becomes a Markdown card, saved to the `data` branch, which holds the archive and shares no history with the code, and carried into the RSS feed.
+Fieldbook watches a named list of sources and never searches the open web. Each morning it reaches every source by the route that source publishes, and writes down each item it collects, once and whole, before the reading step sees a word of it, together with where it came from. Then it reads. The title, the dates and the budget are copied from the source's own record where it gives them in fields. A language model names the rest, asked for what the text states and nothing else. For the summary, who can apply and where, it also quotes the sentence each one rests on. Every quoted sentence is checked word for word against the stored copy. When a sentence is not found, or the model's answer cannot be used, the model is asked once more. A sentence still not found stays on the card with a warning. When neither of the model's answers can be used, the item gets no card. Each item read becomes a Markdown card, saved to the `data` branch, which holds the archive and shares no history with the code, and carried into the RSS feed.
 
 Everything collected and everything written stays in this repository as plain files, on the `data` branch.
 
 ## What it does not promise
 
-The checks prove that a quoted sentence is in what was collected, word for word. They do not prove that the sentence supports the fact printed beside it. That is why every card is built to be read next to its source, with what each fact rests on under it.
+The check shows whether a quoted sentence is in what was collected, word for word, and a card warns of each one it could not find. It does not show that the sentence supports the fact printed beside it. That is why every card is built to be read next to its source, with the funder's own sentence or the source's own line under each fact that has one.
 
 ## This version
 
