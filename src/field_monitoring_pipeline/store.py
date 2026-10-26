@@ -1,25 +1,41 @@
-"""Store what the run collected, under the data folder.
+"""Store what the run collected and wrote, under the data folder.
 
 Each saved call has two files in its source's folder: its web page as downloaded and the source's
-record of it. Both are named by a code made from the call's identifier. One log beside the folders
-has a row for each call the run tried, saved or failed. It also has a row for each source, which
-says how the run ended for it. The files are written first and the row last, and a call counts as
-stored once it has a saved row.
+record of it. Both are named by a code made from the call's identifier. Each call read has a card in
+one folder for all sources, named by the day it was saved, its title and the first ten characters of
+its code. One log beside the folders has a row for each call the run tried, saved or failed, and for
+each call it read, card written or failed. It also has a row for each source, which says how the run
+ended for it. The files are written first and the row last. A call counts as stored once it has a
+saved row, and as read once it has a card.
 """
 
 import csv
 import datetime as dt
 import hashlib
 import json
+import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from field_monitoring_pipeline.fetch import FetchedCall
+from field_monitoring_pipeline.fetch import JSON, FetchedCall
 
 COLUMNS = ("code", "source", "identifier", "title", "link", "fetched", "status", "reason")
+SHORT_TITLE = 60
+SHORT_CODE = 10
 type Status = Literal["saved", "failed"]
+type Reading = Literal["card written", "failed"]
 type Outcome = Literal["successful", "failed", "nothing new"]
-type Row = tuple[str, str, str, str, str, str, Status | Outcome, str]
+type Row = tuple[str, str, str, str, str, str, Status | Reading | Outcome, str]
+
+
+@dataclass(frozen=True)
+class Saved:
+    source: str
+    identifier: str
+    title: str
+    link: str
+    day: dt.date
 
 
 def code(text: str) -> str:
@@ -34,12 +50,26 @@ def _log(data: Path) -> Path:
     return _raw(data) / "log.csv"
 
 
-def saved(data: Path) -> set[tuple[str, str]]:
+def _cards(data: Path) -> Path:
+    return data / "calls"
+
+
+def saved(data: Path) -> list[Saved]:
     log = _log(data)
     if not log.exists():
-        return set()
+        return []
     with log.open(encoding="utf-8", newline="") as file:
-        return {(row["source"], row["identifier"]) for row in csv.DictReader(file) if row["status"] == "saved"}
+        return [
+            Saved(
+                row["source"],
+                row["identifier"],
+                row["title"],
+                row["link"],
+                dt.datetime.fromisoformat(row["fetched"]).date(),
+            )
+            for row in csv.DictReader(file)
+            if row["status"] == "saved"
+        ]
 
 
 def _add_row(data: Path, row: Row) -> None:
@@ -52,7 +82,7 @@ def _add_row(data: Path, row: Row) -> None:
 
 
 def _add_call_row(
-    data: Path, source: str, call: FetchedCall, fetched: dt.datetime, status: Status, reason: str
+    data: Path, source: str, call: FetchedCall | Saved, fetched: dt.datetime, status: Status | Reading, reason: str
 ) -> None:
     name = code(call.identifier)
     _add_row(data, (name, source, call.identifier, call.title, call.link, fetched.isoformat(), status, reason))
@@ -74,3 +104,32 @@ def store_failure(data: Path, source: str, call: FetchedCall, fetched: dt.dateti
 
 def store_run(data: Path, source: str, link: str, fetched: dt.datetime, outcome: Outcome, reason: str) -> None:
     _add_row(data, ("", source, "", "", link, fetched.isoformat(), outcome, reason))
+
+
+def stored_record(data: Path, call: Saved) -> JSON:
+    return json.loads((_raw(data) / call.source / f"{code(call.identifier)}.json").read_bytes())
+
+
+def _card_code(identifier: str) -> str:
+    return code(identifier)[:SHORT_CODE]
+
+
+def card_name(call: Saved) -> str:
+    title = re.sub(r"[^a-z0-9]+", "-", call.title.lower()).strip("-")
+    # A long title is cut at a hyphen, so a word is never cut in half.
+    if len(title) > SHORT_TITLE:
+        title = title[: SHORT_TITLE + 1].rsplit("-", 1)[0]
+    return f"{call.day}-{title}-{_card_code(call.identifier)}.md"
+
+
+def carded(data: Path, call: Saved) -> bool:
+    return any(_cards(data).glob(f"*-{_card_code(call.identifier)}.md"))
+
+
+def store_card(data: Path, call: Saved, card: str) -> None:
+    _cards(data).mkdir(parents=True, exist_ok=True)
+    (_cards(data) / card_name(call)).write_bytes(card.encode("utf-8"))
+
+
+def store_reading(data: Path, call: Saved, fetched: dt.datetime, status: Reading, reason: str) -> None:
+    _add_call_row(data, call.source, call, fetched, status, reason)

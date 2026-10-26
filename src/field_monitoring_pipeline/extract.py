@@ -4,10 +4,11 @@ Makes the text a language model reads from a stored call: four labelled lines wr
 record's fields (the title, the opening date, the deadline and the budget), then the description and
 the conditions with the page's tags stripped. Asks the model under the instructions kept beside this
 file, reads the one command line of its answer, and looks for each quoted sentence in the text. When
-the answer cannot be used or a sentence is not found, asks once more, in the same conversation, naming
-each problem. Builds the record from the four fields and the five facts the model names, with the link
-and the names of the model and the instructions. Marks each sentence found or not found, and returns
-the record with a note for each problem, each sentence not found and each empty field.
+the answer cannot be used or a sentence is not found, asks once more, in the same conversation,
+naming each problem. Builds the record from the four fields and the five facts the model names, with
+the link, the call's identifier and the names of the model and the instructions. Marks each sentence
+found or not found, and returns the record with a note for each problem, each sentence not found and
+each empty field.
 """
 
 import datetime as dt
@@ -65,6 +66,7 @@ class _Stored:
     deadline: Deadline
     budget: Quoted
     link: str
+    identifier: str
 
 
 @dataclass(frozen=True)
@@ -170,6 +172,7 @@ def _stored(record: JSON) -> _Stored:
         deadline=Deadline(date=deadline, quote=deadline_line, found=_found(deadline_line, words)),
         budget=Quoted(value=budget, quote=budget_line, found=_found(budget_line, words)),
         link=metadata["url"][0],
+        identifier=metadata["identifier"][0],
     )
 
 
@@ -247,6 +250,7 @@ def _build(stored: _Stored, reply: str) -> tuple[Call, list[str]]:
         "eligibility": _pair(given, "eligibility", stored.words),
         "area": _pair(given, "area", stored.words),
         "link": stored.link,
+        "identifier": stored.identifier,
         "model": MODEL,
         "instructions": INSTRUCTIONS,
     })

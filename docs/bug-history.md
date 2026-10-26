@@ -49,8 +49,8 @@ condition in `.github/workflows/calls.yml`, which lets it run after a step has f
 ### BUG-002: every day produced a commit, even when nothing had changed
 
 **Severity:** medium. **Class:** correctness of the record. **Status:** fixed in earlier work; the
-rule it produced is carried here, with one change: a run adds a row to the log for each source it
-finishes.
+rule it produced is carried here, with two changes: a run adds a row to the log for each source it
+finishes, and a saved call gets a row each time it is read.
 
 **Summary.** The daily run committed to the archive every morning whether or not anything new had
 arrived, so the history filled with changes that changed nothing.
@@ -62,17 +62,18 @@ differs on every run, so every item looked new every day.
 it was collected, and the run was changed to commit only when something had changed.
 
 **Prevention.** Nothing stored is ever rewritten, and a call already saved is not stored again. A
-run adds rows to the log only for the calls it tried, and one row for each source, saying how the
-run ended for it. So a run with nothing new and nothing failing adds that one row for each source
-and changes nothing else.
+run adds rows to the log only for the calls it tried or read, and one row for each source, saying
+how the run ended for it. So a run with nothing new, nothing failing and nothing left to read adds
+that one row for each source and changes nothing else.
 
 **Technical detail.** The rule lands with change 5, which stores a call only when the log has no
 `saved` row for it, so nothing stored is ever rewritten, and with change 6, which makes the daily
 commit and asks git whether anything is there to commit before making one. This build records the
-time of collection again, in the log. Once a call is saved, it gets no further row. This build also
-writes a row for each source a run finishes, so every finished run adds to the log. Test that now
-fails on the old behaviour: the command's test of a second run. It must download no page, leave
-every page and record as it was, keep every earlier row of the log, and add only the run's row.
+time of collection again, in the log. Once a call is saved, it gets a row each time it is read,
+until its card is written, and none after. This build also writes a row for each source a run
+finishes, so every finished run adds to the log. Test that now fails on the old behaviour: the
+command's test of a second run. It must download no page, leave every page and record as it was,
+keep every earlier row of the log, and add only the run's row.
 
 ### BUG-003: line endings were rewritten, so a quote checked on one machine failed on another
 

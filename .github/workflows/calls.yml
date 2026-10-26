@@ -1,9 +1,10 @@
 # The daily run. Every morning GitHub runs the one command and commits what it
-# stored to the `data` branch. The commit step runs even when the command
-# stopped with an error, so calls already stored are kept. It commits only when
-# something changed. A run adds one row to the log for each source it finishes,
-# so a morning with no new call still leaves a commit. That commit holds the
-# row and rewrites no stored file.
+# wrote to the `data` branch. The command collects and stores new calls, then
+# reads each stored call that has no card and writes its card. The model's key
+# comes from the repository secret GEMINI_API_KEY. The commit step runs even
+# when the command stopped with an error, so what was already written is kept.
+# It commits only when something changed. A run adds one row to the log for each
+# source it finishes, so a morning with no new call still leaves a commit.
 name: Daily run
 on:
   schedule:
@@ -24,6 +25,7 @@ jobs:
       - name: Run the command
         env:
           PYTHONUNBUFFERED: "1"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: uv run --locked --no-dev python -m field_monitoring_pipeline.calls .archive/data
       - name: Commit what was stored
         if: ${{ !cancelled() }}
