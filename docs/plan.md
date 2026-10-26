@@ -1,14 +1,23 @@
 # The plan
 
-What is being built, in the order it is built. Each line carries the title the change will be made
-under and a short plain description of what it does, and is ticked by the change that completes it.
+This plan lists everything we are building, in the order it will be built. Each item includes its
+pull request title and a plain-English explanation of what it does. Items are checked off as each
+update is completed.
 
-The run has seven steps, and each line below says which one it belongs to: Fetch (ingestion), Store
-the raw (raw storage with provenance), Identify (stable identifiers), Read the stated facts
-(extraction), Validate (validation), Write the card (serialisation), Publish (publishing). Three
-changes sit outside the run, in the records and in the checks that guard the code.
+Our daily automated run follows seven steps in order:
 
-## This version: the funding calls of one source, each to a card and into a feed reader
+1. Fetch: Finding new funding opportunities.
+2. Store the raw: Saving exact, untouched copies of the original pages.
+3. Identify: Giving each opportunity a permanent ID to avoid duplicates.
+4. Read the stated facts: Extracting key information, partly using artificial intelligence.
+5. Validate: Checking that all quoted proof sentences actually appear in the original text.
+6. Write the card: Saving clean, structured summary sheets to our archive.
+7. Publish: Delivering new cards to subscribers through a news feed.
+
+Some tasks sit outside this daily run, including project documentation, code quality checks, tools
+run by hand, and quarterly reports.
+
+## The first version: the funding calls of one source, each to a card and into a feed reader
 
 - [x] **1. `docs: add README overview, decision log, bug history and architecture map`**
       Outside the run. The front page says what Fieldbook is, and `docs` gains this plan, the
@@ -74,8 +83,49 @@ changes sit outside the run, in the records and in the checks that guard the cod
       so a new funding call arrives in a feed reader the day it is found. Each entry carries the title
       with the closing date, a link to the card, the summary, and the call's code as its identity.
 
-## After this version
+## The second version: topics, more sources, the project reports and the sector's direction
 
-Topics on each card, the remaining call sources one at a time, the project reports on their own
-weekly run, the quarterly reading of where the sector is going, the proposals of funders not yet
-followed, and a guide to adding a source.
+- [ ] **12. `feat(extract): log each model response`**
+      Whenever the artificial intelligence reads a funding call, Fieldbook saves the model's exact,
+      raw response directly into a log file before generating the final card. This gives us a
+      permanent audit trail, allowing anyone to review the model's original words and verify how it
+      arrived at each extracted fact.
+- [ ] **13. `feat(tags): tag cards with topics from the topic list`**
+      We maintain a plain text list of relevant topics, classifying each topic as either primary
+      (areas where our organization actively works) or secondary (areas we simply monitor). Instead
+      of relying on the artificial intelligence, Fieldbook's own code automatically scans each card
+      and attaches the matching topics from this list, making it easy to group and filter cards by
+      topic.
+- [ ] **14. `feat(sources): add a second source of calls`**
+      Fieldbook adds a second funding website to its monitoring watch list after we manually verify
+      that the portal regularly publishes open grant opportunities. Any calls gathered from this new
+      source are converted into standard cards, stored in the same archive directory, and published
+      through the same RSS feed.
+- [ ] **15. `feat(reports): ingest project reports as cards`**
+      Once a week, Fieldbook runs a separate background workflow dedicated to reading completed
+      project reports rather than funding calls. It turns each report into its own card inside a
+      dedicated folder, extracting the organization name alongside five key details: the target
+      audience, the research methodology, the final results, the project duration, and the
+      geographic area, with each detail accompanied by its exact supporting quote from the report.
+- [ ] **16. `feat(direction): generate the quarterly sector report`**
+      Once every quarter, Fieldbook runs a completely offline script without using artificial
+      intelligence. The code analyzes all stored cards by funder and by topic, producing a quarterly
+      summary with statistics and charts. This report highlights topics that attracted interest from
+      three or more funders, shows which topics grew or declined compared to the previous quarter,
+      and lists any newly detected funding organizations.
+- [ ] **17. `feat(discover): suggest new funders to watch`**
+      This introduces an on-demand tool that a person can run by hand. The script compares our
+      existing archive against a public registry to find funding organizations we have not
+      encountered yet. It produces a list of suggested funders along with an explanation for why
+      each one might be relevant, without altering the active watch list automatically.
+- [ ] **18. `docs: add a guide for adding a source`**
+      A new, straightforward guide added to the project documentation explains step by step how to
+      add a new funding portal to the watch list, along with the specific quality checks to perform
+      before adding it.
+
+## Looking ahead: Ideas after version two
+
+Future updates may focus on smarter filtering and a public interface. Ideas under consideration
+include ranking grants by how closely they match our team's mission, creating a dedicated reader
+view for project reports, automatically linking related past and present grants, enabling
+concept-based semantic search, and launching a public web portal for anyone to browse our findings.
