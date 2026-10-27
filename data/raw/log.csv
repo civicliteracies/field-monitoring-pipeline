@@ -80,3 +80,5 @@ df44d0ef62fac90669b40501f1653ff00f418eb19589b4fefd9bfef8405dfcf9,eu-funding-tend
 ,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-10-24T10:54:59+00:00,nothing new,"54 calls, 0 new, 0 failed"
 ,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-10-25T11:22:19+00:00,nothing new,"54 calls, 0 new, 0 failed"
 ,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-10-26T12:56:52+00:00,nothing new,"54 calls, 0 new, 0 failed"
+f24132da283ebff55adaf8a631df19a3366a243df3d88532d4ac01285e0bdfd5,eu-funding-tenders,CERV-2026-CITIZENS-VALUES,CERV-2026-CITIZENS-VALUES,https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/CERV-2026-CITIZENS-VALUES,2026-10-27T12:07:05+00:00,saved,
+,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-10-27T12:07:05+00:00,successful,"55 calls, 1 new, 0 failed"
