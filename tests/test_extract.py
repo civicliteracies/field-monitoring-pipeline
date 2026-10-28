@@ -1,4 +1,3 @@
-import datetime as dt
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -8,8 +7,9 @@ import httpx2
 import pytest
 
 from field_monitoring_pipeline.extract import build, read, text
-from field_monitoring_pipeline.models import Call, Deadline, Quoted
+from field_monitoring_pipeline.models import Call, Quoted
 from field_monitoring_pipeline.store import AnswerWord
+from tests.test_tags import TOPICS
 
 ROOT = Path(__file__).parent.parent
 REPLIES = Path(__file__).parent / "replies"
@@ -25,7 +25,7 @@ MISSED = "--summary-quote: the sentence must be in the text word for word"
 FUNDER = "funder: empty, because the model marked it not stated"
 
 
-def stored(deadlines: list[str] | None = None, topics: int = 1, **own: Any) -> Any:
+def stored(deadlines: list[str] | None = None, shared: int = 1, **own: Any) -> Any:
     record = json.loads((REPLIES / "stored_call.json").read_bytes())
     metadata = record["metadata"]
     if deadlines is not None:
@@ -34,7 +34,7 @@ def stored(deadlines: list[str] | None = None, topics: int = 1, **own: Any) -> A
     for lines in budget["budgetTopicActionMap"].values():
         if lines[0]["action"].startswith("HORIZON-CL2-2027-01-DEMOCRACY-06 "):
             lines[0].update(own)
-            lines += [lines[0] | {"action": f"OTHER-TOPIC-{n} - Research"} for n in range(1, topics)]
+            lines += [lines[0] | {"action": f"OTHER-TOPIC-{n} - Research"} for n in range(1, shared)]
     metadata["budgetOverview"] = [json.dumps(budget)]
     return record
 
@@ -58,105 +58,12 @@ def keeping(kept: list[tuple[AnswerWord, int, str]], seen: list[httpx2.Request])
 def reading(*answers: str) -> tuple[Call, list[str], list[Any]]:
     seen: list[httpx2.Request] = []
     with model(*answers, seen=seen) as client:
-        call, notes = read(stored(), "the key", client, keeping([], seen))
+        call, notes = read(stored(), TOPICS, "the key", client, keeping([], seen))
     return call, notes, [json.loads(request.read())["messages"] for request in seen]
 
 
-def test_the_page_tags_are_stripped_and_a_sentence_keeps_its_stop() -> None:
-    assert GUIDE in text(stored())
-
-
-def test_the_text_begins_with_the_four_lines_from_the_fields() -> None:
-    assert text(stored()).startswith(
-        "Title: Identifying user-focused solutions to support news media freedom\n"
-        "Opening date: 2027-05-13\n"
-        "Deadline: 2027-09-23\n"
-        "Budget 2027: 12 000 000 € (each winning project: 3 500 000 € to 4 000 000 €); winning projects expected: 3\n"
-    )
-
-
-def test_the_description_comes_before_the_conditions() -> None:
-    record = stored()
-    record["metadata"]["descriptionByte"] = ["<p>What the call funds.</p>"]
-    record["metadata"]["topicConditions"] = ["<p>Who may apply.</p>"]
-    assert text(record).endswith("winning projects expected: 3\nWhat the call funds.\nWho may apply.")
-
-
-@pytest.mark.parametrize(
-    ("deadlines", "date", "line"),
-    [
-        (["2027-01-28T00:00:00.000+0000"], dt.date(2027, 1, 28), "Deadline: 2027-01-28"),
-        (
-            ["2027-09-30T00:00:00.000+0000", "2027-05-04T00:00:00.000+0000"],
-            dt.date(2027, 5, 4),
-            "Deadline: 2027-05-04 (two stages: 2027-05-04 and 2027-09-30)",
-        ),
-    ],
-)
-def test_each_form_of_the_deadline_line(deadlines: list[str], date: dt.date, line: str) -> None:
-    call, _ = build(stored(deadlines), REPLY)
-    assert call.deadline == Deadline(date=date, quote=line, found=True)
-
-
-@pytest.mark.parametrize(
-    ("own", "value", "line"),
-    [
-        (
-            {
-                "budgetYearMap": {"2027": "20000000"},
-                "minContribution": 3500000,
-                "maxContribution": 4000000,
-                "expectedGrants": 5,
-            },
-            "20 000 000 € (each winning project: 3 500 000 € to 4 000 000 €)",
-            "Budget 2027: 20 000 000 € (each winning project: 3 500 000 € to 4 000 000 €); winning projects expected: 5",
-        ),
-        (
-            {
-                "budgetYearMap": {"2027": "12000000"},
-                "minContribution": 6000000,
-                "maxContribution": 6000000,
-                "expectedGrants": 2,
-            },
-            "12 000 000 € (each winning project: 6 000 000 €)",
-            "Budget 2027: 12 000 000 € (each winning project: 6 000 000 €); winning projects expected: 2",
-        ),
-        (
-            {
-                "budgetYearMap": {"2027": "32500000"},
-                "minContribution": 0,
-                "maxContribution": 2500000,
-                "expectedGrants": 13,
-            },
-            "32 500 000 € (each winning project: up to 2 500 000 €)",
-            "Budget 2027: 32 500 000 € (each winning project: up to 2 500 000 €); winning projects expected: 13",
-        ),
-        (
-            {"budgetYearMap": {"2026": "28000000"}, "minContribution": 0, "maxContribution": 0, "expectedGrants": 0},
-            "28 000 000 €",
-            "Budget 2026: 28 000 000 €",
-        ),
-    ],
-)
-def test_each_form_of_the_budget_line(own: dict[str, Any], value: str, line: str) -> None:
-    call, _ = build(stored(**own), REPLY)
-    assert call.budget == Quoted(value=value, quote=line, found=True)
-
-
-def test_a_pot_the_call_s_topics_share_says_so() -> None:
-    record = stored(
-        topics=5, budgetYearMap={"2026": "28000000"}, minContribution=0, maxContribution=0, expectedGrants=0
-    )
-    call, _ = build(record, REPLY)
-    assert call.budget == Quoted(
-        value="28 000 000 € (shared by the 5 topics of this call)",
-        quote="Budget 2026: 28 000 000 € (shared by the 5 topics of this call)",
-        found=True,
-    )
-
-
 def test_a_recorded_reply_becomes_a_record_with_every_sentence_found() -> None:
-    assert build(stored(), REPLY) == (
+    assert build(stored(), TOPICS, REPLY) == (
         Call.model_validate({
             "title": "Identifying user-focused solutions to support news media freedom",
             "type": "grant",
@@ -202,6 +109,10 @@ def test_a_recorded_reply_becomes_a_record_with_every_sentence_found() -> None:
                 ),
                 "found": True,
             },
+            "topics": [
+                {"name": "AI-and-civic", "mark": "primary"},
+                {"name": "data-journalism", "mark": "secondary"},
+            ],
             "link": (
                 "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/"
                 "HORIZON-CL2-2027-01-DEMOCRACY-06"
@@ -222,13 +133,27 @@ def test_a_recorded_reply_becomes_a_record_with_every_sentence_found() -> None:
     ],
 )
 def test_each_empty_box_gets_its_note_in_the_record_s_own_order(line: str, reason: str) -> None:
-    _, notes = build(stored(), line)
+    _, notes = build(stored(), TOPICS, line)
     assert notes == [f"{name}: empty, because {reason}" for name in ("funder", "who can apply", "where")]
+
+
+def test_a_call_whose_labels_match_nothing_gets_no_topic_and_a_note_last() -> None:
+    record = stored()
+    record["metadata"]["tags"] = ["Disaster risk reduction", "Journalistic magazines"]
+    call, notes = build(record, TOPICS, LINE)
+    assert call.topics == ()
+    assert notes == [
+        *(
+            f"{name}: empty, because the model's answer did not mention it"
+            for name in ("funder", "who can apply", "where")
+        ),
+        "topics: empty, because no label from the source matched the topic list",
+    ]
 
 
 def test_a_value_with_no_sentence_is_refused() -> None:
     with pytest.raises(ValueError, match="quote"):
-        build(stored(), 'fieldbook --type grant --summary "Funds news media."')
+        build(stored(), TOPICS, 'fieldbook --type grant --summary "Funds news media."')
 
 
 @pytest.mark.parametrize(
@@ -241,7 +166,7 @@ def test_a_value_with_no_sentence_is_refused() -> None:
 )
 def test_a_malformed_line_is_refused(line: str, refusal: str) -> None:
     with pytest.raises(ValueError, match=refusal):
-        build(stored(), line)
+        build(stored(), TOPICS, line)
 
 
 def test_a_sentence_in_the_text_is_found_and_the_model_asked_once() -> None:
@@ -253,7 +178,7 @@ def test_a_sentence_in_the_text_is_found_and_the_model_asked_once() -> None:
 
 def test_a_quote_is_found_whatever_its_line_breaks_and_spaces() -> None:
     quote = GUIDE.replace("information in", "information\\n in").replace("Horizon", " Horizon")
-    call, _ = build(stored(), f'fieldbook --type grant --summary "Funds news media." --summary-quote "{quote}"')
+    call, _ = build(stored(), TOPICS, f'fieldbook --type grant --summary "Funds news media." --summary-quote "{quote}"')
     assert call.summary.quote == "See the information\n in the  Horizon Europe Programme Guide."
     assert call.summary.found
 
@@ -267,8 +192,8 @@ def test_a_quote_is_found_whatever_its_line_breaks_and_spaces() -> None:
 )
 def test_a_quote_is_found_only_letter_for_letter(quote: str) -> None:
     line = 'fieldbook --type grant --summary "Funds news media." --summary-quote "{}"'
-    assert build(stored(), line.format(CONSUMPTION))[0].summary.found
-    assert not build(stored(), line.format(quote))[0].summary.found
+    assert build(stored(), TOPICS, line.format(CONSUMPTION))[0].summary.found
+    assert not build(stored(), TOPICS, line.format(quote))[0].summary.found
 
 
 def test_a_sentence_with_words_dropped_is_caught_and_asked_about_once_more() -> None:
@@ -279,7 +204,7 @@ def test_a_sentence_with_words_dropped_is_caught_and_asked_about_once_more() -> 
         {"role": "assistant", "content": DROPPED},
         {"role": "user", "content": f"{AGAIN}\n{MISSED}"},
     ]
-    assert call == build(stored(), REPLY)[0]
+    assert call == build(stored(), TOPICS, REPLY)[0]
     assert notes == [f"first answer: {MISSED}", FUNDER]
 
 
@@ -320,7 +245,7 @@ def test_a_usable_second_answer_is_kept_even_when_it_misses_more() -> None:
     first = REPLY.replace("comprehensive knowledge", "complete knowledge").replace("accurate", "exact")
     second = first.replace("multiple news sectors", "many news sectors")
     call, notes, asked = reading(first, second)
-    expected, expected_notes = build(stored(), second)
+    expected, expected_notes = build(stored(), TOPICS, second)
     rule = "the sentence must be in the text word for word"
     assert asked[1][-1]["content"] == f"{AGAIN}\n--summary-quote: {rule}\n--area-quote: {rule}"
     assert call == expected
@@ -333,7 +258,7 @@ def test_a_usable_second_answer_is_kept_even_when_it_misses_more() -> None:
 
 def test_a_usable_first_answer_is_kept_when_the_second_cannot_be_used() -> None:
     call, notes, _ = reading(DROPPED, "I could not decide.")
-    assert call == build(stored(), DROPPED)[0]
+    assert call == build(stored(), TOPICS, DROPPED)[0]
     assert not call.summary.found
     assert notes == [
         f"first answer: {MISSED}",
@@ -346,7 +271,7 @@ def test_a_usable_first_answer_is_kept_when_the_second_cannot_be_used() -> None:
 def test_a_second_request_that_fails_fails_the_reading_with_the_first_answer_s_problems() -> None:
     seen: list[httpx2.Request] = []
     with model(DROPPED, httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError) as caught:
-        read(stored(), "the key", client, keeping([], seen))
+        read(stored(), TOPICS, "the key", client, keeping([], seen))
     assert caught.value.__notes__ == [f"first answer: {MISSED}"]
 
 
@@ -358,7 +283,7 @@ def test_an_answer_with_no_command_line_or_two_is_sent_back_with_the_rule(answer
     problem = f"the answer must hold exactly one line beginning with fieldbook; it holds {count}"
     call, notes, asked = reading(answer, REPLY)
     assert asked[1][-1]["content"] == f"{AGAIN}\n{problem}"
-    assert call == build(stored(), REPLY)[0]
+    assert call == build(stored(), TOPICS, REPLY)[0]
     assert notes == [f"first answer: {problem}", FUNDER]
 
 
@@ -379,7 +304,7 @@ def test_a_record_the_template_refuses_is_sent_back_and_noted_short() -> None:
 def test_an_answer_unusable_twice_raises_naming_both_answers_problems() -> None:
     seen: list[httpx2.Request] = []
     with model("I could not decide.", LINE + "\n" + LINE, seen=seen) as client, pytest.raises(ValueError) as caught:
-        read(stored(), "the key", client, keeping([], seen))
+        read(stored(), TOPICS, "the key", client, keeping([], seen))
     assert str(caught.value) == (
         "first answer: the answer must hold exactly one line beginning with fieldbook; it holds 0; "
         "second answer: the answer must hold exactly one line beginning with fieldbook; it holds 2"
@@ -390,7 +315,7 @@ def test_an_answer_unusable_twice_raises_naming_both_answers_problems() -> None:
 def test_the_first_request_holds_the_instructions_and_the_text() -> None:
     seen: list[httpx2.Request] = []
     with model(REPLY, seen=seen) as client:
-        read(stored(), "the key", client, keeping([], seen))
+        read(stored(), TOPICS, "the key", client, keeping([], seen))
     [request] = seen
     assert str(request.url) == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
     assert request.headers["Authorization"] == "Bearer the key"
@@ -409,7 +334,7 @@ def test_the_first_request_holds_the_instructions_and_the_text() -> None:
 def test_a_request_the_service_refuses_is_raised() -> None:
     seen: list[httpx2.Request] = []
     with model(httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError) as caught:
-        read(stored(), "the key", client, keeping([], seen))
+        read(stored(), TOPICS, "the key", client, keeping([], seen))
     assert not hasattr(caught.value, "__notes__")
 
 
@@ -419,7 +344,7 @@ def test_the_instructions_hold_what_the_code_writes_and_their_example_builds() -
     assert "`-----BEGIN SOURCE TEXT-----`" in INSTRUCTIONS
     assert "`-----END SOURCE TEXT-----`" in INSTRUCTIONS
     [example] = [line for line in INSTRUCTIONS.splitlines() if line.startswith("fieldbook ")]
-    call, _ = build(stored(), example)
+    call, _ = build(stored(), TOPICS, example)
     assert call.funder == "Example Foundation"
 
 
@@ -427,7 +352,7 @@ def test_a_clean_first_answer_is_handed_on_as_sent() -> None:
     kept: list[tuple[AnswerWord, int, str]] = []
     seen: list[httpx2.Request] = []
     with model(REPLY, seen=seen) as client:
-        read(stored(), "the key", client, keeping(kept, seen))
+        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, REPLY)]
 
 
@@ -435,7 +360,7 @@ def test_both_answers_are_handed_on_after_a_second_try() -> None:
     kept: list[tuple[AnswerWord, int, str]] = []
     seen: list[httpx2.Request] = []
     with model(DROPPED, REPLY, seen=seen) as client:
-        read(stored(), "the key", client, keeping(kept, seen))
+        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, DROPPED), ("second answer", 2, REPLY)]
 
 
@@ -443,7 +368,7 @@ def test_both_answers_are_handed_on_when_the_reading_fails() -> None:
     kept: list[tuple[AnswerWord, int, str]] = []
     seen: list[httpx2.Request] = []
     with model("I could not decide.", LINE + "\n" + LINE, seen=seen) as client, pytest.raises(ValueError):
-        read(stored(), "the key", client, keeping(kept, seen))
+        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, "I could not decide."), ("second answer", 2, f"{LINE}\n{LINE}")]
 
 
@@ -451,7 +376,7 @@ def test_the_first_answer_is_handed_on_when_the_second_request_fails() -> None:
     kept: list[tuple[AnswerWord, int, str]] = []
     seen: list[httpx2.Request] = []
     with model(DROPPED, httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError):
-        read(stored(), "the key", client, keeping(kept, seen))
+        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, DROPPED)]
 
 
@@ -460,7 +385,7 @@ def test_each_answer_is_handed_on_exactly_as_sent() -> None:
     seen: list[httpx2.Request] = []
     first, second = f"\r\n {DROPPED}\n\n", f"  {REPLY}\r\n"
     with model(first, second, seen=seen) as client:
-        read(stored(), "the key", client, keeping(kept, seen))
+        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, first), ("second answer", 2, second)]
 
 
@@ -470,7 +395,7 @@ def test_the_first_answer_is_handed_on_before_it_is_judged() -> None:
     no_text = httpx2.Response(200, json={"choices": [{"message": {"content": None}}]})
     # A reply with no text cannot be judged, so the reading stops there, as before; the answer is already handed on.
     with model(no_text, seen=seen) as client, pytest.raises(AttributeError):
-        read(stored(), "the key", client, keeping(kept, seen))
+        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
     assert [(word, sent) for word, sent, _ in kept] == [("first answer", 1)]
 
 
@@ -480,7 +405,7 @@ def test_the_second_answer_is_handed_on_before_it_is_judged() -> None:
     no_text = httpx2.Response(200, json={"choices": [{"message": {"content": None}}]})
     # A reply with no text cannot be judged, so the reading stops there, as before; the answer is already handed on.
     with model(DROPPED, no_text, seen=seen) as client, pytest.raises(AttributeError):
-        read(stored(), "the key", client, keeping(kept, seen))
+        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
     assert [(word, sent) for word, sent, _ in kept] == [("first answer", 1), ("second answer", 2)]
 
 
@@ -494,6 +419,6 @@ def test_a_fault_keeping_the_second_answer_carries_no_notes() -> None:
         kept.append((word, len(seen), answer))
 
     with model(DROPPED, REPLY, seen=seen) as client, pytest.raises(ValueError, match="cannot be kept") as caught:
-        read(stored(), "the key", client, keep)
+        read(stored(), TOPICS, "the key", client, keep)
     assert not hasattr(caught.value, "__notes__")
     assert kept == [("first answer", 1, DROPPED)]

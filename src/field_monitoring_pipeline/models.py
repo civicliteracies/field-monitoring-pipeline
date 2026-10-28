@@ -1,18 +1,22 @@
-"""Define what a funding call is made of.
+"""Define the typed shapes the run passes and reads: a funding call, and the topic list.
 
 A call has a title, a type, a funder, an opening date, a deadline, a budget, a summary, who can
-apply, where, and a link, and it names the call's identifier as the source gives it, and the model
-and the instructions that read it. Both dates, the budget, the summary, who can apply and where each
-carry a sentence beside the value, so a person can check it. Each of those sentences carries a mark
-saying whether it was found in the text the model read. Where the source gives a date or the budget
-in a labelled field, that sentence is the field written out as one plain line. The funder, the
-opening date, the budget, who can apply and where are empty when the source does not give them, and
-a call with no deadline stays open. This template refuses a call with a field missing, a field
-added, or a date it cannot read. It accepts a date in the past, and keeps the link exactly as given.
-A call cannot be changed once it is made.
+apply, where, its topics, and a link, and it names the call's identifier as the source gives it, and
+the model and the instructions that read it. Both dates, the budget, the summary, who can apply and
+where each carry a sentence beside the value, so a person can check it. Each of those sentences
+carries a mark saying whether it was found in the text the model read. Where the source gives a date
+or the budget in a labelled field, that sentence is the field written out as one plain line. The
+funder, the opening date, the budget, who can apply and where are empty when the source does not
+give them, and a call with no deadline stays open. Each topic carries its name and the mark it had
+on the topic list that day, primary or secondary, and a call may have no topic. This template
+refuses a call with a field missing, a field added, or a date it cannot read. It accepts a date in
+the past, and keeps the link exactly as given. A call cannot be changed once it is made. The topic
+list gives each topic its mark and the words that also count for it, and refuses any other mark and
+any key it does not know.
 """
 
 import datetime as dt
+from collections.abc import Mapping
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -20,6 +24,8 @@ from pydantic import BaseModel, ConfigDict
 type CallType = Literal[
     "grant", "tender", "rfp", "eoi", "framework", "fellowship", "prize", "training", "post", "other"
 ]
+# The feed gives a card's marks in this order.
+type Mark = Literal["primary", "secondary"]
 
 
 class Quoted(BaseModel):
@@ -46,6 +52,26 @@ class Deadline(BaseModel):
     found: bool
 
 
+class Topic(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str
+    mark: Mark
+
+
+class TopicEntry(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    mark: Mark
+    words: tuple[str, ...] = ()
+
+
+class TopicList(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    topics: Mapping[str, TopicEntry]
+
+
 class Call(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -58,6 +84,7 @@ class Call(BaseModel):
     summary: Quoted
     eligibility: Quoted | None
     area: Quoted | None
+    topics: tuple[Topic, ...]
     link: str
     identifier: str
     model: str
