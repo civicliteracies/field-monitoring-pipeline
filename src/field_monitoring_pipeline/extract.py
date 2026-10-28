@@ -2,14 +2,15 @@
 
 Makes the text a language model reads from a stored call: four labelled lines written from the
 record's fields (the title, the opening date, the deadline and the budget), then the description and
-the conditions with the page's tags stripped. Asks the model under the instructions kept beside this
-file, hands each answer on as it arrives, reads the one command line of the answer, and looks for
-each quoted sentence in the text. When the answer cannot be used or a sentence is not found, asks
-once more, in the same conversation, naming each problem. Builds the record from the four fields and
-the five facts the model names, with the link, the call's identifier and the names of the model and
-the instructions. Marks each sentence found or not found, and returns the record with a note for each
-problem and each sentence not found, and for each empty field among the funder, who can apply and
-where, saying what the answer did.
+the conditions with the page's tags stripped. Before any request, gives the call the topics of the
+topic list that the labels its source put on it name. Asks the model under the instructions kept
+beside this file, hands each answer on as it arrives, reads the one command line of the answer, and
+looks for each quoted sentence in the text. When the answer cannot be used or a sentence is not
+found, asks once more, in the same conversation, naming each problem. Builds the record from the four
+fields, the five facts the model names and those topics, with the link, the call's identifier and
+the names of the model and the instructions. Marks each sentence found or not found, and returns the
+record with a note for each problem and each sentence not found, for each empty field among the
+funder, who can apply and where, saying what the answer did, and for a call no label gave a topic.
 """
 
 import datetime as dt
@@ -25,8 +26,9 @@ import httpx2
 from pydantic import ValidationError
 
 from field_monitoring_pipeline.fetch import JSON
-from field_monitoring_pipeline.models import Call, Deadline, Opening, Quoted
+from field_monitoring_pipeline.models import Call, Deadline, Opening, Quoted, Topic, TopicList
 from field_monitoring_pipeline.store import AnswerWord
+from field_monitoring_pipeline.tags import topics
 
 MODEL = "gemini-3.5-flash-lite"
 ADDRESS = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
@@ -40,7 +42,7 @@ BLOCKS = frozenset({"p", "div", "h4", "li", "ul", "ol", "br"})
 QUOTED = frozenset({"funder", "summary", "summary-quote", "eligibility", "eligibility-quote", "area", "area-quote"})
 PLAIN = frozenset({"type"})
 ALONE = frozenset({"funder-not-stated", "eligibility-not-stated", "area-not-stated"})
-# How a note names each box, in the record's own order.
+# How a note names each box, in the record's own order; the note on the topics follows the boxes.
 NAMES = {
     "funder": "funder",
     "opening": "opening date",
@@ -72,6 +74,7 @@ class _Stored:
     budget: Quoted
     link: str
     identifier: str
+    labels: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -124,14 +127,14 @@ def _facts(metadata: dict[str, Any]) -> tuple[str, tuple[dt.date, str], tuple[dt
     identifier = metadata["identifier"][0]
     groups = json.loads(metadata["budgetOverview"][0])["budgetTopicActionMap"].values()
     # The budget field holds a line for every call in the same programme; the call's own starts with its identifier.
-    [(own, topics)] = [
+    [(own, shared)] = [
         (line, len(group)) for group in groups for line in group if line["action"].startswith(identifier + " ")
     ]
     [(year, pot)] = own["budgetYearMap"].items()
     budget = _amount(pot)
-    # Several lines in one group are one pot the call's topics share, and each line repeats the whole amount.
-    if topics > 1:
-        budget += f" (shared by the {topics} topics of this call)"
+    # Several lines in one group are one pot the portal's topics of this call share, and each line repeats the whole amount.
+    if shared > 1:
+        budget += f" (shared by the {shared} topics of this call)"
     least, most = own["minContribution"], own["maxContribution"]
     # The portal writes 0 where it gives no amount, so an amount of 0 means the source gives nothing more.
     if most:
@@ -178,6 +181,7 @@ def _stored(record: JSON) -> _Stored:
         budget=Quoted(value=budget, quote=budget_line, found=_found(budget_line, words)),
         link=metadata["url"][0],
         identifier=metadata["identifier"][0],
+        labels=tuple(metadata["tags"]),
     )
 
 
@@ -239,10 +243,12 @@ def _notes(call: Call, given: dict[str, object]) -> list[str]:
             notes.append(f"{label}: empty, because the model marked it not stated")
         elif box is None and alone in ALONE and name not in given:
             notes.append(f"{label}: empty, because the model's answer did not mention it")
+    if not call.topics:
+        notes.append("topics: empty, because no label from the source matched the topic list")
     return notes
 
 
-def _build(stored: _Stored, reply: str) -> tuple[Call, list[str]]:
+def _build(stored: _Stored, found: tuple[Topic, ...], reply: str) -> tuple[Call, list[str]]:
     given = _flags(_line(reply))
     call = Call.model_validate({
         "title": stored.title,
@@ -254,6 +260,7 @@ def _build(stored: _Stored, reply: str) -> tuple[Call, list[str]]:
         "summary": _pair(given, "summary", stored.words),
         "eligibility": _pair(given, "eligibility", stored.words),
         "area": _pair(given, "area", stored.words),
+        "topics": found,
         "link": stored.link,
         "identifier": stored.identifier,
         "model": MODEL,
@@ -262,8 +269,9 @@ def _build(stored: _Stored, reply: str) -> tuple[Call, list[str]]:
     return call, _notes(call, given)
 
 
-def build(record: JSON, reply: str) -> tuple[Call, list[str]]:
-    return _build(_stored(record), reply)
+def build(record: JSON, listed: TopicList, reply: str) -> tuple[Call, list[str]]:
+    stored = _stored(record)
+    return _build(stored, topics(listed, stored.labels), reply)
 
 
 def _misses(call: Call) -> list[str]:
@@ -276,9 +284,9 @@ def _misses(call: Call) -> list[str]:
     ]
 
 
-def _use(stored: _Stored, reply: str) -> _Answer:
+def _use(stored: _Stored, found: tuple[Topic, ...], reply: str) -> _Answer:
     try:
-        call, notes = _build(stored, reply)
+        call, notes = _build(stored, found, reply)
     except ValidationError as error:
         refused = [f"{'.'.join(map(str, problem['loc']))}: {problem['msg']}" for problem in error.errors()]
         return _Answer(call=None, notes=[], problems=refused)
@@ -288,15 +296,16 @@ def _use(stored: _Stored, reply: str) -> _Answer:
 
 
 def read(
-    record: JSON, key: str, client: httpx2.Client, keep: Callable[[AnswerWord, str], None]
+    record: JSON, listed: TopicList, key: str, client: httpx2.Client, keep: Callable[[AnswerWord, str], None]
 ) -> tuple[Call, list[str]]:
-    # The text and the copied facts are made first, so a fault in the stored record stops the reading before any request.
+    # The text, the copied facts and the topics are made first, so a fault in the record stops the reading before any request.
     stored = _stored(record)
+    found = topics(listed, stored.labels)
     instructions = (Path(__file__).parent / "instructions" / f"{INSTRUCTIONS}.md").read_text(encoding="utf-8")
     messages: list[Message] = [{"role": "user", "content": f"{instructions}\n{BEGIN}\n{stored.text}\n{END}"}]
     reply = ask(messages, key, client)
     keep(FIRST_ANSWER, reply)
-    first = _use(stored, reply)
+    first = _use(stored, found, reply)
     if first.call is not None and not first.problems:
         return first.call, first.notes
     noted = [f"{FIRST_ANSWER}: {problem}" for problem in first.problems]
@@ -310,7 +319,7 @@ def read(
         error.add_note("; ".join(noted))
         raise
     keep(SECOND_ANSWER, again)
-    second = _use(stored, again)
+    second = _use(stored, found, again)
     noted += [f"{SECOND_ANSWER}: {problem}" for problem in second.problems]
     if second.call is not None:
         return second.call, [*noted, *second.notes]

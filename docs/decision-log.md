@@ -22,8 +22,9 @@ directly.
 `data` branch, and cards are browsed the same way. The cost is that finding an old call means
 knowing roughly where to look.
 
-**Technical detail.** Whoever builds it reads the card files and builds an index outside this
-repository. Nothing here changes for that, provided the card keeps its shape.
+**Technical detail.** Whoever builds it reads the card files, the topics in each card's record
+included, and builds an index outside this repository. Nothing here changes for that, provided the
+card keeps its shape.
 
 ### When are urgent calls floated to the top of the feed?
 
@@ -38,6 +39,10 @@ screen, a call closing this week can sit below one closing in six months.
 
 **Technical detail.** The feed is built with its entries in the order of the cards' names, and no
 ordering by urgency. Ordering by urgency needs only the deadline, which every dated call carries.
+Two other orders wait for this decision: a call CLI cannot apply for moved down the feed, and the
+calls that state clearly the work, the pay and the deadline put first. Judging whether CLI can apply
+means reading the sentence on who can apply by new rules, and a wrong judgement could bury a real
+call.
 
 ### When does the reading step move to a paid model?
 
@@ -65,9 +70,10 @@ derived from what was kept.
 A run takes each item through seven steps, in order. Reach the sources on the watch list and bring
 back what they published. Write down each item collected, once and whole, together with where it
 came from. Give each item a stable name of its own. Read the facts the item states: copy those the
-source gives in its own fields, and name the rest with a language model. The model is asked once
-more when its answer cannot be used or a sentence it quotes is not found. Check what was read
-against what was stored. Write the card. Save the cards and build the feed.
+source gives in its own fields, match the labels the source put on it against the topic list, and
+name the rest with a language model. The model is asked once more when its answer cannot be used or
+a sentence it quotes is not found. Check what was read against what was stored. Write the card. Save
+the cards and build the feed.
 
 Three things stay apart inside every step: the data, declared in files a person can read; the
 behaviour, plain functions that act on it; and the coordination, a single command that calls the
@@ -123,9 +129,9 @@ No server, no database engine, no committed index. The cards are derived from th
 kept beside them, because a reading costs a request to the model and may not come out the same twice.
 The answer each card was made from (the second answer when it can be used, otherwise the first) is
 kept in the log, so a card can be checked against it, or made again from the stored record and that
-answer while the instructions, the model and the way the text is made stay the same. The feed is
-rebuilt from the cards on every run that reaches its end, and kept beside them so a feed reader can
-fetch it. Nothing else derived is kept.
+answer while the instructions, the model, the topic list and the way the text is made stay the same.
+The feed is rebuilt from the cards on every run that reaches its end, and kept beside them so a feed
+reader can fetch it. Nothing else derived is kept.
 
 **Rationale.** The history of the repository becomes the audit log, its permissions become the
 access control, and nothing in it can be withdrawn by a supplier. The log of calls is one table,
@@ -200,7 +206,8 @@ UTF-8 text is not written, and the reading is logged as failed with that error.
 
 **Decision.** A card is one Markdown file. On top, between two `---` lines, sits the record, one
 field per line, each value written in JSON. A field that holds a sentence is written over several
-lines, its parts indented under it. Below is the half for people: the title, then each fact. The
+lines, its parts indented under it. The record also holds the call's topics, each with its mark,
+which the half for people leaves out. Below is the half for people: the title, then each fact. The
 funder's own sentence sits under the summary, who can apply and where, and the source's own line
 under the dates and the budget. A sentence not found has a warning under it, and an empty field says
 "not stated". The link and the model and instructions that read it come last. A card is named by the
@@ -226,8 +233,9 @@ before.
 
 **Decision.** One RSS 2.0 file, `data/feed.xml`, rebuilt from every card on each run, with one entry
 per card in the order of the cards' names. Each entry holds the title and the closing date, a link
-to the card on github.com, the summary, and the call's code as its identity. The feed holds no date
-of the build, and no entry is marked closed. A reader fetches it from its raw address on the `data`
+to the card on github.com, the summary, a category for each of the call's topics and for each mark
+they carry, primary before secondary, and the call's code as its identity. The feed holds no date of
+the build, and no entry is marked closed. A reader fetches it from its raw address on the `data`
 branch.
 
 **Rationale.** With no date of the build and a fixed order, the same cards give the same file, so a
@@ -271,13 +279,13 @@ the log shows readings lost to a dropped connection.
 **Situation.** The reading step sends the text of a stored item to a language model, and that
 request needs a key.
 
-**Decision.** The key is saved as a repository secret after the first card has been made by hand,
-and the daily run reads from then on.
+**Decision.** The key is saved as a repository secret only after the reading gives each card its
+topics.
 
-**Rationale.** A card made by hand shows the reading works on a real call before the daily run sends
-requests for the whole archive. What it gives up: until the secret is saved, every reading in the
-daily run fails and is written in the log, and the morning ends with a failure. Collecting and
-storing go on.
+**Rationale.** A card is never updated, and a card without its topics cannot be read back, so one
+such card would stop every later run when the feed is built. What it gives up: until the secret is
+saved, every reading in the daily run fails and is written in the log, and the morning ends with a
+failure. Collecting and storing go on.
 
 **Technical detail.** The key is never written into a file of this repository. The daily run hands
 it to the command from the secret `GEMINI_API_KEY`, in the step that runs the command, and nowhere
@@ -319,9 +327,9 @@ reach the card, and nobody would see what went wrong.
 after the second try stays on the record, marked as not found. The reading writes a note for each
 problem in either answer and for each sentence not found. Each empty field among the funder, who can
 apply and where gets a note saying what the answer did: the model marked it not stated, or did not
-mention it. Only two faults make no record: an answer that cannot be used on either try, and a
-request the model service turns away. The error then names the problems of each answer already
-received.
+mention it. A call that no label gave a topic gets a note saying so, after the others. Only two
+faults make no record: an answer that cannot be used on either try, and a request the model service
+turns away. The error then names the problems of each answer already received.
 
 **Rationale.** A marked fault can be seen and judged by the person reading the card; a refused
 record cannot. What it gives up: a card can carry a sentence the source never wrote, with its
@@ -372,10 +380,42 @@ says it is shared and by how many topics.
 **Rationale.** A fact the source already gives in a field needs no judgement, so copying it cannot
 misread it. What it gives up: where the prose and the field disagree, the card shows the field and
 says nothing of the prose. The euro sign is not in the stored record: the portal's own page prints
-it beside each amount. It is the one thing on a card that is not derived from what was kept.
+it beside each amount.
 
 **Technical detail.** The four lines come first in the text the model reads. The three that carry a
 sentence, the two dates and the budget, are checked like any other sentence, and are always found.
+
+### How does a card get its topics?
+
+**Situation.** CLI keeps its own list of topics, each marked primary, a field it works in to win
+revenue, or secondary, one it watches for intelligence, so that the feed can be filtered by them.
+The EU portal puts its own labels on every call.
+
+**Decision.** The code gives a call its topics when the call is read, before any request to the
+model. A call gets every topic on the topic list whose name, or one of the few words listed with it,
+appears as a whole phrase in one of the labels its source put on it. The topics come in the list's
+order. The card's record keeps each topic with the mark the list gave it that day. A call that no
+label matches has no topics, and its row in the log says so. The feed carries each topic and each
+mark as an RSS category, and does not change the order of the entries.
+
+**Rationale.** The labels are the source's own reading of each call, so matching them is a rule
+anyone can check, and the model's job does not change. Both sides are compared in one form, as the
+check of a quoted sentence compares both sides in one form, so a label and a topic cannot miss each
+other by how they are written. Unlike that check, case is ignored, because the portal's labels vary
+in case. A card is never updated, so it keeps the marks of its day, and its record and its entry in
+the feed agree. The list is read after the calls are collected, so a list that cannot be read costs
+that morning's cards and never what was collected. What it gives up: a topic that a call's text
+names but its labels do not is missed. A change to the list reaches only the cards made after it, so
+cards made before and after a change carry topics from different lists. "civil society" is both one
+of the words for civic-space and a search word on the watch list, so the number of calls given
+civic-space moves with the watch list.
+
+**Technical detail.** The list is `config/tags.toml`, one table per topic with its mark and, for a
+few topics, its words. It is read whole, and a mark other than primary or secondary or a key it does
+not know is refused, naming where. In the one form, a hyphen is read as a space and a run of spacing
+as one space. A whole phrase has no letter or digit just before or after it, so "AI" is found in
+"AI-driven solutions" but not inside a longer word. In the feed, each category's `domain` says
+whether it names a topic or a mark.
 
 ### Why does the model answer with one command line?
 

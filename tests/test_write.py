@@ -7,11 +7,14 @@ from field_monitoring_pipeline.extract import build
 from field_monitoring_pipeline.models import Call, Deadline, Opening
 from field_monitoring_pipeline.write import card, read_card
 from tests.test_extract import REPLY, stored
+from tests.test_tags import TOPICS
 
-CALL, _ = build(stored(), REPLY)
+CALL, _ = build(stored(), TOPICS, REPLY)
 WARNING = "This sentence was not found in the call."
 SENTENCES = ("opening", "deadline", "budget", "summary", "eligibility", "area")
-EMPTY = CALL.model_copy(update={"funder": None, "opening": None, "budget": None, "eligibility": None, "area": None})
+EMPTY = CALL.model_copy(
+    update={"funder": None, "opening": None, "budget": None, "eligibility": None, "area": None, "topics": ()}
+)
 MISSED = CALL.model_copy(
     update={"funder": "European Commission"}
     | {name: getattr(CALL, name).model_copy(update={"found": False}) for name in SENTENCES}
@@ -48,7 +51,7 @@ def test_the_model_and_the_instructions_are_in_the_block() -> None:
 
 
 def test_the_same_record_gives_the_same_bytes() -> None:
-    assert card(CALL).encode() == card(build(stored(), REPLY)[0]).encode()
+    assert card(CALL).encode() == card(build(stored(), TOPICS, REPLY)[0]).encode()
 
 
 @pytest.mark.parametrize("call", RECORDS)
@@ -99,3 +102,13 @@ def test_the_half_for_people_ends_with_the_link_and_the_model() -> None:
         "\n\nLink: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/"
         "topic-details/HORIZON-CL2-2027-01-DEMOCRACY-06\n\nRead by gemini-3.5-flash-lite, with the instructions v3\n"
     )
+
+
+def test_the_topics_sit_in_the_record_each_with_its_mark_and_not_below() -> None:
+    block, rest = card(CALL).split("\n---\n\n", 1)
+    assert (
+        '\ntopics: [{"name": "AI-and-civic", "mark": "primary"}, '
+        '{"name": "data-journalism", "mark": "secondary"}]\nlink: '
+    ) in block
+    assert "\ntopics: []\n" in card(EMPTY)
+    assert "AI-and-civic" not in rest
