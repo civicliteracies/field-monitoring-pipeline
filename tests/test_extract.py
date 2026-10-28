@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,7 @@ import pytest
 
 from field_monitoring_pipeline.extract import build, read, text
 from field_monitoring_pipeline.models import Call, Deadline, Quoted
+from field_monitoring_pipeline.store import AnswerWord
 
 ROOT = Path(__file__).parent.parent
 REPLIES = Path(__file__).parent / "replies"
@@ -48,10 +50,15 @@ def model(*answers: str | httpx2.Response, seen: list[httpx2.Request]) -> httpx2
     return httpx2.Client(transport=httpx2.MockTransport(handler))
 
 
+def keeping(kept: list[tuple[AnswerWord, int, str]], seen: list[httpx2.Request]) -> Callable[[AnswerWord, str], None]:
+    # Each answer is kept with its word and how many requests had been sent when it was handed on.
+    return lambda word, answer: kept.append((word, len(seen), answer))
+
+
 def reading(*answers: str) -> tuple[Call, list[str], list[Any]]:
     seen: list[httpx2.Request] = []
     with model(*answers, seen=seen) as client:
-        call, notes = read(stored(), "the key", client)
+        call, notes = read(stored(), "the key", client, keeping([], seen))
     return call, notes, [json.loads(request.read())["messages"] for request in seen]
 
 
@@ -339,7 +346,7 @@ def test_a_usable_first_answer_is_kept_when_the_second_cannot_be_used() -> None:
 def test_a_second_request_that_fails_fails_the_reading_with_the_first_answer_s_problems() -> None:
     seen: list[httpx2.Request] = []
     with model(DROPPED, httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError) as caught:
-        read(stored(), "the key", client)
+        read(stored(), "the key", client, keeping([], seen))
     assert caught.value.__notes__ == [f"first answer: {MISSED}"]
 
 
@@ -372,7 +379,7 @@ def test_a_record_the_template_refuses_is_sent_back_and_noted_short() -> None:
 def test_an_answer_unusable_twice_raises_naming_both_answers_problems() -> None:
     seen: list[httpx2.Request] = []
     with model("I could not decide.", LINE + "\n" + LINE, seen=seen) as client, pytest.raises(ValueError) as caught:
-        read(stored(), "the key", client)
+        read(stored(), "the key", client, keeping([], seen))
     assert str(caught.value) == (
         "first answer: the answer must hold exactly one line beginning with fieldbook; it holds 0; "
         "second answer: the answer must hold exactly one line beginning with fieldbook; it holds 2"
@@ -383,7 +390,7 @@ def test_an_answer_unusable_twice_raises_naming_both_answers_problems() -> None:
 def test_the_first_request_holds_the_instructions_and_the_text() -> None:
     seen: list[httpx2.Request] = []
     with model(REPLY, seen=seen) as client:
-        read(stored(), "the key", client)
+        read(stored(), "the key", client, keeping([], seen))
     [request] = seen
     assert str(request.url) == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
     assert request.headers["Authorization"] == "Bearer the key"
@@ -402,7 +409,7 @@ def test_the_first_request_holds_the_instructions_and_the_text() -> None:
 def test_a_request_the_service_refuses_is_raised() -> None:
     seen: list[httpx2.Request] = []
     with model(httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError) as caught:
-        read(stored(), "the key", client)
+        read(stored(), "the key", client, keeping([], seen))
     assert not hasattr(caught.value, "__notes__")
 
 
@@ -414,3 +421,79 @@ def test_the_instructions_hold_what_the_code_writes_and_their_example_builds() -
     [example] = [line for line in INSTRUCTIONS.splitlines() if line.startswith("fieldbook ")]
     call, _ = build(stored(), example)
     assert call.funder == "Example Foundation"
+
+
+def test_a_clean_first_answer_is_handed_on_as_sent() -> None:
+    kept: list[tuple[AnswerWord, int, str]] = []
+    seen: list[httpx2.Request] = []
+    with model(REPLY, seen=seen) as client:
+        read(stored(), "the key", client, keeping(kept, seen))
+    assert kept == [("first answer", 1, REPLY)]
+
+
+def test_both_answers_are_handed_on_after_a_second_try() -> None:
+    kept: list[tuple[AnswerWord, int, str]] = []
+    seen: list[httpx2.Request] = []
+    with model(DROPPED, REPLY, seen=seen) as client:
+        read(stored(), "the key", client, keeping(kept, seen))
+    assert kept == [("first answer", 1, DROPPED), ("second answer", 2, REPLY)]
+
+
+def test_both_answers_are_handed_on_when_the_reading_fails() -> None:
+    kept: list[tuple[AnswerWord, int, str]] = []
+    seen: list[httpx2.Request] = []
+    with model("I could not decide.", LINE + "\n" + LINE, seen=seen) as client, pytest.raises(ValueError):
+        read(stored(), "the key", client, keeping(kept, seen))
+    assert kept == [("first answer", 1, "I could not decide."), ("second answer", 2, f"{LINE}\n{LINE}")]
+
+
+def test_the_first_answer_is_handed_on_when_the_second_request_fails() -> None:
+    kept: list[tuple[AnswerWord, int, str]] = []
+    seen: list[httpx2.Request] = []
+    with model(DROPPED, httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError):
+        read(stored(), "the key", client, keeping(kept, seen))
+    assert kept == [("first answer", 1, DROPPED)]
+
+
+def test_each_answer_is_handed_on_exactly_as_sent() -> None:
+    kept: list[tuple[AnswerWord, int, str]] = []
+    seen: list[httpx2.Request] = []
+    first, second = f"\r\n {DROPPED}\n\n", f"  {REPLY}\r\n"
+    with model(first, second, seen=seen) as client:
+        read(stored(), "the key", client, keeping(kept, seen))
+    assert kept == [("first answer", 1, first), ("second answer", 2, second)]
+
+
+def test_the_first_answer_is_handed_on_before_it_is_judged() -> None:
+    kept: list[tuple[AnswerWord, int, str]] = []
+    seen: list[httpx2.Request] = []
+    no_text = httpx2.Response(200, json={"choices": [{"message": {"content": None}}]})
+    # A reply with no text cannot be judged, so the reading stops there, as before; the answer is already handed on.
+    with model(no_text, seen=seen) as client, pytest.raises(AttributeError):
+        read(stored(), "the key", client, keeping(kept, seen))
+    assert [(word, sent) for word, sent, _ in kept] == [("first answer", 1)]
+
+
+def test_the_second_answer_is_handed_on_before_it_is_judged() -> None:
+    kept: list[tuple[AnswerWord, int, str]] = []
+    seen: list[httpx2.Request] = []
+    no_text = httpx2.Response(200, json={"choices": [{"message": {"content": None}}]})
+    # A reply with no text cannot be judged, so the reading stops there, as before; the answer is already handed on.
+    with model(DROPPED, no_text, seen=seen) as client, pytest.raises(AttributeError):
+        read(stored(), "the key", client, keeping(kept, seen))
+    assert [(word, sent) for word, sent, _ in kept] == [("first answer", 1), ("second answer", 2)]
+
+
+def test_a_fault_keeping_the_second_answer_carries_no_notes() -> None:
+    kept: list[tuple[AnswerWord, int, str]] = []
+    seen: list[httpx2.Request] = []
+
+    def keep(word: AnswerWord, answer: str) -> None:
+        if word == "second answer":
+            raise ValueError("the second answer cannot be kept")
+        kept.append((word, len(seen), answer))
+
+    with model(DROPPED, REPLY, seen=seen) as client, pytest.raises(ValueError, match="cannot be kept") as caught:
+        read(stored(), "the key", client, keep)
+    assert not hasattr(caught.value, "__notes__")
+    assert kept == [("first answer", 1, DROPPED)]

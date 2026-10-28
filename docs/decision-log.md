@@ -117,18 +117,27 @@ readable without specialist tools.
 
 **Decision.** Plain files in this repository. Each source has a folder, which holds every call's web
 page and the source's record of it, and one folder holds a card for each call read. One log beside
-the folders has a row for each call the run tried and for each call it read. It also has a row for
-each source, saying how the run ended for it. No server, no database engine, no committed index. The
-cards are derived from the stored files and kept beside them, because a reading costs a request to
-the model and may not come out the same twice. The feed is rebuilt from the cards on every run and
-kept beside them, so a feed reader can fetch it. Nothing else derived is kept.
+the folders has a row for each call the run tried, for each answer the model gave while reading a
+call, and for each call it read. It also has a row for each source, saying how the run ended for it.
+No server, no database engine, no committed index. The cards are derived from the stored files and
+kept beside them, because a reading costs a request to the model and may not come out the same twice.
+The answer each card was made from (the second answer when it can be used, otherwise the first) is
+kept in the log, so a card can be checked against it, or made again from the stored record and that
+answer while the instructions, the model and the way the text is made stay the same. The feed is
+rebuilt from the cards on every run that reaches its end, and kept beside them so a feed reader can
+fetch it. Nothing else derived is kept.
 
 **Rationale.** The history of the repository becomes the audit log, its permissions become the
 access control, and nothing in it can be withdrawn by a supplier. The log of calls is one table,
 written as it happens: where each call came from, when it was collected, whether it was saved and,
-once read, whether its card was written. It takes the place of a note beside each call. It is not a
-derived index. The identifier, title and link it repeats are copied from the source's record when a
-row is written, and never updated. The run's row for a source holds one of three words:
+once read, each answer the model gave and whether its card was written. It takes the place of a note
+beside each call. It is not a derived index. Each answer is a row of its own, written the moment it
+arrives, before the reading judges it: the word `first answer` or `second answer`, and the answer
+exactly as the model sent it, in the last column. A reading that then fails keeps its answers too. A
+person can read the model's own reasoning behind each fact, or why a reading failed. An answer is the
+model's own output, which cannot be made again, so keeping it is not keeping a copy of derived data.
+The identifier, title and link the log repeats are copied from the source's record when a row is
+written, and never updated. The run's row for a source holds one of three words:
 `successful`, `failed` or `nothing new`. It also holds the numbers the run counted: how many calls
 were fetched, how many were new and how many failed. When the search itself failed, the row holds
 the error. The store writes it once, when the run is done with that source, and never updates it.
@@ -140,7 +149,10 @@ files give up is querying: there is no way to ask the store a question except by
 which is why searching the whole archive belongs to a separate page that reads the same files. A row
 for every finished run gives up one thing. The log grows on a day that brought no new call, so the
 archive's history does not show by itself which days brought one. The numbers in the run's row show
-it.
+it. Keeping every answer gives up two things. The log grows faster: with answers of the length seen
+so far, it passes 512 KB, the size up to which GitHub shows a file as a table, about a month after
+the daily reading starts. And the file the run reads to know which calls are stored also carries the
+answers.
 
 **Technical detail.** Collected items, cards and the feed live on the `data` branch, which shares no
 history with the code. One module writes everything under the data folder and owns every path there.
@@ -167,12 +179,20 @@ marked as saved with a file missing, and the next run does that call again. A ru
 when it has no `saved` row, and reads it only when it has no card. So a run with nothing new,
 nothing failing and nothing left to read rewrites nothing but the feed, which comes out byte for
 byte the same. It adds the run's row for each source, and every other stored byte stays as it was.
-BUG-002 in the bug history is where that rule came from. A call that keeps failing adds one row each
-run. That is deliberate: recording each try, and how each run ended, is what the log is for. The
-fetch may leave out a whole call, by its identifier or its closing date, but never changes one: each
-saved call is stored whole, as the source served it. The record is its own file because, for the
-first source, the page holds none of the call's text. It is not kept inside the log. The records of
-33 calls came to 1.2 MB, and GitHub shows a log as a table only up to 512 KB.
+BUG-002 in the bug history is where that rule came from. A call that keeps failing adds its rows each
+run: the answers the model gave, if any, then its failed row. That is deliberate: recording each try,
+and how each run ended, is what the log is for. The fetch may leave out a whole call, by its
+identifier or its closing date, but never changes one: each saved call is stored whole, as the
+source served it. The record is its own file because, for the first source, the page holds none of
+the call's text. It is not kept inside the log. The records of 33 calls came to 1.2 MB, and GitHub
+shows a log as a table only up to 512 KB. An answer is about 4 KB, against about 43 KB for a record,
+which is why the answers are kept in the log and the records are not. Three rare cases of an answer,
+none seen, show in the log this way. An answer longer than 131,072 characters, the most the log's
+reader takes in one value, is written whole; its reading ends as usual, and every later run then
+stops when it reads the log, before collecting anything, until the code changes. A reply with no text
+at all leaves an empty `first answer` or `second answer` row, and the run stops at that call every
+morning, as it did before answers were kept. An answer holding a character that cannot be written as
+UTF-8 text is not written, and the reading is logged as failed with that error.
 
 ### What does a card hold, and how is it named?
 
@@ -305,7 +325,8 @@ received.
 
 **Rationale.** A marked fault can be seen and judged by the person reading the card; a refused
 record cannot. What it gives up: a card can carry a sentence the source never wrote, with its
-warning beside it. The notes say only what the code saw, never why the model chose it.
+warning beside it. The notes say only what the code saw, never why the model chose it; the model's
+answer, kept in the log, shows its own reasoning beside its choice.
 
 **Technical detail.** Each sentence carries a mark, `found`. The notes are plain lines written by
 the code. Each problem note names the answer it came from, first or second, so a fault the second
