@@ -3,11 +3,12 @@
 Each saved call has two files in its source's folder: its web page as downloaded and the source's
 record of it. Both are named by a code made from the call's identifier. Each call read has a card in
 one folder for all sources, named by the day it was saved, its title and the first ten characters of
-its code. One log beside the folders has a row for each call the run tried, saved or failed, and for
-each call it read, card written or failed. It also has a row for each source, which says how the run
-ended for it. The files are written first and the row last. The feed, built from the cards, sits
-beside them and is written again on every run. A call counts as stored once it has a saved row, and
-as read once it has a card.
+its code. One log beside the folders has a row for each call the run tried, saved or failed; for
+each answer the model gave while reading a call, first or second, with the answer as it came; and
+for each call it read, card written or failed. It also has a row for each source, which says how the
+run ended for it. What a step produced is written before the row that says the step is done. The
+feed, built from the cards, sits beside them and is written again on every run that reaches its end.
+A call counts as stored once it has a saved row, and as read once it has a card.
 """
 
 import csv
@@ -26,8 +27,9 @@ SHORT_TITLE = 60
 SHORT_CODE = 10
 type Status = Literal["saved", "failed"]
 type Reading = Literal["card written", "failed"]
+type AnswerWord = Literal["first answer", "second answer"]
 type Outcome = Literal["successful", "failed", "nothing new"]
-type Row = tuple[str, str, str, str, str, str, Status | Reading | Outcome, str]
+type Row = tuple[str, str, str, str, str, str, Status | Reading | AnswerWord | Outcome, str]
 
 
 @dataclass(frozen=True)
@@ -83,7 +85,12 @@ def _add_row(data: Path, row: Row) -> None:
 
 
 def _add_call_row(
-    data: Path, source: str, call: FetchedCall | Saved, fetched: dt.datetime, status: Status | Reading, reason: str
+    data: Path,
+    source: str,
+    call: FetchedCall | Saved,
+    fetched: dt.datetime,
+    status: Status | Reading | AnswerWord,
+    reason: str,
 ) -> None:
     name = code(call.identifier)
     _add_row(data, (name, source, call.identifier, call.title, call.link, fetched.isoformat(), status, reason))
@@ -145,3 +152,7 @@ def store_feed(data: Path, feed: str) -> None:
 
 def store_reading(data: Path, call: Saved, fetched: dt.datetime, status: Reading, reason: str) -> None:
     _add_call_row(data, call.source, call, fetched, status, reason)
+
+
+def store_answer(data: Path, call: Saved, fetched: dt.datetime, word: AnswerWord, answer: str) -> None:
+    _add_call_row(data, call.source, call, fetched, word, answer)

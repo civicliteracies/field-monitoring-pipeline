@@ -3,17 +3,19 @@
 Makes the text a language model reads from a stored call: four labelled lines written from the
 record's fields (the title, the opening date, the deadline and the budget), then the description and
 the conditions with the page's tags stripped. Asks the model under the instructions kept beside this
-file, reads the one command line of its answer, and looks for each quoted sentence in the text. When
-the answer cannot be used or a sentence is not found, asks once more, in the same conversation,
-naming each problem. Builds the record from the four fields and the five facts the model names, with
-the link, the call's identifier and the names of the model and the instructions. Marks each sentence
-found or not found, and returns the record with a note for each problem, each sentence not found and
-each empty field.
+file, hands each answer on as it arrives, reads the one command line of the answer, and looks for
+each quoted sentence in the text. When the answer cannot be used or a sentence is not found, asks
+once more, in the same conversation, naming each problem. Builds the record from the four fields and
+the five facts the model names, with the link, the call's identifier and the names of the model and
+the instructions. Marks each sentence found or not found, and returns the record with a note for each
+problem and each sentence not found, and for each empty field among the funder, who can apply and
+where, saying what the answer did.
 """
 
 import datetime as dt
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path
@@ -24,6 +26,7 @@ from pydantic import ValidationError
 
 from field_monitoring_pipeline.fetch import JSON
 from field_monitoring_pipeline.models import Call, Deadline, Opening, Quoted
+from field_monitoring_pipeline.store import AnswerWord
 
 MODEL = "gemini-3.5-flash-lite"
 ADDRESS = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
@@ -48,6 +51,8 @@ NAMES = {
     "area": "where",
 }
 AGAIN = "This answer cannot be used as it is. Write the one command line again, with each problem below put right:"
+FIRST_ANSWER: AnswerWord = "first answer"
+SECOND_ANSWER: AnswerWord = "second answer"
 _FLAG = re.compile(r"\s*--([a-z-]+)\s*")
 _WORD = re.compile(r"[^\s\"]+")
 
@@ -282,16 +287,19 @@ def _use(stored: _Stored, reply: str) -> _Answer:
     return _Answer(call=call, notes=notes, problems=_misses(call))
 
 
-def read(record: JSON, key: str, client: httpx2.Client) -> tuple[Call, list[str]]:
+def read(
+    record: JSON, key: str, client: httpx2.Client, keep: Callable[[AnswerWord, str], None]
+) -> tuple[Call, list[str]]:
     # The text and the copied facts are made first, so a fault in the stored record stops the reading before any request.
     stored = _stored(record)
     instructions = (Path(__file__).parent / "instructions" / f"{INSTRUCTIONS}.md").read_text(encoding="utf-8")
     messages: list[Message] = [{"role": "user", "content": f"{instructions}\n{BEGIN}\n{stored.text}\n{END}"}]
     reply = ask(messages, key, client)
+    keep(FIRST_ANSWER, reply)
     first = _use(stored, reply)
     if first.call is not None and not first.problems:
         return first.call, first.notes
-    noted = [f"first answer: {problem}" for problem in first.problems]
+    noted = [f"{FIRST_ANSWER}: {problem}" for problem in first.problems]
     messages.extend([
         {"role": "assistant", "content": reply},
         {"role": "user", "content": "\n".join([AGAIN, *first.problems])},
@@ -301,8 +309,9 @@ def read(record: JSON, key: str, client: httpx2.Client) -> tuple[Call, list[str]
     except Exception as error:
         error.add_note("; ".join(noted))
         raise
+    keep(SECOND_ANSWER, again)
     second = _use(stored, again)
-    noted += [f"second answer: {problem}" for problem in second.problems]
+    noted += [f"{SECOND_ANSWER}: {problem}" for problem in second.problems]
     if second.call is not None:
         return second.call, [*noted, *second.notes]
     if first.call is not None:

@@ -85,7 +85,7 @@ run by hand, and quarterly reports.
 
 ## The second version: topics, more sources, the project reports and the sector's direction
 
-- [ ] **12. `feat(extract): log each model response`**
+- [x] **12. `feat(extract): log each model response`**
       Whenever the artificial intelligence reads a funding call, Fieldbook saves the model's exact,
       raw response directly into a log file before generating the final card. This gives us a
       permanent audit trail, allowing anyone to review the model's original words and verify how it

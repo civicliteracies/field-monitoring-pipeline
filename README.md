@@ -14,6 +14,8 @@ It finds the opportunities CLI can act on, for funding and for paid work: grants
 
 Fieldbook watches a named list of sources and never searches the open web. Each morning it reaches every source by the route that source publishes, and writes down each item it collects, once and whole, before the reading step sees a word of it, together with where it came from. Then it reads. The title, the dates and the budget are copied from the source's own record where it gives them in fields. A language model names the rest, asked for what the text states and nothing else. For the summary, who can apply and where, it also quotes the sentence each one rests on. Every quoted sentence is checked word for word against the stored copy. When a sentence is not found, or the model's answer cannot be used, the model is asked once more. A sentence still not found stays on the card with a warning. When neither of the model's answers can be used, the item gets no card. Each item read becomes a Markdown card, saved to the `data` branch, which holds the archive and shares no history with the code, and carried into the RSS feed.
 
+Every answer the model gives is kept, word for word, in the log of calls on the `data` branch, so anyone can read the model's own reasoning behind each fact on a card, or why a reading failed.
+
 Everything collected and everything written stays in this repository as plain files, on the `data` branch.
 
 ## What it does not promise
