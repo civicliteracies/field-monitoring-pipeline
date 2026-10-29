@@ -96,9 +96,9 @@ run by hand, and quarterly reports.
       of relying on the artificial intelligence, Fieldbook's own code automatically matches the labels
       the source put on each call against this list and attaches the matching topics to its card,
       making it easy to group and filter cards by topic.
-- [ ] **14. `feat(sources): add a second source of calls`**
+- [x] **14. `feat(sources): add a second source of calls`**
       Fieldbook adds a second funding website to its monitoring watch list after we manually verify
-      that the portal regularly publishes open grant opportunities. Any calls gathered from this new
+      that the website regularly publishes open calls. Any calls gathered from this new
       source are converted into standard cards, stored in the same archive directory, and published
       through the same RSS feed.
 - [ ] **15. `feat(reports): ingest project reports as cards`**

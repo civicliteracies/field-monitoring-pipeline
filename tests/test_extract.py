@@ -1,3 +1,4 @@
+import datetime as dt
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -7,8 +8,9 @@ import httpx2
 import pytest
 
 from field_monitoring_pipeline.extract import build, read, text
-from field_monitoring_pipeline.models import Call, Quoted
-from field_monitoring_pipeline.store import AnswerWord
+from field_monitoring_pipeline.models import Call, Deadline, Quoted, Topic, TopicList
+from field_monitoring_pipeline.store import AnswerWord, Saved
+from tests.test_fetch import VIEWS
 from tests.test_tags import TOPICS
 
 ROOT = Path(__file__).parent.parent
@@ -23,6 +25,16 @@ DROPPED = REPLY.replace("sectors at European level are addressed", "sectors are 
 AGAIN = "This answer cannot be used as it is. Write the one command line again, with each problem below put right:"
 MISSED = "--summary-quote: the sentence must be in the text word for word"
 FUNDER = "funder: empty, because the model marked it not stated"
+DAY = dt.date(2026, 9, 27)
+EU = Saved("eu-funding-tenders", "HORIZON-CL2-2027-01-DEMOCRACY-06", "Not read from here", "https://e.org", DAY)
+EITI_CALL = Saved("eiti", VIEWS, "Example 2027 EITI Validation: call for views on stakeholder engagement", VIEWS, DAY)
+OFFER = (REPLIES / "eiti_offer.html").read_bytes()
+BOARD = "The EITI Board asks for views on how stakeholders take part in EITI implementation in the example country."
+EITI_REPLY = (
+    f'fieldbook --type other --funder "EITI Board" --summary "Asks for views." --summary-quote "{BOARD}" '
+    "--eligibility-not-stated --area-not-stated"
+)
+EXTRACTIVES = TopicList.model_validate({"topics": {"extractives-eiti": {"mark": "primary"}}})
 
 
 def stored(deadlines: list[str] | None = None, shared: int = 1, **own: Any) -> Any:
@@ -58,7 +70,7 @@ def keeping(kept: list[tuple[AnswerWord, int, str]], seen: list[httpx2.Request])
 def reading(*answers: str) -> tuple[Call, list[str], list[Any]]:
     seen: list[httpx2.Request] = []
     with model(*answers, seen=seen) as client:
-        call, notes = read(stored(), TOPICS, "the key", client, keeping([], seen))
+        call, notes = read(EU, stored(), TOPICS, (), "the key", client, keeping([], seen))
     return call, notes, [json.loads(request.read())["messages"] for request in seen]
 
 
@@ -147,7 +159,7 @@ def test_a_call_whose_labels_match_nothing_gets_no_topic_and_a_note_last() -> No
             f"{name}: empty, because the model's answer did not mention it"
             for name in ("funder", "who can apply", "where")
         ),
-        "topics: empty, because no label from the source matched the topic list",
+        "topics: empty, because the call gets no topic on the topic list from its source or its labels",
     ]
 
 
@@ -271,7 +283,7 @@ def test_a_usable_first_answer_is_kept_when_the_second_cannot_be_used() -> None:
 def test_a_second_request_that_fails_fails_the_reading_with_the_first_answer_s_problems() -> None:
     seen: list[httpx2.Request] = []
     with model(DROPPED, httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError) as caught:
-        read(stored(), TOPICS, "the key", client, keeping([], seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping([], seen))
     assert caught.value.__notes__ == [f"first answer: {MISSED}"]
 
 
@@ -304,7 +316,7 @@ def test_a_record_the_template_refuses_is_sent_back_and_noted_short() -> None:
 def test_an_answer_unusable_twice_raises_naming_both_answers_problems() -> None:
     seen: list[httpx2.Request] = []
     with model("I could not decide.", LINE + "\n" + LINE, seen=seen) as client, pytest.raises(ValueError) as caught:
-        read(stored(), TOPICS, "the key", client, keeping([], seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping([], seen))
     assert str(caught.value) == (
         "first answer: the answer must hold exactly one line beginning with fieldbook; it holds 0; "
         "second answer: the answer must hold exactly one line beginning with fieldbook; it holds 2"
@@ -315,7 +327,7 @@ def test_an_answer_unusable_twice_raises_naming_both_answers_problems() -> None:
 def test_the_first_request_holds_the_instructions_and_the_text() -> None:
     seen: list[httpx2.Request] = []
     with model(REPLY, seen=seen) as client:
-        read(stored(), TOPICS, "the key", client, keeping([], seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping([], seen))
     [request] = seen
     assert str(request.url) == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
     assert request.headers["Authorization"] == "Bearer the key"
@@ -334,7 +346,7 @@ def test_the_first_request_holds_the_instructions_and_the_text() -> None:
 def test_a_request_the_service_refuses_is_raised() -> None:
     seen: list[httpx2.Request] = []
     with model(httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError) as caught:
-        read(stored(), TOPICS, "the key", client, keeping([], seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping([], seen))
     assert not hasattr(caught.value, "__notes__")
 
 
@@ -352,7 +364,7 @@ def test_a_clean_first_answer_is_handed_on_as_sent() -> None:
     kept: list[tuple[AnswerWord, int, str]] = []
     seen: list[httpx2.Request] = []
     with model(REPLY, seen=seen) as client:
-        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, REPLY)]
 
 
@@ -360,7 +372,7 @@ def test_both_answers_are_handed_on_after_a_second_try() -> None:
     kept: list[tuple[AnswerWord, int, str]] = []
     seen: list[httpx2.Request] = []
     with model(DROPPED, REPLY, seen=seen) as client:
-        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, DROPPED), ("second answer", 2, REPLY)]
 
 
@@ -368,7 +380,7 @@ def test_both_answers_are_handed_on_when_the_reading_fails() -> None:
     kept: list[tuple[AnswerWord, int, str]] = []
     seen: list[httpx2.Request] = []
     with model("I could not decide.", LINE + "\n" + LINE, seen=seen) as client, pytest.raises(ValueError):
-        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, "I could not decide."), ("second answer", 2, f"{LINE}\n{LINE}")]
 
 
@@ -376,7 +388,7 @@ def test_the_first_answer_is_handed_on_when_the_second_request_fails() -> None:
     kept: list[tuple[AnswerWord, int, str]] = []
     seen: list[httpx2.Request] = []
     with model(DROPPED, httpx2.Response(503), seen=seen) as client, pytest.raises(httpx2.HTTPStatusError):
-        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, DROPPED)]
 
 
@@ -385,7 +397,7 @@ def test_each_answer_is_handed_on_exactly_as_sent() -> None:
     seen: list[httpx2.Request] = []
     first, second = f"\r\n {DROPPED}\n\n", f"  {REPLY}\r\n"
     with model(first, second, seen=seen) as client:
-        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping(kept, seen))
     assert kept == [("first answer", 1, first), ("second answer", 2, second)]
 
 
@@ -395,7 +407,7 @@ def test_the_first_answer_is_handed_on_before_it_is_judged() -> None:
     no_text = httpx2.Response(200, json={"choices": [{"message": {"content": None}}]})
     # A reply with no text cannot be judged, so the reading stops there, as before; the answer is already handed on.
     with model(no_text, seen=seen) as client, pytest.raises(AttributeError):
-        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping(kept, seen))
     assert [(word, sent) for word, sent, _ in kept] == [("first answer", 1)]
 
 
@@ -405,7 +417,7 @@ def test_the_second_answer_is_handed_on_before_it_is_judged() -> None:
     no_text = httpx2.Response(200, json={"choices": [{"message": {"content": None}}]})
     # A reply with no text cannot be judged, so the reading stops there, as before; the answer is already handed on.
     with model(DROPPED, no_text, seen=seen) as client, pytest.raises(AttributeError):
-        read(stored(), TOPICS, "the key", client, keeping(kept, seen))
+        read(EU, stored(), TOPICS, (), "the key", client, keeping(kept, seen))
     assert [(word, sent) for word, sent, _ in kept] == [("first answer", 1), ("second answer", 2)]
 
 
@@ -419,6 +431,57 @@ def test_a_fault_keeping_the_second_answer_carries_no_notes() -> None:
         kept.append((word, len(seen), answer))
 
     with model(DROPPED, REPLY, seen=seen) as client, pytest.raises(ValueError, match="cannot be kept") as caught:
-        read(stored(), TOPICS, "the key", client, keep)
+        read(EU, stored(), TOPICS, (), "the key", client, keep)
     assert not hasattr(caught.value, "__notes__")
     assert kept == [("first answer", 1, DROPPED)]
+
+
+def test_an_eiti_call_is_read_from_its_page_alone_with_the_topic_its_source_names() -> None:
+    seen: list[httpx2.Request] = []
+    with model(EITI_REPLY, seen=seen) as client:
+        call, notes = read(EITI_CALL, OFFER, EXTRACTIVES, ("extractives-eiti",), "the key", client, keeping([], seen))
+    [sent] = json.loads(seen[0].read())["messages"]
+    source = sent["content"].split("-----BEGIN SOURCE TEXT-----\n")[1]
+    assert source.startswith(
+        "Title: Example 2027 EITI Validation: call for views on stakeholder engagement\n"
+        "Opening date: not stated\n"
+        "Deadline: 2027-01-01\n"
+        "Budget: not stated\n"
+        "Example 2027 EITI Validation: call for views on stakeholder engagement | EITI Home Countries "
+    )
+    assert BOARD in source
+    assert "Subscribe to our newsletter" in source
+    assert "dataLayer" not in source
+    assert "baseUrl" not in source
+    assert "color: red" not in source
+    assert (call.identifier, call.link, call.title) == (VIEWS, VIEWS, EITI_CALL.title)
+    assert (call.opening, call.budget) == (None, None)
+    assert call.deadline == Deadline(date=dt.date(2027, 1, 1), quote="Deadline: 2027-01-01", found=True)
+    assert call.summary.found
+    assert call.topics == (Topic(name="extractives-eiti", mark="primary"),)
+    assert notes == [
+        "opening date: empty, because this source's page has no field for it",
+        "budget: empty, because this source's page has no field for it",
+        "who can apply: empty, because the model marked it not stated",
+        "where: empty, because the model marked it not stated",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("page", "error"),
+    [
+        pytest.param(OFFER.replace(b"<time ", b"<span "), "exactly one closing date; it holds 0", id="no closing date"),
+        pytest.param(OFFER.replace(b"</dd>", b'<time datetime="2027-02-01">x</time></dd>'), "it holds 2", id="two"),
+        pytest.param(
+            OFFER.replace(b"2027-01-01T", b"1 Jan 2027T"),
+            "the page's closing date cannot be read: '1 Jan 2027T12:00:00Z'",
+            id="not a date",
+        ),
+        pytest.param(OFFER.replace(b"Example", "Exemplé".encode("latin-1")), "can't decode", id="not UTF-8"),
+    ],
+)
+def test_a_page_that_is_not_a_call_fails_its_reading_before_any_request(page: bytes, error: str) -> None:
+    seen: list[httpx2.Request] = []
+    with model(seen=seen) as client, pytest.raises(ValueError, match=error):
+        read(EITI_CALL, page, EXTRACTIVES, ("extractives-eiti",), "the key", client, keeping([], seen))
+    assert seen == []

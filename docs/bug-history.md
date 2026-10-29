@@ -138,3 +138,31 @@ names files explicitly; the file types the published hooks named, which are Pyth
 notebook files; and serial execution, because ruff works in parallel by itself. Test that now fails on the
 old behaviour: none, because the fault was in the hook settings, not in the code. What can be
 checked instead is that the hook settings contain no version number at all.
+
+### BUG-005: a call whose record had no description stopped the reading
+
+**Severity:** high. **Class:** correctness of the run. **Status:** fixed in this build.
+
+**Summary.** The EU portal published the call CERV-2026-CITIZENS-VALUES on 27 October 2026 with an
+empty description and with its code in place of its title. The reading took the first part of the
+description without checking that there was one, so it stopped at that call with an error. No row
+reached the log for the call, the calls after it were not read, and no feed was built. A saved call
+is never downloaded again, so the same stored copy would have stopped the reading every morning. No
+wrong result reached the archive.
+
+**Root cause.** The reading assumed that every record has a description, as each of the stored calls
+before it had.
+
+**Fix.** A call whose record has no description is read from its conditions alone. Its card is made,
+with the code the portal gave as its title, and its row in the log carries the note "description:
+empty, because the source's record has none".
+
+**Prevention.** A fact the source leaves empty is marked and noted, never invented and never hidden
+by refusing the call, as the decision log's entry "What happens when the reading meets a fault?"
+says.
+
+**Technical detail.** The reading takes the description only when the record's list of descriptions
+is not empty, and the note comes from the project's own code; the model's instructions do not
+change. Test that now fails on the old behaviour: the morning run's test of a record with no
+description, which stopped with an `IndexError` before the fix and now gives the call's card and the
+note.

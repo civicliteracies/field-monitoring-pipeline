@@ -1,7 +1,8 @@
 """Store what the run collected and wrote, under the data folder.
 
-Each saved call has two files in its source's folder: its web page as downloaded and the source's
-record of it. Both are named by a code made from the call's identifier. Each call read has a card in
+Each saved call has its web page as downloaded in its source's folder and, when the source gives
+one, the source's record of it. Both are named by a code made from the call's identifier. A saved
+call is given back as its record, or as its page when it has no record. Each call read has a card in
 one folder for all sources, named by the day it was saved, its title and the first ten characters of
 its code. One log beside the folders has a row for each call the run tried, saved or failed; for
 each answer the model gave while reading a call, first or second, with the answer as it came; and
@@ -20,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from field_monitoring_pipeline.fetch import JSON, FetchedCall
+from field_monitoring_pipeline.fetch import JSON, FetchedCall, NoRecord
 
 COLUMNS = ("code", "source", "identifier", "title", "link", "fetched", "status", "reason")
 SHORT_TITLE = 60
@@ -101,8 +102,9 @@ def store(data: Path, source: str, call: FetchedCall, page: bytes, fetched: dt.d
     folder.mkdir(parents=True, exist_ok=True)
     name = code(call.identifier)
     (folder / f"{name}.html").write_bytes(page)
-    record = json.dumps(call.record, indent=1, ensure_ascii=False) + "\n"
-    (folder / f"{name}.json").write_bytes(record.encode("utf-8"))
+    if not isinstance(call.record, NoRecord):
+        record = json.dumps(call.record, indent=1, ensure_ascii=False) + "\n"
+        (folder / f"{name}.json").write_bytes(record.encode("utf-8"))
     _add_call_row(data, source, call, fetched, "saved", "")
 
 
@@ -114,8 +116,10 @@ def store_run(data: Path, source: str, link: str, fetched: dt.datetime, outcome:
     _add_row(data, ("", source, "", "", link, fetched.isoformat(), outcome, reason))
 
 
-def stored_record(data: Path, call: Saved) -> JSON:
-    return json.loads((_raw(data) / call.source / f"{code(call.identifier)}.json").read_bytes())
+def stored(data: Path, call: Saved) -> JSON | bytes:
+    page = _raw(data) / call.source / f"{code(call.identifier)}.html"
+    record = page.with_suffix(".json")
+    return json.loads(record.read_bytes()) if record.exists() else page.read_bytes()
 
 
 def _card_code(identifier: str) -> str:

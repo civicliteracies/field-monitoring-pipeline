@@ -100,3 +100,10 @@ def test_a_pot_the_call_s_topics_share_says_so() -> None:
         quote="Budget 2026: 28 000 000 € (shared by the 5 topics of this call)",
         found=True,
     )
+
+
+def test_script_and_style_contents_are_not_text() -> None:
+    record = stored()
+    record["metadata"]["descriptionByte"] = ["<p>Shown.</p><script>var x = {a: 1};</script><style>p{color:red}</style>"]
+    record["metadata"]["topicConditions"] = ["<p>Who may apply.</p>"]
+    assert text(record).endswith("winning projects expected: 3\nShown.\nWho may apply.")
