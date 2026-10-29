@@ -1,16 +1,22 @@
 """Read one stored call into a call record.
 
-Makes the text a language model reads from a stored call: four labelled lines written from the
-record's fields (the title, the opening date, the deadline and the budget), then the description and
-the conditions with the page's tags stripped. Before any request, gives the call the topics of the
-topic list that the labels its source put on it name. Asks the model under the instructions kept
-beside this file, hands each answer on as it arrives, reads the one command line of the answer, and
-looks for each quoted sentence in the text. When the answer cannot be used or a sentence is not
-found, asks once more, in the same conversation, naming each problem. Builds the record from the four
-fields, the five facts the model names and those topics, with the link, the call's identifier and
-the names of the model and the instructions. Marks each sentence found or not found, and returns the
-record with a note for each problem and each sentence not found, for each empty field among the
-funder, who can apply and where, saying what the answer did, and for a call no label gave a topic.
+Makes the text a language model reads from a stored call: four labelled lines (the title, the
+opening date, the deadline and the budget), then the call's words. For a call stored with its record,
+the lines are written from the record's fields, and the words are the description, when the record
+has one, and the conditions, with the page's tags stripped. For a call stored as its page alone, the
+title is the one the list gave, the deadline is the one date tag on the page, the opening date and
+the budget are not stated, and the words are all the page's text, without its scripts and styles.
+Before any request, gives the call the topics of the topic list that its source names and that the
+labels its source put on it name.
+Asks the model under the instructions kept beside this file, hands each answer on as it arrives, reads
+the one command line of the answer, and looks for each quoted sentence in the text. When the answer
+cannot be used or a sentence is not found, asks once more, in the same conversation, naming each
+problem. Builds the record from the four fields, the five facts the model names and those topics, with
+the link, the call's identifier and the names of the model and the instructions. Marks each sentence
+found or not found, and returns the record with a note for each problem and each sentence not found,
+for each empty field among the funder, who can apply and where, saying what the answer did, for an
+opening date or a budget the source's page has no field for, for a record with no description, and
+for a call with no topic.
 """
 
 import datetime as dt
@@ -27,7 +33,7 @@ from pydantic import ValidationError
 
 from field_monitoring_pipeline.fetch import JSON
 from field_monitoring_pipeline.models import Call, Deadline, Opening, Quoted, Topic, TopicList
-from field_monitoring_pipeline.store import AnswerWord
+from field_monitoring_pipeline.store import AnswerWord, Saved
 from field_monitoring_pipeline.tags import topics
 
 MODEL = "gemini-3.5-flash-lite"
@@ -42,6 +48,11 @@ BLOCKS = frozenset({"p", "div", "h4", "li", "ul", "ol", "br"})
 QUOTED = frozenset({"funder", "summary", "summary-quote", "eligibility", "eligibility-quote", "area", "area-quote"})
 PLAIN = frozenset({"type"})
 ALONE = frozenset({"funder-not-stated", "eligibility-not-stated", "area-not-stated"})
+# The boxes our code copies from a field of the record; a call stored as its page alone has no such field.
+COPIED = frozenset({"opening", "budget"})
+NOT_STATED = "not stated"
+# The contents of these tags are not text a reader sees.
+HIDDEN = frozenset({"script", "style"})
 # How a note names each box, in the record's own order; the note on the topics follows the boxes.
 NAMES = {
     "funder": "funder",
@@ -69,12 +80,13 @@ class _Stored:
     text: str
     words: str
     title: str
-    opening: Opening
+    opening: Opening | None
     deadline: Deadline
-    budget: Quoted
+    budget: Quoted | None
     link: str
     identifier: str
     labels: tuple[str, ...]
+    described: bool
 
 
 @dataclass(frozen=True)
@@ -88,20 +100,37 @@ class _Words(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.pieces: list[str] = []
+        self.hidden = False
 
     @override
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.hidden = self.hidden or tag in HIDDEN
         if tag in BLOCKS:
             self.pieces.append(" ")
 
     @override
     def handle_endtag(self, tag: str) -> None:
+        self.hidden = self.hidden and tag not in HIDDEN
         if tag in BLOCKS:
             self.pieces.append(" ")
 
     @override
     def handle_data(self, data: str) -> None:
-        self.pieces.append(data)
+        if not self.hidden:
+            self.pieces.append(data)
+
+
+class _EitiCallPage(_Words):
+    # A stored page's words, and the closing date of each <time> that carries one.
+    def __init__(self) -> None:
+        super().__init__()
+        self.times: list[str] = []
+
+    @override
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "time" and (when := dict(attrs).get("datetime")) is not None:
+            self.times.append(when)
+        super().handle_starttag(tag, attrs)
 
 
 def _tidy(words: str) -> str:
@@ -170,7 +199,9 @@ def _stored(record: JSON) -> _Stored:
     metadata = _metadata(record)
     title, (opening, opening_line), (deadline, deadline_line), (budget, budget_line) = _facts(metadata)
     lines = [f"{LABELS[0]}: {_tidy(title)}", opening_line, deadline_line, budget_line]
-    joined = "\n".join([*lines, _plain(metadata["descriptionByte"][0]), _plain(metadata["topicConditions"][0])])
+    # The portal can give a call an empty description; the call is then read from its conditions alone.
+    description = [_plain(text) for text in metadata["descriptionByte"][:1]]
+    joined = "\n".join([*lines, *description, _plain(metadata["topicConditions"][0])])
     words = _tidy(joined)
     return _Stored(
         text=joined,
@@ -182,6 +213,36 @@ def _stored(record: JSON) -> _Stored:
         link=metadata["url"][0],
         identifier=metadata["identifier"][0],
         labels=tuple(metadata["tags"]),
+        described=bool(description),
+    )
+
+
+def _eiti_page(call: Saved, page: bytes) -> _Stored:
+    parser = _EitiCallPage()
+    parser.feed(page.decode("utf-8"))
+    parser.close()
+    if len(parser.times) != 1:
+        raise ValueError(f"the page must hold exactly one closing date; it holds {len(parser.times)}")
+    [when] = parser.times
+    try:
+        deadline = dt.date.fromisoformat(when[:10])
+    except ValueError as error:
+        raise ValueError(f"the page's closing date cannot be read: {when!r}") from error
+    deadline_line = f"{LABELS[2]}: {deadline}"
+    lines = [f"{LABELS[0]}: {_tidy(call.title)}", f"{LABELS[1]}: {NOT_STATED}", deadline_line]
+    joined = "\n".join([*lines, f"{LABELS[3]}: {NOT_STATED}", _tidy("".join(parser.pieces))])
+    words = _tidy(joined)
+    return _Stored(
+        text=joined,
+        words=words,
+        title=call.title,
+        opening=None,
+        deadline=Deadline(date=deadline, quote=deadline_line, found=_found(deadline_line, words)),
+        budget=None,
+        link=call.link,
+        identifier=call.identifier,
+        labels=(),
+        described=True,
     )
 
 
@@ -232,7 +293,7 @@ def _pair(given: dict[str, object], name: str, words: str) -> dict[str, object] 
     return {"value": given[name], "quote": quote, "found": _found(quote, words)}
 
 
-def _notes(call: Call, given: dict[str, object]) -> list[str]:
+def _notes(call: Call, given: dict[str, object], *, described: bool) -> list[str]:
     notes: list[str] = []
     for name, label in NAMES.items():
         box = getattr(call, name)
@@ -243,8 +304,12 @@ def _notes(call: Call, given: dict[str, object]) -> list[str]:
             notes.append(f"{label}: empty, because the model marked it not stated")
         elif box is None and alone in ALONE and name not in given:
             notes.append(f"{label}: empty, because the model's answer did not mention it")
+        elif box is None and name in COPIED:
+            notes.append(f"{label}: empty, because this source's page has no field for it")
+    if not described:
+        notes.append("description: empty, because the source's record has none")
     if not call.topics:
-        notes.append("topics: empty, because no label from the source matched the topic list")
+        notes.append("topics: empty, because the call gets no topic on the topic list from its source or its labels")
     return notes
 
 
@@ -266,12 +331,12 @@ def _build(stored: _Stored, found: tuple[Topic, ...], reply: str) -> tuple[Call,
         "model": MODEL,
         "instructions": INSTRUCTIONS,
     })
-    return call, _notes(call, given)
+    return call, _notes(call, given, described=stored.described)
 
 
 def build(record: JSON, listed: TopicList, reply: str) -> tuple[Call, list[str]]:
     stored = _stored(record)
-    return _build(stored, topics(listed, stored.labels), reply)
+    return _build(stored, topics(listed, stored.labels, ()), reply)
 
 
 def _misses(call: Call) -> list[str]:
@@ -296,11 +361,18 @@ def _use(stored: _Stored, found: tuple[Topic, ...], reply: str) -> _Answer:
 
 
 def read(
-    record: JSON, listed: TopicList, key: str, client: httpx2.Client, keep: Callable[[AnswerWord, str], None]
+    call: Saved,
+    kept: JSON | bytes,
+    listed: TopicList,
+    own: tuple[str, ...],
+    key: str,
+    client: httpx2.Client,
+    keep: Callable[[AnswerWord, str], None],
 ) -> tuple[Call, list[str]]:
-    # The text, the copied facts and the topics are made first, so a fault in the record stops the reading before any request.
-    stored = _stored(record)
-    found = topics(listed, stored.labels)
+    # The text, the copied facts and the topics are made first, so a fault in what was stored stops the reading before any request.
+    # A page alone is read by EITI's rule, the one source read from its page.
+    stored = _eiti_page(call, kept) if isinstance(kept, bytes) else _stored(kept)
+    found = topics(listed, stored.labels, own)
     instructions = (Path(__file__).parent / "instructions" / f"{INSTRUCTIONS}.md").read_text(encoding="utf-8")
     messages: list[Message] = [{"role": "user", "content": f"{instructions}\n{BEGIN}\n{stored.text}\n{END}"}]
     reply = ask(messages, key, client)

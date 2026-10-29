@@ -1,7 +1,9 @@
 # The topic list: CLI's topics, each marked primary (a field CLI works in to win revenue) or secondary
-# (watched for intelligence). A call gets a topic when one of the labels its source put on it holds the
-# topic's name or one of its words as a whole phrase, ignoring case and reading a hyphen as a space.
+# (watched for intelligence). A call gets every topic its source names in config/sources.toml, and a
+# topic when one of the labels its source put on it holds the topic's name or one of its words as a
+# whole phrase, ignoring case and reading a hyphen as a space.
 # A card keeps the topics and marks of the day it was made; a change here reaches later cards only.
+# A topic a source names in config/sources.toml must stay on this list, or the morning's reading stops.
 [topics.transparency]
 mark = "primary"
 

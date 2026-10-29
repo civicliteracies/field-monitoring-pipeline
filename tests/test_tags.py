@@ -30,7 +30,7 @@ CIVIC_TECH = Topic(name="civic-tech", mark="primary")
 def test_the_topic_list_is_read_whole_in_its_order(tmp_path: Path) -> None:
     path = tmp_path / "tags.toml"
     path.write_text(TOPIC_LIST, encoding="utf-8")
-    assert read_topic_list(path) == TOPICS
+    assert read_topic_list(path, ()) == TOPICS
     assert TOPICS.topics == {
         "AI-and-civic": TopicEntry(mark="primary", words=("artificial intelligence", "AI")),
         "data-journalism": TopicEntry(mark="secondary", words=("journalism",)),
@@ -56,7 +56,7 @@ def test_a_list_that_breaks_its_rules_is_refused_naming_what_was_found(tmp_path:
     path = tmp_path / "tags.toml"
     path.write_text(text, encoding="utf-8")
     with pytest.raises(ValidationError, match=re.escape(refusal)):
-        read_topic_list(path)
+        read_topic_list(path, ())
 
 
 @pytest.mark.parametrize(
@@ -76,23 +76,40 @@ def test_a_list_that_breaks_its_rules_is_refused_naming_what_was_found(tmp_path:
     ],
 )
 def test_a_label_gives_a_topic_only_by_a_whole_phrase(label: str, given: tuple[Topic, ...]) -> None:
-    assert topics(TOPICS, [label]) == given
+    assert topics(TOPICS, [label], ()) == given
 
 
 def test_topics_come_in_the_list_s_order_and_only_from_it() -> None:
     labels = ["Civic tech", "governance", "investigative journalism", "ethical AI"]
-    assert topics(TOPICS, labels) == (AI, JOURNALISM, CIVIC_TECH)
-    assert topics(TOPICS, []) == ()
+    assert topics(TOPICS, labels, ()) == (AI, JOURNALISM, CIVIC_TECH)
+    assert topics(TOPICS, [], ()) == ()
 
 
 def test_a_topic_is_given_once_however_many_labels_hold_it() -> None:
-    assert topics(TOPICS, ["ethical AI", "AI governance", "artificial intelligence"]) == (AI,)
+    assert topics(TOPICS, ["ethical AI", "AI governance", "artificial intelligence"], ()) == (AI,)
 
 
 def test_each_label_is_matched_alone() -> None:
-    assert topics(TOPICS, ["civic", "tech"]) == ()
+    assert topics(TOPICS, ["civic", "tech"], ()) == ()
+
+
+def test_a_source_s_own_topics_join_the_label_topics_in_the_list_s_order_each_once() -> None:
+    assert topics(TOPICS, ["investigative journalism"], ("civic-tech", "AI-and-civic", "civic-tech")) == (
+        AI,
+        JOURNALISM,
+        CIVIC_TECH,
+    )
+    assert topics(TOPICS, ["ethical AI"], ("AI-and-civic",)) == (AI,)
+
+
+def test_a_topic_a_source_names_that_is_not_on_the_list_is_refused(tmp_path: Path) -> None:
+    path = tmp_path / "tags.toml"
+    path.write_text(TOPIC_LIST, encoding="utf-8")
+    assert read_topic_list(path, ("civic-tech", "AI-and-civic")) == TOPICS
+    with pytest.raises(ValueError, match="not on the topic list: extractives-eiti, geospatial$"):
+        read_topic_list(path, ("geospatial", "civic-tech", "extractives-eiti"))
 
 
 def test_the_real_topic_list_reads_through_the_reader() -> None:
     # The list is data CLI edits, so the test holds its shape and not its topics.
-    assert read_topic_list(ROOT / "config" / "tags.toml").topics
+    assert read_topic_list(ROOT / "config" / "tags.toml", ()).topics

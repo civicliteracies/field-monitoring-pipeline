@@ -6,7 +6,7 @@ from tests.test_calls import WATCH_LIST
 from tests.test_tags import TOPIC_LIST
 
 
-# The morning run's tests are in two files, and both write the same watch list and topic list into the test folder.
+# The morning run's tests are in three files, and each writes the same watch list and topic list into the test folder.
 @pytest.fixture
 def watch_list(tmp_path: Path) -> Path:
     path = tmp_path / "config" / "sources.toml"

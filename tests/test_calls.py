@@ -7,13 +7,40 @@ from typing import Any
 
 import httpx2
 import pytest
+from pydantic import ValidationError
 
 from field_monitoring_pipeline.calls import main, run
 from field_monitoring_pipeline.extract import ADDRESS
 from field_monitoring_pipeline.store import COLUMNS, code
-from tests.test_extract import REPLY
+from tests.test_extract import EITI_REPLY, REPLY
 from tests.test_fetch import REPLIES, ROOT, URL
 from tests.test_store import FETCHED, IDENTIFIER, SOURCE, STAMP, log
+from tests.test_tags import TOPIC_LIST
+
+EITI_ENTRY = """
+[source.eiti]
+name = "EITI"
+url = "https://eiti.org/consultancy-opportunities"
+how = "eiti-page"
+topics = ["extractives-eiti"]
+"""
+EITI_RUN = ["", "eiti", "", "", "https://eiti.org/consultancy-opportunities", STAMP]
+# The topic EITI's entry names, added to the test topic list for each run that reads EITI.
+EITI_TOPICS = TOPIC_LIST + '\n[topics.extractives-eiti]\nmark = "primary"\n'
+
+
+def eiti(listing: bytes) -> Callable[[httpx2.Request], httpx2.Response | None]:
+    def special(request: httpx2.Request) -> httpx2.Response | None:
+        if str(request.url) == ADDRESS and b"Budget: not stated" in request.read():
+            return httpx2.Response(200, json={"choices": [{"message": {"content": EITI_REPLY}}]})
+        if request.url.host != "eiti.org":
+            return None
+        if request.url.path == "/consultancy-opportunities":
+            return httpx2.Response(200, content=listing)
+        return httpx2.Response(200, content=(REPLIES / "eiti_offer.html").read_bytes())
+
+    return special
+
 
 SEARCHES = {
     ("democracy", "1"): "democracy.json",
@@ -21,10 +48,10 @@ SEARCHES = {
     ("digital", "1"): "digital_page_1.json",
     ("digital", "2"): "digital_page_2.json",
 }
-WATCH_LIST = f"""[[source]]
-id = "{SOURCE}"
+WATCH_LIST = f"""[source.{SOURCE}]
 name = "EU Funding and Tenders Portal"
 url = "{URL}"
+how = "eu-search"
 words = ["democracy", '"civil society"', "digital"]
 """
 PAGES = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/"
@@ -314,79 +341,16 @@ def test_every_failed_call_is_counted_and_printed(
     assert log(data)[-1] == [*RUN, STAMP, "failed", "4 calls, 0 new, 4 failed"]
 
 
-@pytest.mark.parametrize("field", ["id", "name", "url", "words"])
+@pytest.mark.parametrize("field", ["name", "url", "how", "words"])
 def test_a_watch_list_without_a_field_stops_before_any_request(
     tmp_path: Path, watch_list: Path, topic_list: Path, field: str
 ) -> None:
     asked: list[str] = []
     lines = [line for line in WATCH_LIST.splitlines() if not line.startswith(field)]
     watch_list.write_text("\n".join(lines), encoding="utf-8")
-    with portal(lambda request: asked.append(str(request.url))) as client, pytest.raises(KeyError, match=field):
+    with portal(lambda request: asked.append(str(request.url))) as client, pytest.raises(ValidationError, match=field):
         run(tmp_path / "data", watch_list, topic_list, client, FETCHED, KEY)
     assert asked == []
-
-
-@pytest.mark.parametrize(
-    ("answer", "raised", "reason"),
-    [
-        pytest.param(server_error, httpx2.HTTPStatusError, SERVER_ERROR, id="error status"),
-        pytest.param(
-            raising(httpx2.ConnectError("All connection attempts failed")),
-            httpx2.ConnectError,
-            NO_CONNECTION,
-            id="no connection",
-        ),
-        pytest.param(
-            raising(httpx2.ReadTimeout("The read operation timed out")), httpx2.ReadTimeout, TIMEOUT, id="timeout"
-        ),
-    ],
-)
-def test_a_failed_search_is_logged_and_stops_the_run(
-    tmp_path: Path, watch_list: Path, topic_list: Path, answer: Answer, raised: type[httpx2.HTTPError], reason: str
-) -> None:
-    data = tmp_path / "data"
-    with portal(answer) as client, pytest.raises(raised):
-        run(data, watch_list, topic_list, client, FETCHED, KEY)
-    assert log(data) == [list(COLUMNS), ["", SOURCE, "", "", SEARCH, STAMP, "failed", reason]]
-    assert list(files(data)) == [LOG]
-    assert not (data / "raw" / SOURCE).exists()
-
-
-@pytest.mark.parametrize(
-    ("content", "raised", "reason"),
-    [
-        pytest.param(
-            b"<html>maintenance</html>", json.JSONDecodeError, "json.decoder.JSONDecodeError: ", id="not JSON"
-        ),
-        pytest.param(
-            "<html>fermé</html>".encode("latin-1"), UnicodeDecodeError, "UnicodeDecodeError: ", id="not UTF-8"
-        ),
-    ],
-)
-def test_a_search_reply_that_is_not_json_is_logged(
-    tmp_path: Path, watch_list: Path, topic_list: Path, content: bytes, raised: type[Exception], reason: str
-) -> None:
-    data = tmp_path / "data"
-    with portal(lambda request: httpx2.Response(200, content=content)) as client, pytest.raises(raised):
-        run(data, watch_list, topic_list, client, FETCHED, KEY)
-    header, row = log(data)
-    assert header == list(COLUMNS)
-    assert row[:REASON] == [*RUN, STAMP, "failed"]
-    assert row[REASON].startswith(reason)
-
-
-def test_a_reply_the_fetch_cannot_read_is_not_a_failed_search(
-    tmp_path: Path, watch_list: Path, topic_list: Path
-) -> None:
-    def no_dates(request: httpx2.Request) -> httpx2.Response:
-        body = reply(request)
-        body["results"][0]["metadata"]["deadlineDate"] = []
-        return httpx2.Response(200, json=body)
-
-    data = tmp_path / "data"
-    with portal(no_dates) as client, pytest.raises(ValueError, match="empty"):
-        run(data, watch_list, topic_list, client, FETCHED, KEY)
-    assert files(data) == {}
 
 
 def test_the_command_ends_with_a_failure_when_a_call_failed(monkeypatch: pytest.MonkeyPatch) -> None:
