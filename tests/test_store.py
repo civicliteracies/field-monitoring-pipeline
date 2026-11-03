@@ -15,6 +15,7 @@ from field_monitoring_pipeline.store import (
     code,
     saved,
     store,
+    store_answer,
     store_card,
     store_failure,
     store_feed,
@@ -196,4 +197,13 @@ def test_the_reading_s_row_names_the_call_and_what_the_reading_met(tmp_path: Pat
         [*row, "card written", "funder: empty, because the model marked it not stated"],
         [*row, "failed", "ValueError: no budget line"],
     ]
+    assert saved(tmp_path) == []
+
+
+def test_an_answer_row_holds_its_word_and_the_answer_whole(tmp_path: Path) -> None:
+    answer = 'First, the call funds "news media", in Europe.\r\nThen,\ralone:\n\nfieldbook --type grant\n'
+    store_answer(tmp_path, SAVED, FETCHED, "first answer", answer)
+    store_answer(tmp_path, SAVED, FETCHED, "second answer", "")
+    row = [code(IDENTIFIER), SOURCE, IDENTIFIER, CALL.title, CALL.link, STAMP]
+    assert log(tmp_path)[1:] == [[*row, "first answer", answer], [*row, "second answer", ""]]
     assert saved(tmp_path) == []

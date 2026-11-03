@@ -5,12 +5,14 @@ whose page fails is written in the log and the run carries on. A search that fai
 log and stops the run. When a source's calls are done, writes one row for it in the log: failed if
 any call failed, successful if none failed and at least one was new, nothing new otherwise. The row
 holds how many calls were fetched, how many were new and how many failed. Then reads each saved call
-that has no card, in a fixed order. Writes its card and a row with the reading's notes, or a failed
-row with the reason, so the next run reads it again. Last, builds the feed from every card. Prints
-the numbers for each source and for the reading, and then each failure.
+that has no card, in a fixed order, and writes a row for each answer the model gives, as it arrives.
+Writes the call's card and a row with the reading's notes, or a failed row with the reason, so the
+next run reads it again. Last, builds the feed from every card. Prints the numbers for each source
+and for the reading, and then each failure.
 """
 
 import datetime as dt
+import functools
 import json
 import os
 import sys
@@ -28,6 +30,7 @@ from field_monitoring_pipeline.store import (
     cards,
     saved,
     store,
+    store_answer,
     store_card,
     store_failure,
     store_feed,
@@ -51,7 +54,7 @@ def _read(data: Path, client: httpx2.Client, fetched: dt.datetime, key: str) -> 
     for call in unread:
         record = stored_record(data, call)
         try:
-            made, notes = read(record, key, client)
+            made, notes = read(record, key, client, functools.partial(store_answer, data, call, fetched))
         except (ValueError, httpx2.HTTPError) as error:
             reason = _reason(error)
             store_reading(data, call, fetched, "failed", reason)

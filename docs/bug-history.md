@@ -50,7 +50,8 @@ condition in `.github/workflows/calls.yml`, which lets it run after a step has f
 
 **Severity:** medium. **Class:** correctness of the record. **Status:** fixed in earlier work; the
 rule it produced is carried here, with two changes: a run adds a row to the log for each source it
-finishes, and a saved call gets a row each time it is read.
+finishes, and each time a saved call is read it gets a row for each answer the model gave, if any,
+then a row for the outcome.
 
 **Summary.** The daily run committed to the archive every morning whether or not anything new had
 arrived, so the history filled with changes that changed nothing.
@@ -71,9 +72,10 @@ source and changes nothing else.
 `saved` row for it, so nothing stored is ever rewritten, and with change 11, which rebuilds the feed
 with no date of the build, so an unchanged feed leaves nothing to commit, and with change 6, which
 makes the daily commit and asks git whether anything is there to commit before making one. This
-build records the time of collection again, in the log. Once a call is saved, it gets a row each
-time it is read, until its card is written, and none after. This build also writes a row for each
-source a run finishes, so every finished run adds to the log. Test that now fails on the old
+build records the time of collection again, in the log. Once a call is saved, each time it is read
+it gets a row for each answer the model gave, if any, then a row for the outcome, until its card is
+written, and none after. This build also writes a row for each source a run finishes, so every
+finished run adds to the log. Test that now fails on the old
 behaviour: the command's test of a second run. It must download no page, leave every page and record
 as it was, keep every earlier row of the log, and add only the run's row.
 
