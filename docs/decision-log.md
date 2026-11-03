@@ -27,7 +27,8 @@ repository. Nothing here changes for that, provided the card keeps its shape.
 
 ### When are urgent calls floated to the top of the feed?
 
-**Situation.** The feed carries new cards in the order they are found.
+**Situation.** The feed carries every card, in the order of the cards' names: by the day each call
+was found, then by title.
 
 **Question.** When should a call that closes soon be ordered above one that closes later?
 
@@ -35,8 +36,8 @@ repository. Nothing here changes for that, provided the card keeps its shape.
 ordering changes nothing a reader would notice. The cost is that once the feed is longer than a
 screen, a call closing this week can sit below one closing in six months.
 
-**Technical detail.** The decision is taken when the feed change is planned, and it needs the
-deadline, which every dated call carries.
+**Technical detail.** The feed is built with its entries in the order of the cards' names, and no
+ordering by urgency. Ordering by urgency needs only the deadline, which every dated call carries.
 
 ### When does the reading step move to a paid model?
 
@@ -119,7 +120,8 @@ page and the source's record of it, and one folder holds a card for each call re
 the folders has a row for each call the run tried and for each call it read. It also has a row for
 each source, saying how the run ended for it. No server, no database engine, no committed index. The
 cards are derived from the stored files and kept beside them, because a reading costs a request to
-the model and may not come out the same twice. Nothing else derived is kept.
+the model and may not come out the same twice. The feed is rebuilt from the cards on every run and
+kept beside them, so a feed reader can fetch it. Nothing else derived is kept.
 
 **Rationale.** The history of the repository becomes the audit log, its permissions become the
 access control, and nothing in it can be withdrawn by a supplier. The log of calls is one table,
@@ -140,8 +142,8 @@ for every finished run gives up one thing. The log grows on a day that brought n
 archive's history does not show by itself which days brought one. The numbers in the run's row show
 it.
 
-**Technical detail.** Collected items and cards live on the `data` branch, which shares no history
-with the code. One module writes everything under the data folder and owns every path there.
+**Technical detail.** Collected items, cards and the feed live on the `data` branch, which shares no
+history with the code. One module writes everything under the data folder and owns every path there.
 
 ### Is a page read before or after it is stored?
 
@@ -163,14 +165,14 @@ the copy, where they are useful for applying, and never appear on a card.
 counts as stored once it has a `saved` row. A run that stops partway therefore never leaves a call
 marked as saved with a file missing, and the next run does that call again. A run stores a call only
 when it has no `saved` row, and reads it only when it has no card. So a run with nothing new,
-nothing failing and nothing left to read rewrites nothing. It adds the run's row for each source,
-and every other stored byte stays as it was. BUG-002 in the bug history is where that rule came
-from. A call that keeps failing adds one row each run. That is deliberate: recording each try, and
-how each run ended, is what the log is for. The fetch may leave out a whole call, by its identifier
-or its closing date, but never changes one: each saved call is stored whole, as the source served
-it. The record is its own file because, for the first source, the page holds none of the call's
-text. It is not kept inside the log. The records of 33 calls came to 1.2 MB, and GitHub shows a log
-as a table only up to 512 KB.
+nothing failing and nothing left to read rewrites nothing but the feed, which comes out byte for
+byte the same. It adds the run's row for each source, and every other stored byte stays as it was.
+BUG-002 in the bug history is where that rule came from. A call that keeps failing adds one row each
+run. That is deliberate: recording each try, and how each run ended, is what the log is for. The
+fetch may leave out a whole call, by its identifier or its closing date, but never changes one: each
+saved call is stored whole, as the source served it. The record is its own file because, for the
+first source, the page holds none of the call's text. It is not kept inside the log. The records of
+33 calls came to 1.2 MB, and GitHub shows a log as a table only up to 512 KB.
 
 ### What does a card hold, and how is it named?
 
@@ -196,6 +198,28 @@ was saved.
 lines that touch and takes a line after a quote into the quote. A card counts as written once its
 file exists, and its row in the log follows it. Only small letters, digits and hyphens reach a
 card's name.
+
+### How is the feed built?
+
+**Situation.** A feed reader collects a feed by itself, and shows as new any entry it has not seen
+before.
+
+**Decision.** One RSS 2.0 file, `data/feed.xml`, rebuilt from every card on each run, with one entry
+per card in the order of the cards' names. Each entry holds the title and the closing date, a link
+to the card on github.com, the summary, and the call's code as its identity. The feed holds no date
+of the build, and no entry is marked closed. A reader fetches it from its raw address on the `data`
+branch.
+
+**Rationale.** With no date of the build and a fixed order, the same cards give the same file, so a
+morning with no new card changes nothing. The code never changes, so a reader shows each call once.
+If a reader refuses the raw address, GitHub's own page hosting can serve the same file. What it
+gives up: a closed call stays in the feed, and urgent calls are not floated to the top. An entry
+shows the summary without its sentence or its warning; the card it links to shows both.
+
+**Technical detail.** The feed is built last, so a run stopped by an error leaves it as it was until
+the next run that reaches its end. Python's own XML tree writer writes the file. The project's
+checker refuses that module by name, because its readers are unsafe on XML from outside; one line
+allows it in the module that only writes.
 
 ## 5. Reading with a model
 

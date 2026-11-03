@@ -37,7 +37,7 @@ tests/           # pytest suite, mirrors src/
 docs/            # the records: the plan, the decision log, the bug history, the map of every file
 mise.toml        # task runner: setup, check, verify, lint, format, typecheck, test
 .pre-commit-config.yaml   # git hook definitions
-.github/workflows/   # the daily run: GitHub collects, stores and reads funding calls every morning
+.github/workflows/   # the daily run: GitHub collects, stores and reads funding calls and builds the feed every morning
 ```
 
 Everything lives in one `pyproject.toml`:

@@ -17,9 +17,10 @@ from field_monitoring_pipeline.models import Call, Deadline, Opening, Quoted
 FENCE = "---"
 NOT_STATED = "not stated"
 WARNING = "This sentence was not found in the call."
+STAYS_OPEN = "stays open"
 
 
-def _day(date: dt.date) -> str:
+def day(date: dt.date) -> str:
     return f"{date.day} {date:%B %Y}"
 
 
@@ -44,8 +45,8 @@ def _facts(call: Call) -> list[str]:
         f"# {call.title}",
         f"Type: {call.type}",
         f"Funder: {NOT_STATED if call.funder is None else call.funder}",
-        *([f"Opens: {NOT_STATED}"] if opening is None else [f"Opens: {_day(opening.date)}", *_under(opening)]),
-        f"Deadline: {'stays open' if deadline.date is None else _day(deadline.date)}",
+        *([f"Opens: {NOT_STATED}"] if opening is None else [f"Opens: {day(opening.date)}", *_under(opening)]),
+        f"Deadline: {STAYS_OPEN if deadline.date is None else day(deadline.date)}",
         *_under(deadline),
     ]
     for label, fact in (

@@ -1,13 +1,13 @@
-"""Run the steps in order for every source on the watch list, then read every call without a card.
+"""Run the steps in order for every source on the watch list, read every call without a card, and build the feed.
 
 Fetches each source's calls, skips those already saved, and downloads and stores the rest. A call
 whose page fails is written in the log and the run carries on. A search that fails is written in the
-log and stops the run. When a source's calls are done, writes one row for it in the log: failed if any
-call failed, successful if none failed and at least one was new, nothing new otherwise. The row holds
-how many calls were fetched, how many were new and how many failed. Then reads each saved call that has
-no card, in a fixed order. Writes its card and a row with the reading's notes, or a failed row with the
-reason, so the next run reads it again. Prints the numbers for each source and for the reading, and
-then each failure.
+log and stops the run. When a source's calls are done, writes one row for it in the log: failed if
+any call failed, successful if none failed and at least one was new, nothing new otherwise. The row
+holds how many calls were fetched, how many were new and how many failed. Then reads each saved call
+that has no card, in a fixed order. Writes its card and a row with the reading's notes, or a failed
+row with the reason, so the next run reads it again. Last, builds the feed from every card. Prints
+the numbers for each source and for the reading, and then each failure.
 """
 
 import datetime as dt
@@ -22,17 +22,20 @@ import httpx2
 
 from field_monitoring_pipeline.extract import read
 from field_monitoring_pipeline.fetch import fetch, fetch_page, new_client
+from field_monitoring_pipeline.publish import feed
 from field_monitoring_pipeline.store import (
     carded,
+    cards,
     saved,
     store,
     store_card,
     store_failure,
+    store_feed,
     store_reading,
     store_run,
     stored_record,
 )
-from field_monitoring_pipeline.write import card
+from field_monitoring_pipeline.write import card, read_card
 
 
 def _reason(error: Exception) -> str:
@@ -98,7 +101,9 @@ def run(data: Path, watch_list: Path, client: httpx2.Client, fetched: dt.datetim
         for failure in failures:
             print(failure)
         failed += len(failures)
-    return failed + _read(data, client, fetched, key)
+    failed += _read(data, client, fetched, key)
+    store_feed(data, feed([(path, read_card(text)) for path, text in cards(data)]))
+    return failed
 
 
 def main() -> None:

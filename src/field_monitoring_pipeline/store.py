@@ -5,8 +5,9 @@ record of it. Both are named by a code made from the call's identifier. Each cal
 one folder for all sources, named by the day it was saved, its title and the first ten characters of
 its code. One log beside the folders has a row for each call the run tried, saved or failed, and for
 each call it read, card written or failed. It also has a row for each source, which says how the run
-ended for it. The files are written first and the row last. A call counts as stored once it has a
-saved row, and as read once it has a card.
+ended for it. The files are written first and the row last. The feed, built from the cards, sits
+beside them and is written again on every run. A call counts as stored once it has a saved row, and
+as read once it has a card.
 """
 
 import csv
@@ -129,6 +130,17 @@ def carded(data: Path, call: Saved) -> bool:
 def store_card(data: Path, call: Saved, card: str) -> None:
     _cards(data).mkdir(parents=True, exist_ok=True)
     (_cards(data) / card_name(call)).write_bytes(card.encode("utf-8"))
+
+
+def cards(data: Path) -> list[tuple[str, str]]:
+    return [
+        (path.relative_to(data).as_posix(), path.read_bytes().decode("utf-8"))
+        for path in sorted(_cards(data).glob("*.md"))
+    ]
+
+
+def store_feed(data: Path, feed: str) -> None:
+    (data / "feed.xml").write_bytes(feed.encode("utf-8"))
 
 
 def store_reading(data: Path, call: Saved, fetched: dt.datetime, status: Reading, reason: str) -> None:
