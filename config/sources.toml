@@ -1,10 +1,12 @@
-# The watch list: the sources Fieldbook reads and the words it searches for. Edit the words freely.
-# A source's id names its folder in the archive and its rows in the log. Never change it once calls
-# are saved.
-[[source]]
-id = "eu-funding-tenders"
+# The watch list: the sources Fieldbook reads, one table per source, named by its id. The id names the source's
+# folder in the archive and its rows in the log. Never change it once calls are saved. The route, how, says how the
+# source is reached: eu-search asks the EU portal for the words, which can be edited freely; eiti-page reads EITI's
+# list of current calls and takes no words. A source may name topics that every one of its calls carries.
+# Each must be on the topic list, config/tags.toml, or the morning's reading stops.
+[source.eu-funding-tenders]
 name = "EU Funding and Tenders Portal"
 url = "https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA"
+how = "eu-search"
 words = [
     "transparency AND accountability",
     '"civil society"',
@@ -15,3 +17,9 @@ words = [
     '"open data"',
     '"information integrity"',
 ]
+
+[source.eiti]
+name = "EITI consultancy opportunities"
+url = "https://eiti.org/consultancy-opportunities"
+how = "eiti-page"
+topics = ["extractives-eiti"]

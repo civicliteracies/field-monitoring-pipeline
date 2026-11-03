@@ -31,7 +31,7 @@ uvx pre-commit install --hook-type pre-commit --hook-type pre-push --hook-type c
 ```
 pyproject.toml   # project metadata, runtime deps, dev deps, and every tool's config
 uv.lock          # exact resolved versions — committed, never hand-edited
-config/          # the watch list: the sources Fieldbook reads and the words it searches for; the topic list: CLI's topics and their marks
+config/          # the watch list: the sources Fieldbook reads, each with its route, and the words the EU portal is searched for; the topic list: CLI's topics and their marks
 src/field_monitoring_pipeline/   # the package
 tests/           # pytest suite, mirrors src/
 docs/            # the records: the plan, the decision log, the bug history, the map of every file

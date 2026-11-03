@@ -12,8 +12,12 @@ from field_monitoring_pipeline.extract import ADDRESS
 from field_monitoring_pipeline.fetch import FetchedCall
 from field_monitoring_pipeline.publish import CARDS
 from field_monitoring_pipeline.store import code, store
+from field_monitoring_pipeline.write import read_card
 from tests.test_calls import (
     CODE,
+    EITI_ENTRY,
+    EITI_RUN,
+    EITI_TOPICS,
     KEY,
     NEXT_DAY,
     NOTE,
@@ -23,14 +27,16 @@ from tests.test_calls import (
     RUN,
     STATUS,
     STORED,
+    WATCH_LIST,
     Answer,
+    eiti,
     files,
     model_answer,
     portal,
     reply,
 )
 from tests.test_extract import REPLY
-from tests.test_fetch import REPLIES
+from tests.test_fetch import REPLIES, STUDY, VIEWS
 from tests.test_store import FETCHED, IDENTIFIER, log
 
 WHERE = "where: empty, because the model marked it not stated"
@@ -204,6 +210,9 @@ def test_the_calls_are_read_by_source_then_identifier(tmp_path: Path, watch_list
     with portal() as client:
         assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
     assert [row[2] for row in log(data) if row[STATUS] == "card written"] == [*CURRENT, own]
+    # Its source is not on the watch list, so its card has only the topics its labels give.
+    [card] = [text for name, text in files(data).items() if name.endswith(f"{code(own)[:10]}.md")]
+    assert [topic.name for topic in read_card(card.decode("utf-8")).topics] == ["AI-and-civic", "data-journalism"]
 
 
 def test_a_reply_with_no_content_leaves_its_empty_answer_row_before_the_run_stops(
@@ -238,9 +247,40 @@ def test_a_call_whose_labels_match_nothing_has_the_note_in_its_card_written_row(
     data = tmp_path / "data"
     with portal(unmatched) as client:
         assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
-    untagged = "topics: empty, because no label from the source matched the topic list"
+    untagged = "topics: empty, because the call gets no topic on the topic list from its source or its labels"
     notes = {row[2]: row[REASON] for row in log(data) if row[STATUS] == "card written"}
     assert notes == dict.fromkeys(CURRENT, NOTE) | {IDENTIFIER: f"{NOTE}; {untagged}"}
+
+
+def test_a_record_with_no_description_is_read_from_its_conditions_with_the_note_in_its_card_written_row(
+    tmp_path: Path, watch_list: Path, topic_list: Path
+) -> None:
+    # As the portal served CERV-2026-CITIZENS-VALUES on 27 October 2026: its description an empty list.
+    sent: list[str] = []
+
+    def undescribed(request: httpx2.Request) -> httpx2.Response | None:
+        if str(request.url) == ADDRESS:
+            sent.append(json.loads(request.read())["messages"][0]["content"])
+            return None
+        if request.method != "POST":
+            return None
+        body = reply(request)
+        for record in body["results"]:
+            if record["metadata"]["identifier"][0] == IDENTIFIER:
+                record["metadata"]["descriptionByte"] = []
+        return httpx2.Response(200, json=body)
+
+    data = tmp_path / "data"
+    with portal(undescribed) as client:
+        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
+    # The model is sent the call's conditions, whose text begins with its admissibility rules.
+    [first, *_] = [content for content in sent if f"Title: {CURRENT[IDENTIFIER]}\n" in content]
+    assert "Admissibility Conditions: Proposal page limit and layout" in first
+    notes = {row[2]: row[REASON] for row in log(data) if row[STATUS] == "card written"}
+    # The stand-in model quotes the description, so the call's own note also says that sentence was not found.
+    assert notes.pop(IDENTIFIER).endswith("; description: empty, because the source's record has none")
+    assert notes == {identifier: NOTE for identifier in CURRENT if identifier != IDENTIFIER}
+    assert HERITAGE_CARD in files(data)
 
 
 def test_a_topic_list_that_cannot_be_read_stops_the_run_after_the_calls_are_stored(
@@ -267,3 +307,35 @@ def test_a_topic_list_that_cannot_be_read_stops_a_quiet_morning_too(
         run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY)
     assert log(data)[-1] == [*RUN, NEXT_DAY, "nothing new", "4 calls, 0 new, 0 failed"]
     assert files(data)["feed.xml"] == built
+
+
+def test_an_eiti_call_is_saved_as_its_page_alone_and_read_from_it_with_its_source_s_topic(
+    tmp_path: Path, watch_list: Path, topic_list: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    watch_list.write_text(WATCH_LIST + EITI_ENTRY, encoding="utf-8")
+    topic_list.write_text(EITI_TOPICS, encoding="utf-8")
+    data = tmp_path / "data"
+    with portal(eiti((REPLIES / "eiti_list.html").read_bytes())) as client:
+        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
+    assert capsys.readouterr().out == (
+        "EU Funding and Tenders Portal: 4 calls, 4 new, 0 failed\n"
+        "EITI: 2 calls, 2 new, 0 failed\n"
+        "Read: 6 calls, 6 cards written, 0 failed\n"
+    )
+    assert sorted(name for name in files(data) if name.startswith("raw/eiti/")) == sorted(
+        f"raw/eiti/{code(link)}.html" for link in (VIEWS, STUDY)
+    )
+    written = [row for row in log(data) if row[STATUS] == "card written"]
+    assert [row[2] for row in written] == [VIEWS, STUDY, *CURRENT]
+    assert written[0][REASON].startswith(
+        "opening date: empty, because this source's page has no field for it; "
+        "budget: empty, because this source's page has no field for it"
+    )
+    assert "topics:" not in written[0][REASON]
+    assert [*EITI_RUN, "successful", "2 calls, 2 new, 0 failed"] in log(data)
+    entries = ET.fromstring(files(data)["feed.xml"]).findall("channel/item")
+    eiti_entries = [entry for entry in entries if entry.findtext("guid") in (code(VIEWS), code(STUDY))]
+    assert [category.text for entry in eiti_entries for category in entry.findall("category")] == [
+        "extractives-eiti",
+        "primary",
+    ] * 2

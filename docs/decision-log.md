@@ -70,10 +70,10 @@ derived from what was kept.
 A run takes each item through seven steps, in order. Reach the sources on the watch list and bring
 back what they published. Write down each item collected, once and whole, together with where it
 came from. Give each item a stable name of its own. Read the facts the item states: copy those the
-source gives in its own fields, match the labels the source put on it against the topic list, and
-name the rest with a language model. The model is asked once more when its answer cannot be used or
-a sentence it quotes is not found. Check what was read against what was stored. Write the card. Save
-the cards and build the feed.
+source gives in its own fields, give it the topics its source names and those its labels match on the
+topic list, and name the rest with a language model. The model is asked once more when its answer
+cannot be used or a sentence it quotes is not found. Check what was read against what was stored.
+Write the card. Save the cards and build the feed.
 
 Three things stay apart inside every step: the data, declared in files a person can read; the
 behaviour, plain functions that act on it; and the coordination, a single command that calls the
@@ -82,19 +82,25 @@ about the items themselves.
 
 ## 3. Sources
 
-### Which source goes on the watch list first?
+### Which sources are on the watch list, and how is each reached?
 
-**Situation.** Fieldbook reads only the sources named on its watch list, and the first had to
-publish funding calls in a form a program can read.
+**Situation.** Fieldbook reads only the sources named on its watch list, and each had to publish
+funding calls in a form a program can read.
 
-**Decision.** The EU Funding and Tenders Portal, reached through its public search service, which
-answers in JSON. Fieldbook asks it, in English, for the grant topics that match each search word,
-open or announced, and leaves out any call whose last closing date has passed. Each call's web page
-is fetched as the portal serves it.
+**Decision.** Two sources. The first is the EU Funding and Tenders Portal, reached through its public
+search service, which answers in JSON. Fieldbook asks it, in English, for the grant topics that match
+each search word, open or announced, and leaves out any call whose last closing date has passed. The
+second is the consultancy opportunities page of the Extractive Industries Transparency Initiative
+(EITI). Fieldbook reads the page's one list of current calls and takes every call on it. Each source
+names its route on the watch list, `eu-search` or `eiti-page`, and the route picks the code that
+reaches it. Each call's web page is fetched as the source serves it. A search that fails, or a list
+that cannot be read, is that source's failed run: it is written in the log and printed, the next
+source is searched, the saved calls are read and the feed is built, and the run ends with a failure.
 
-**Rationale.** Of the sources on CLI's list, it is the one that publishes open and announced calls a
-program can read, each with its full text; the others publish news and essays, or grants already
-given. Only grant topics are read for now, because the portal's other kinds each need their own
+**Rationale.** Of the sources on CLI's list, the portal is the one that serves open and announced
+calls as data a program can read, each with its full text; most of the others publish news and
+essays, or grants already given. Only grant topics are read for now, because the portal's other
+kinds each need their own
 design: EU aid calls keep their details in attached documents, and cascade calls share identifiers
 with other calls. Announced calls are kept because an application takes months to prepare; each is
 captured once, as it stood on the day it was saved, and not updated. Closed calls are left out by
@@ -104,15 +110,31 @@ portal redirecting a call's page to a page that no longer exists, and its search
 answering with an error. When asked again, the portal served the page normally, so the next run asks
 again. A call whose page fails is skipped and written in the log of calls with the error. Its record
 is not kept without its page, because the search sends the record again on the next run. The other
-calls are saved, and the run ends with a failure. A search that fails is written in the log too, and
-stops the run. Nothing more is built for a failure until the log shows what is needed. The page is
-kept whole, so the stored copy is the page itself and not a reading of it. For this portal the page
-is a frame that the browser fills from the record, so the record carries the text. What it gives up:
-a call published only in a language other than English is not seen. A call whose page fails on every
-run until it closes is never saved.
+calls are saved, and the run ends with a failure. Nothing more is built for a failure until the log
+shows what is needed. The page is kept whole, so the stored copy is the page itself and not a reading
+of it. For this portal the page is a frame that the browser fills from the record, so the record
+carries the text. What it gives up: a call published only in a language other than English is not
+seen. A call whose page fails on every run until it closes is never saved.
+
+EITI is on CLI's list of organisations to watch, and its page lists its current calls, each on a
+page of its own that holds the call's text; it offers no feed and no data service. CLI counts any
+opportunity it can act on as a call, so EITI's consultations, calls for views on its validations, are
+kept with its calls for proposals. Each route is named for the site it reads, because EITI's reader
+keys on EITI's own markup: a second site read from its page needs its own reader in code. A source
+that fails is kept visible rather than skipped without notice, so while one source cannot be
+reached, every morning ends with a failure and the other sources' calls still arrive. A fault of any
+other kind in a source's reader stops the run, as a fault of any other kind on a call's page does;
+none has been seen. Both are departures from the principle that a broken source is skipped quietly and
+is never fatal. What it gives up: only EITI's current list is read, so a call it lists and takes down
+between two mornings is not seen, and the document a call links to is not downloaded.
 
 **Technical detail.** Each search word is its own search, because the portal's search mishandles
-several phrases in one query.
+several phrases in one query. EITI's list is the page's one element marked `view-id-offers`, holding
+calls or its own empty mark; a page with no such list or two of them, a list holding both calls and
+its empty mark or neither, a call without exactly one title and a link under `/offers/`, a list page
+that is not UTF-8, or a refused request is that source's failed run, naming what was found. An EITI
+call's identifier is its full address. An EITI call's deadline is the one date tag on its page; a
+page with none, or more than one, fails its reading.
 
 ## 4. Storage
 
@@ -122,16 +144,17 @@ several phrases in one query.
 readable without specialist tools.
 
 **Decision.** Plain files in this repository. Each source has a folder, which holds every call's web
-page and the source's record of it, and one folder holds a card for each call read. One log beside
+page and, where the source gives one, its record of it, and one folder holds a card for each call
+read. One log beside
 the folders has a row for each call the run tried, for each answer the model gave while reading a
 call, and for each call it read. It also has a row for each source, saying how the run ended for it.
 No server, no database engine, no committed index. The cards are derived from the stored files and
 kept beside them, because a reading costs a request to the model and may not come out the same twice.
 The answer each card was made from (the second answer when it can be used, otherwise the first) is
-kept in the log, so a card can be checked against it, or made again from the stored record and that
-answer while the instructions, the model, the topic list and the way the text is made stay the same.
-The feed is rebuilt from the cards on every run that reaches its end, and kept beside them so a feed
-reader can fetch it. Nothing else derived is kept.
+kept in the log, so a card can be checked against it, or made again from what was stored for the
+call and that answer while the instructions, the model, the topic list, the topics its source names
+and the way the text is made stay the same. The feed is rebuilt from the cards on every run that
+reaches its end, and kept beside them so a feed reader can fetch it. Nothing else derived is kept.
 
 **Rationale.** The history of the repository becomes the audit log, its permissions become the
 access control, and nothing in it can be withdrawn by a supplier. The log of calls is one table,
@@ -142,14 +165,14 @@ arrives, before the reading judges it: the word `first answer` or `second answer
 exactly as the model sent it, in the last column. A reading that then fails keeps its answers too. A
 person can read the model's own reasoning behind each fact, or why a reading failed. An answer is the
 model's own output, which cannot be made again, so keeping it is not keeping a copy of derived data.
-The identifier, title and link the log repeats are copied from the source's record when a row is
+The identifier, title and link the log repeats are taken from what the source sent when a row is
 written, and never updated. The run's row for a source holds one of three words:
 `successful`, `failed` or `nothing new`. It also holds the numbers the run counted: how many calls
-were fetched, how many were new and how many failed. When the search itself failed, the row holds
-the error. The store writes it once, when the run is done with that source, and never updates it.
-The log is never rebuilt from the files. A call's files are named by a code made from its
-identifier, not by the identifier itself. Some identifiers cannot be file names (web addresses, or
-names that carry slashes), and a name cannot change once a call is saved. The log pairs each code
+were fetched, how many were new and how many failed. When the source itself could not be read, the
+row holds the error. The store writes it once, when the run is done with that source, and never
+updates it. The log is never rebuilt from the files. A call's files are named by a code made from
+its identifier, not by the identifier itself. Some identifiers cannot be file names (web addresses,
+or names that carry slashes), and a name cannot change once a call is saved. The log pairs each code
 with the call's identifier, title and link, so a person can find a call's files there. What plain
 files give up is querying: there is no way to ask the store a question except by reading files,
 which is why searching the whole archive belongs to a separate page that reads the same files. A row
@@ -170,7 +193,8 @@ together, a change to the reading means going back to the source, and the source
 gone.
 
 **Decision.** Write what a source served to disk before the reading step sees it: the call's web
-page, exactly as downloaded, and the source's record of the call, every value as sent. Every later
+page, exactly as downloaded, and, where the source gives one, its record of the call, every value as
+sent. Every later
 step works from that copy. The log holds where each call came from, its link and the time it was
 collected.
 
@@ -189,8 +213,11 @@ BUG-002 in the bug history is where that rule came from. A call that keeps faili
 run: the answers the model gave, if any, then its failed row. That is deliberate: recording each try,
 and how each run ended, is what the log is for. The fetch may leave out a whole call, by its
 identifier or its closing date, but never changes one: each saved call is stored whole, as the
-source served it. The record is its own file because, for the first source, the page holds none of
-the call's text. It is not kept inside the log. The records of 33 calls came to 1.2 MB, and GitHub
+source served it. The record is its own file because, for the EU portal, the page holds none of the
+call's text. It is not kept inside the log. An EITI call keeps its page alone, because its page holds
+its text. A saved call is read from what was stored for it: its record when it has one, otherwise
+its page. With one source read from its page, a page alone means EITI's reading; a second such source
+would need its route stored with each call. The records of 33 calls came to 1.2 MB, and GitHub
 shows a log as a table only up to 512 KB. An answer is about 4 KB, against about 43 KB for a record,
 which is why the answers are kept in the log and the records are not. Three rare cases of an answer,
 none seen, show in the log this way. An answer longer than 131,072 characters, the most the log's
@@ -327,9 +354,11 @@ reach the card, and nobody would see what went wrong.
 after the second try stays on the record, marked as not found. The reading writes a note for each
 problem in either answer and for each sentence not found. Each empty field among the funder, who can
 apply and where gets a note saying what the answer did: the model marked it not stated, or did not
-mention it. A call that no label gave a topic gets a note saying so, after the others. Only two
-faults make no record: an answer that cannot be used on either try, and a request the model service
-turns away. The error then names the problems of each answer already received.
+mention it. An opening date or a budget that the source's page has no field for gets a note saying
+so. A call whose record has no description is read from its conditions alone, and gets a note saying
+so. A call with no topic gets a note saying so, after the others. Only two faults make no record: an
+answer that cannot be used on either try, and a request the model service turns away. The error then
+names the problems of each answer already received.
 
 **Rationale.** A marked fault can be seen and judged by the person reading the card; a refused
 record cannot. What it gives up: a card can carry a sentence the source never wrote, with its
@@ -367,7 +396,8 @@ block empty when the source gives no opening date.
 fields of its own record, and states them in a sentence only now and then: of 33 calls the portal
 served, the prose states an opening date in 5, a deadline in 6 and the call's own budget in none.
 In trials, a model asked to name these facts copied them wrongly or wrote flags its instructions
-never offered.
+never offered. EITI's list gives each call's title, and its page gives the call's closing date in
+one date tag; neither gives an opening date or a budget.
 
 **Decision.** The code copies the title, the two dates and the budget from the record's fields, and
 writes each date and the budget out as one plain line that serves as its sentence. The model names
@@ -375,28 +405,34 @@ the rest: the type, the funder, the summary, who can apply and where. Where the 
 date, the field's value and line are kept. The budget names the call's whole amount, then in
 brackets what one winning project can get, with the euro sign after each amount. Where the topics
 of one call share one amount, the portal gives each topic's line the whole of it, and the budget
-says it is shared and by how many topics.
+says it is shared and by how many topics. For an EITI call the title comes from its list and the
+deadline from its page, and the opening date and the budget are written as not stated and left
+empty.
 
 **Rationale.** A fact the source already gives in a field needs no judgement, so copying it cannot
 misread it. What it gives up: where the prose and the field disagree, the card shows the field and
 says nothing of the prose. The euro sign is not in the stored record: the portal's own page prints
 it beside each amount.
 
-**Technical detail.** The four lines come first in the text the model reads. The three that carry a
-sentence, the two dates and the budget, are checked like any other sentence, and are always found.
+**Technical detail.** The four lines come first in the text the model reads. Those that carry a
+sentence, the two dates and the budget, or for a call read from its page the deadline alone, are
+checked like any other sentence, and are always found. For a call read from its page, the four lines
+are followed by all the page's visible text, its menus included, and not the contents of its scripts
+and styles.
 
 ### How does a card get its topics?
 
 **Situation.** CLI keeps its own list of topics, each marked primary, a field it works in to win
 revenue, or secondary, one it watches for intelligence, so that the feed can be filtered by them.
-The EU portal puts its own labels on every call.
+The EU portal puts its own labels on every call; EITI puts none.
 
 **Decision.** The code gives a call its topics when the call is read, before any request to the
-model. A call gets every topic on the topic list whose name, or one of the few words listed with it,
-appears as a whole phrase in one of the labels its source put on it. The topics come in the list's
-order. The card's record keeps each topic with the mark the list gave it that day. A call that no
-label matches has no topics, and its row in the log says so. The feed carries each topic and each
-mark as an RSS category, and does not change the order of the entries.
+model. A call gets every topic its source names on the watch list, and every topic on the topic list
+whose name, or one of the few words listed with it, appears as a whole phrase in one of the labels its
+source put on it. The topics come in the list's order, each once. The card's record keeps each topic
+with the mark the list gave it that day. A call that gets no topic from its source or its labels has
+none, and its row in the log says so. The feed carries each topic and each mark as an RSS category,
+and does not change the order of the entries.
 
 **Rationale.** The labels are the source's own reading of each call, so matching them is a rule
 anyone can check, and the model's job does not change. Both sides are compared in one form, as the
@@ -408,14 +444,17 @@ that morning's cards and never what was collected. What it gives up: a topic tha
 names but its labels do not is missed. A change to the list reaches only the cards made after it, so
 cards made before and after a change carry topics from different lists. "civil society" is both one
 of the words for civic-space and a search word on the watch list, so the number of calls given
-civic-space moves with the watch list.
+civic-space moves with the watch list. Every EITI card carries extractives-eiti because EITI is on
+the watch list, not because the call says so; counted across cards, that topic shows the watch list
+rather than movement in the sector.
 
 **Technical detail.** The list is `config/tags.toml`, one table per topic with its mark and, for a
 few topics, its words. It is read whole, and a mark other than primary or secondary or a key it does
-not know is refused, naming where. In the one form, a hyphen is read as a space and a run of spacing
-as one space. A whole phrase has no letter or digit just before or after it, so "AI" is found in
-"AI-driven solutions" but not inside a longer word. In the feed, each category's `domain` says
-whether it names a topic or a mark.
+not know is refused, naming where. A topic a source names that is not on the list is refused when
+the list is read, after the calls are collected. In the one form, a hyphen is read as a space and a
+run of spacing as one space. A whole phrase has no letter or digit just before or after it, so "AI"
+is found in "AI-driven solutions" but not inside a longer word. In the feed, each category's
+`domain` says whether it names a topic or a mark.
 
 ### Why does the model answer with one command line?
 
