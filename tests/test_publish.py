@@ -3,9 +3,10 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from field_monitoring_pipeline.models import Call
+from field_monitoring_pipeline.models import Call, Topic
 from field_monitoring_pipeline.publish import feed
 from field_monitoring_pipeline.store import code
+from tests.test_tags import AI, CIVIC_TECH, JOURNALISM
 from tests.test_write import CALL
 
 PATH = "calls/2026-10-15-identifying-user-focused-solutions-to-support-news-media-8cf6b3041b.md"
@@ -50,6 +51,10 @@ def test_an_entry_in_full(call: Call, title: str) -> None:
         f"      <title>{title}</title>\n"
         f"      <link>{CARD}</link>\n"
         f"      <description>{CALL.summary.value}</description>\n"
+        '      <category domain="topic">AI-and-civic</category>\n'
+        '      <category domain="topic">data-journalism</category>\n'
+        '      <category domain="mark">primary</category>\n'
+        '      <category domain="mark">secondary</category>\n'
         f'      <guid isPermaLink="false">{code(CALL.identifier)}</guid>\n'
         "    </item>\n"
     ) in feed([(PATH, call)])
@@ -84,3 +89,27 @@ def test_the_feed_reads_as_rss() -> None:
     assert text.startswith("<?xml version='1.0' encoding='utf-8'?>\n<rss version=\"2.0\">\n")
     assert text.endswith("</rss>\n")
     assert ET.fromstring(text).get("version") == "2.0"
+
+
+@pytest.mark.parametrize(
+    ("topics", "marks"),
+    [
+        # The secondary topic comes first, and its mark still follows the primary one.
+        pytest.param((JOURNALISM, AI, CIVIC_TECH), ["primary", "secondary"], id="both marks"),
+        pytest.param((AI, CIVIC_TECH), ["primary"], id="primary only"),
+        pytest.param((JOURNALISM,), ["secondary"], id="secondary only"),
+    ],
+)
+def test_an_entry_carries_a_category_per_topic_then_per_distinct_mark_primary_first(
+    topics: tuple[Topic, ...], marks: list[str]
+) -> None:
+    [entry] = items(feed([(PATH, CALL.model_copy(update={"topics": topics}))]))
+    assert [(category.get("domain"), category.text) for category in entry.findall("category")] == [
+        *(("topic", topic.name) for topic in topics),
+        *(("mark", mark) for mark in marks),
+    ]
+
+
+def test_a_card_with_no_topic_has_no_category() -> None:
+    [entry] = items(feed([(PATH, CALL.model_copy(update={"topics": ()}))]))
+    assert entry.findall("category") == []

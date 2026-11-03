@@ -4,11 +4,12 @@ Fetches each source's calls, skips those already saved, and downloads and stores
 whose page fails is written in the log and the run carries on. A search that fails is written in the
 log and stops the run. When a source's calls are done, writes one row for it in the log: failed if
 any call failed, successful if none failed and at least one was new, nothing new otherwise. The row
-holds how many calls were fetched, how many were new and how many failed. Then reads each saved call
-that has no card, in a fixed order, and writes a row for each answer the model gives, as it arrives.
-Writes the call's card and a row with the reading's notes, or a failed row with the reason, so the
-next run reads it again. Last, builds the feed from every card. Prints the numbers for each source
-and for the reading, and then each failure.
+holds how many calls were fetched, how many were new and how many failed. Then reads the topic list,
+which stops the run if it cannot be read, and reads each saved call that has no card, in a fixed
+order, with that list, and writes a row for each answer the model gives, as it arrives. Writes the
+call's card and a row with the reading's notes, or a failed row with the reason, so the next run
+reads it again. Last, builds the feed from every card. Prints the numbers for each source and for
+the reading, and then each failure.
 """
 
 import datetime as dt
@@ -24,6 +25,7 @@ import httpx2
 
 from field_monitoring_pipeline.extract import read
 from field_monitoring_pipeline.fetch import fetch, fetch_page, new_client
+from field_monitoring_pipeline.models import TopicList
 from field_monitoring_pipeline.publish import feed
 from field_monitoring_pipeline.store import (
     carded,
@@ -38,6 +40,7 @@ from field_monitoring_pipeline.store import (
     store_run,
     stored_record,
 )
+from field_monitoring_pipeline.tags import read_topic_list
 from field_monitoring_pipeline.write import card, read_card
 
 
@@ -45,7 +48,7 @@ def _reason(error: Exception) -> str:
     return "".join(traceback.format_exception_only(error)).rstrip("\n")
 
 
-def _read(data: Path, client: httpx2.Client, fetched: dt.datetime, key: str) -> int:
+def _read(data: Path, listed: TopicList, client: httpx2.Client, fetched: dt.datetime, key: str) -> int:
     unread = sorted(
         (call for call in saved(data) if not carded(data, call)),
         key=lambda call: (call.source, call.identifier),
@@ -54,7 +57,7 @@ def _read(data: Path, client: httpx2.Client, fetched: dt.datetime, key: str) -> 
     for call in unread:
         record = stored_record(data, call)
         try:
-            made, notes = read(record, key, client, functools.partial(store_answer, data, call, fetched))
+            made, notes = read(record, listed, key, client, functools.partial(store_answer, data, call, fetched))
         except (ValueError, httpx2.HTTPError) as error:
             reason = _reason(error)
             store_reading(data, call, fetched, "failed", reason)
@@ -68,7 +71,7 @@ def _read(data: Path, client: httpx2.Client, fetched: dt.datetime, key: str) -> 
     return len(failures)
 
 
-def run(data: Path, watch_list: Path, client: httpx2.Client, fetched: dt.datetime, key: str) -> int:
+def run(data: Path, watch_list: Path, topic_list: Path, client: httpx2.Client, fetched: dt.datetime, key: str) -> int:
     with watch_list.open("rb") as file:
         sources = tomllib.load(file)["source"]
     done = {(call.source, call.identifier) for call in saved(data)}
@@ -104,7 +107,7 @@ def run(data: Path, watch_list: Path, client: httpx2.Client, fetched: dt.datetim
         for failure in failures:
             print(failure)
         failed += len(failures)
-    failed += _read(data, client, fetched, key)
+    failed += _read(data, read_topic_list(topic_list), client, fetched, key)
     store_feed(data, feed([(path, read_card(text)) for path, text in cards(data)]))
     return failed
 
@@ -112,7 +115,14 @@ def run(data: Path, watch_list: Path, client: httpx2.Client, fetched: dt.datetim
 def main() -> None:
     fetched = dt.datetime.now(dt.UTC).replace(microsecond=0)
     with new_client() as client:
-        failed = run(Path(sys.argv[1]), Path("config/sources.toml"), client, fetched, os.environ["GEMINI_API_KEY"])
+        failed = run(
+            Path(sys.argv[1]),
+            Path("config/sources.toml"),
+            Path("config/tags.toml"),
+            client,
+            fetched,
+            os.environ["GEMINI_API_KEY"],
+        )
     if failed:
         sys.exit(1)
 

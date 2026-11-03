@@ -1,0 +1,48 @@
+# The topic list: CLI's topics, each marked primary (a field CLI works in to win revenue) or secondary
+# (watched for intelligence). A call gets a topic when one of the labels its source put on it holds the
+# topic's name or one of its words as a whole phrase, ignoring case and reading a hyphen as a space.
+# A card keeps the topics and marks of the day it was made; a change here reaches later cards only.
+[topics.transparency]
+mark = "primary"
+
+[topics.accountability]
+mark = "primary"
+
+[topics.anti-corruption]
+mark = "primary"
+
+[topics.open-data]
+mark = "primary"
+
+[topics.civic-tech]
+mark = "primary"
+
+[topics.AI-and-civic]
+mark = "primary"
+words = ["artificial intelligence", "AI"]
+
+[topics.data-literacy]
+mark = "primary"
+
+[topics.extractives-eiti]
+mark = "primary"
+
+[topics.governance]
+mark = "secondary"
+
+[topics.open-government]
+mark = "secondary"
+
+[topics.civic-space]
+mark = "secondary"
+words = ["civil society"]
+
+[topics.data-journalism]
+mark = "secondary"
+words = ["journalism"]
+
+[topics.open-contracting]
+mark = "secondary"
+
+[topics.geospatial]
+mark = "secondary"

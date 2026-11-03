@@ -90,12 +90,12 @@ run by hand, and quarterly reports.
       raw response directly into a log file before generating the final card. This gives us a
       permanent audit trail, allowing anyone to review the model's original words and verify how it
       arrived at each extracted fact.
-- [ ] **13. `feat(tags): tag cards with topics from the topic list`**
+- [x] **13. `feat(tags): tag cards with topics from the topic list`**
       We maintain a plain text list of relevant topics, classifying each topic as either primary
       (areas where our organization actively works) or secondary (areas we simply monitor). Instead
-      of relying on the artificial intelligence, Fieldbook's own code automatically scans each card
-      and attaches the matching topics from this list, making it easy to group and filter cards by
-      topic.
+      of relying on the artificial intelligence, Fieldbook's own code automatically matches the labels
+      the source put on each call against this list and attaches the matching topics to its card,
+      making it easy to group and filter cards by topic.
 - [ ] **14. `feat(sources): add a second source of calls`**
       Fieldbook adds a second funding website to its monitoring watch list after we manually verify
       that the portal regularly publishes open grant opportunities. Any calls gathered from this new

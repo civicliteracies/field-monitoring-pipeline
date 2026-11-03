@@ -5,6 +5,7 @@ from pathlib import Path
 
 import httpx2
 import pytest
+from pydantic import ValidationError
 
 from field_monitoring_pipeline.calls import run
 from field_monitoring_pipeline.extract import ADDRESS
@@ -19,12 +20,14 @@ from tests.test_calls import (
     PAGES,
     REASON,
     ROW,
+    RUN,
     STATUS,
     STORED,
     Answer,
     files,
     model_answer,
     portal,
+    reply,
 )
 from tests.test_extract import REPLY
 from tests.test_fetch import REPLIES
@@ -50,7 +53,9 @@ def reading_of(identifier: str, answer: httpx2.Response) -> Answer:
     return special
 
 
-def test_each_saved_call_without_a_card_is_read_once_and_in_order(tmp_path: Path, watch_list: Path) -> None:
+def test_each_saved_call_without_a_card_is_read_once_and_in_order(
+    tmp_path: Path, watch_list: Path, topic_list: Path
+) -> None:
     read: list[bytes] = []
     no_area = REPLY.split(' --area "Europe"')[0] + " --area-not-stated"
     last = reading_of("ISF-2026-TF2-AG-CYBER-DIGITAL", model_answer(no_area))
@@ -62,7 +67,7 @@ def test_each_saved_call_without_a_card_is_read_once_and_in_order(tmp_path: Path
 
     data = tmp_path / "data"
     with portal(watch) as client:
-        assert run(data, watch_list, client, FETCHED, KEY) == 0
+        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
     assert len(read) == 4
     assert all(f"Title: {title}".encode() in body for title, body in zip(CURRENT.values(), read, strict=True))
     rows = log(data)
@@ -80,18 +85,27 @@ def test_each_saved_call_without_a_card_is_read_once_and_in_order(tmp_path: Path
     ]
 
 
-def test_the_feed_is_built_from_every_card_after_the_reading(tmp_path: Path, watch_list: Path) -> None:
+def test_the_feed_is_built_from_every_card_after_the_reading(
+    tmp_path: Path, watch_list: Path, topic_list: Path
+) -> None:
     data = tmp_path / "data"
     with portal() as client:
-        assert run(data, watch_list, client, FETCHED, KEY) == 0
+        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
     cards = sorted(name for name in files(data) if name.startswith("calls/"))
     built = files(data)["feed.xml"]
     entries = ET.fromstring(built).findall("channel/item")
     assert [entry.findtext("link") for entry in entries] == [CARDS + name for name in cards]
     assert len(cards) == 4
+    # Every recorded call carries the stored call's labels, so each card has the same two topics.
+    assert [(category.get("domain"), category.text) for category in entries[0].findall("category")] == [
+        ("topic", "AI-and-civic"),
+        ("topic", "data-journalism"),
+        ("mark", "primary"),
+        ("mark", "secondary"),
+    ]
     (data / "feed.xml").unlink()
     with portal() as client:
-        assert run(data, watch_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
+        assert run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
     assert files(data)["feed.xml"] == built
 
 
@@ -115,6 +129,7 @@ def test_the_feed_is_built_from_every_card_after_the_reading(tmp_path: Path, wat
 def test_a_reading_that_fails_is_logged_counted_and_read_again_the_next_run(
     tmp_path: Path,
     watch_list: Path,
+    topic_list: Path,
     capsys: pytest.CaptureFixture[str],
     answer: httpx2.Response,
     reason: str,
@@ -122,7 +137,7 @@ def test_a_reading_that_fails_is_logged_counted_and_read_again_the_next_run(
 ) -> None:
     data = tmp_path / "data"
     with portal(reading_of(IDENTIFIER, answer)) as client:
-        assert run(data, watch_list, client, FETCHED, KEY) == 1
+        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 1
     out = capsys.readouterr().out
     assert "\nRead: 4 calls, 3 cards written, 1 failed\n" in out
     [failed] = [row for row in log(data) if row[CODE] and row[STATUS] == "failed"]
@@ -134,14 +149,14 @@ def test_a_reading_that_fails_is_logged_counted_and_read_again_the_next_run(
     assert len(ET.fromstring(files(data)["feed.xml"]).findall("channel/item")) == 3
 
     with portal() as client:
-        assert run(data, watch_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
+        assert run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
     assert capsys.readouterr().out.endswith("\nRead: 1 calls, 1 cards written, 0 failed\n")
     assert log(data)[-1] == [*ROW[:5], NEXT_DAY, "card written", NOTE]
     assert HERITAGE_CARD in files(data)
 
 
 def test_any_other_error_in_a_reading_stops_the_run_and_keeps_what_was_written(
-    tmp_path: Path, watch_list: Path
+    tmp_path: Path, watch_list: Path, topic_list: Path
 ) -> None:
     data = tmp_path / "data"
     no_choices = httpx2.Response(200, json={"choices": []})
@@ -149,7 +164,7 @@ def test_any_other_error_in_a_reading_stops_the_run_and_keeps_what_was_written(
         portal(reading_of("HORIZON-CL2-2027-02-DEMOCRACY-09-two-stage", no_choices)) as client,
         pytest.raises(IndexError),
     ):
-        run(data, watch_list, client, FETCHED, KEY)
+        run(data, watch_list, topic_list, client, FETCHED, KEY)
     rows = log(data)
     assert [row[2] for row in rows if row[STATUS] == "card written"] == [IDENTIFIER]
     assert [name for name in files(data) if name.startswith("calls/")] == [HERITAGE_CARD]
@@ -158,49 +173,97 @@ def test_any_other_error_in_a_reading_stops_the_run_and_keeps_what_was_written(
 
 
 def test_a_morning_with_no_key_saves_every_call_and_fails_every_reading(
-    tmp_path: Path, watch_list: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, watch_list: Path, topic_list: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     data = tmp_path / "data"
     with portal() as client:
-        assert run(data, watch_list, client, FETCHED, "") == 4
+        assert run(data, watch_list, topic_list, client, FETCHED, "") == 4
     assert "\nRead: 4 calls, 0 cards written, 4 failed\n" in capsys.readouterr().out
     assert [row[STATUS] for row in log(data)[1:] if row[CODE]] == ["saved"] * 4 + ["failed"] * 4
     assert not any(name.startswith("calls/") for name in files(data))
 
 
-def test_a_card_that_cannot_be_written_stops_the_run_before_its_row(tmp_path: Path, watch_list: Path) -> None:
+def test_a_card_that_cannot_be_written_stops_the_run_before_its_row(
+    tmp_path: Path, watch_list: Path, topic_list: Path
+) -> None:
     data = tmp_path / "data"
     data.mkdir()
     (data / "calls").write_bytes(b"")
     with portal() as client, pytest.raises(FileExistsError):
-        run(data, watch_list, client, FETCHED, KEY)
+        run(data, watch_list, topic_list, client, FETCHED, KEY)
     assert [row for row in log(data) if row[STATUS] == "card written"] == []
     assert log(data)[-1][STATUS] == "first answer"
 
 
-def test_the_calls_are_read_by_source_then_identifier(tmp_path: Path, watch_list: Path) -> None:
+def test_the_calls_are_read_by_source_then_identifier(tmp_path: Path, watch_list: Path, topic_list: Path) -> None:
     data = tmp_path / "data"
     record = json.loads((REPLIES / "stored_call.json").read_bytes())
     own, title = STORED["identifier"][0], STORED["title"][0]
     # Saved first, under a source that sorts after the portal's, with an identifier that sorts before the portal's calls.
     store(data, "zz-source", FetchedCall(own, PAGES + own, title, record), b"", FETCHED)
     with portal() as client:
-        assert run(data, watch_list, client, FETCHED, KEY) == 0
+        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
     assert [row[2] for row in log(data) if row[STATUS] == "card written"] == [*CURRENT, own]
 
 
 def test_a_reply_with_no_content_leaves_its_empty_answer_row_before_the_run_stops(
-    tmp_path: Path, watch_list: Path
+    tmp_path: Path, watch_list: Path, topic_list: Path
 ) -> None:
     data = tmp_path / "data"
     democracy = "HORIZON-CL2-2027-02-DEMOCRACY-09-two-stage"
     no_content = httpx2.Response(200, json={"choices": [{"message": {"content": None}}]})
     # A reply with no text cannot be judged, so the run stops there, as before; its empty answer row is already written.
     with portal(reading_of(democracy, no_content)) as client, pytest.raises(AttributeError):
-        run(data, watch_list, client, FETCHED, KEY)
+        run(data, watch_list, topic_list, client, FETCHED, KEY)
     rows = log(data)
     assert [row[STATUS] for row in rows if row[2] == democracy] == ["saved", "first answer"]
     assert rows[-1][2] == democracy
     assert rows[-1][STATUS] == "first answer"
     assert rows[-1][REASON] == ""
     assert "feed.xml" not in files(data)
+
+
+def test_a_call_whose_labels_match_nothing_has_the_note_in_its_card_written_row(
+    tmp_path: Path, watch_list: Path, topic_list: Path
+) -> None:
+    def unmatched(request: httpx2.Request) -> httpx2.Response | None:
+        if request.method != "POST" or str(request.url) == ADDRESS:
+            return None
+        body = reply(request)
+        for record in body["results"]:
+            if record["metadata"]["identifier"][0] == IDENTIFIER:
+                record["metadata"]["tags"] = ["Cultural heritage", "Tourism"]
+        return httpx2.Response(200, json=body)
+
+    data = tmp_path / "data"
+    with portal(unmatched) as client:
+        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
+    untagged = "topics: empty, because no label from the source matched the topic list"
+    notes = {row[2]: row[REASON] for row in log(data) if row[STATUS] == "card written"}
+    assert notes == dict.fromkeys(CURRENT, NOTE) | {IDENTIFIER: f"{NOTE}; {untagged}"}
+
+
+def test_a_topic_list_that_cannot_be_read_stops_the_run_after_the_calls_are_stored(
+    tmp_path: Path, watch_list: Path, topic_list: Path
+) -> None:
+    topic_list.write_text('[topics.governance]\nmark = "Secondary"\n', encoding="utf-8")
+    data = tmp_path / "data"
+    with portal() as client, pytest.raises(ValidationError, match=r"topics\.governance\.mark"):
+        run(data, watch_list, topic_list, client, FETCHED, KEY)
+    assert [row[STATUS] for row in log(data)[1:]] == ["saved"] * 4 + ["successful"]
+    assert not any(name.startswith("calls/") for name in files(data))
+    assert "feed.xml" not in files(data)
+
+
+def test_a_topic_list_that_cannot_be_read_stops_a_quiet_morning_too(
+    tmp_path: Path, watch_list: Path, topic_list: Path
+) -> None:
+    data = tmp_path / "data"
+    with portal() as client:
+        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
+    built = files(data)["feed.xml"]
+    topic_list.write_text('[topics.governance]\nmark = "Secondary"\n', encoding="utf-8")
+    with portal() as client, pytest.raises(ValidationError, match=r"topics\.governance\.mark"):
+        run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY)
+    assert log(data)[-1] == [*RUN, NEXT_DAY, "nothing new", "4 calls, 0 new, 0 failed"]
+    assert files(data)["feed.xml"] == built
