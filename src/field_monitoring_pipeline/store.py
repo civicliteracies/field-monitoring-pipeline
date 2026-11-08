@@ -7,8 +7,9 @@ one folder for all sources, named by the day it was saved, its title and the fir
 its code. One log beside the folders has a row for each call the run tried, saved or failed; for
 each answer the model gave while reading a call, first or second, with the answer as it came; and
 for each call it read, card written or failed. It also has a row for each source, which says how the
-run ended for it. What a step produced is written before the row that says the step is done. The
-feed, built from the cards, sits beside them and is written again on every run that reaches its end.
+run ended for it, and a row for each card the feed could not read back, which was left out of the feed.
+What a step produced is written before the row that says the step is done. The feed, built from the
+cards, sits beside them and is written again on every run that reaches its end.
 A call counts as stored once it has a saved row, and as read once it has a card.
 """
 
@@ -30,7 +31,8 @@ type Status = Literal["saved", "failed"]
 type Reading = Literal["card written", "failed"]
 type AnswerWord = Literal["first answer", "second answer"]
 type Outcome = Literal["successful", "failed", "nothing new"]
-type Row = tuple[str, str, str, str, str, str, Status | Reading | AnswerWord | Outcome, str]
+type LeftOut = Literal["left out of the feed"]
+type Row = tuple[str, str, str, str, str, str, Status | Reading | AnswerWord | Outcome | LeftOut, str]
 
 
 @dataclass(frozen=True)
@@ -152,6 +154,11 @@ def cards(data: Path) -> list[tuple[str, str]]:
 
 def store_feed(data: Path, feed: str) -> None:
     (data / "feed.xml").write_bytes(feed.encode("utf-8"))
+
+
+def store_left_out(data: Path, link: str, fetched: dt.datetime, reason: str) -> None:
+    # A card left out has no code, source, identifier or title to copy; only its web address is written.
+    _add_row(data, ("", "", "", "", link, fetched.isoformat(), "left out of the feed", reason))
 
 
 def store_reading(data: Path, call: Saved, fetched: dt.datetime, status: Reading, reason: str) -> None:

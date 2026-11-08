@@ -49,9 +49,10 @@ condition in `.github/workflows/calls.yml`, which lets it run after a step has f
 ### BUG-002: every day produced a commit, even when nothing had changed
 
 **Severity:** medium. **Class:** correctness of the record. **Status:** fixed in earlier work; the
-rule it produced is carried here, with two changes: a run adds a row to the log for each source it
-finishes, and each time a saved call is read it gets a row for each answer the model gave, if any,
-then a row for the outcome.
+rule it produced is carried here, with three changes: a run adds a row to the log for each source
+it finishes; each time a saved call is read it gets a row for each answer the model gave, if any,
+then a row for the outcome; and a card the feed cannot read back gets a row on every run until it
+is fixed.
 
 **Summary.** The daily run committed to the archive every morning whether or not anything new had
 arrived, so the history filled with changes that changed nothing.
@@ -64,9 +65,9 @@ it was collected, and the run was changed to commit only when something had chan
 
 **Prevention.** Nothing stored is ever rewritten, and a call already saved is not stored again. The
 feed is rebuilt on every run, and comes out the same when no card was added. A run adds rows to the
-log only for the calls it tried or read, and one row for each source, saying how the run ended for
-it. So a run with nothing new, nothing failing and nothing left to read adds that one row for each
-source and changes nothing else.
+log only for the calls it tried or read, one row for each source, saying how the run ended for it,
+and one row for each card the feed could not read back. So a run with nothing new, nothing failing
+and nothing left to read adds that one row for each source and changes nothing else.
 
 **Technical detail.** The rule lands with change 5, which stores a call only when the log has no
 `saved` row for it, so nothing stored is ever rewritten, and with change 11, which rebuilds the feed
@@ -75,9 +76,9 @@ makes the daily commit and asks git whether anything is there to commit before m
 build records the time of collection again, in the log. Once a call is saved, each time it is read
 it gets a row for each answer the model gave, if any, then a row for the outcome, until its card is
 written, and none after. This build also writes a row for each source a run finishes, so every
-finished run adds to the log. Test that now fails on the old
-behaviour: the command's test of a second run. It must download no page, leave every page and record
-as it was, keep every earlier row of the log, and add only the run's row.
+finished run adds to the log, and a row for each card the feed could not read back. Test that now
+fails on the old behaviour: the command's test of a second run. It must download no page, leave
+every page and record as it was, keep every earlier row of the log, and add only the run's row.
 
 ### BUG-003: line endings were rewritten, so a quote checked on one machine failed on another
 

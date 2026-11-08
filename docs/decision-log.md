@@ -28,8 +28,8 @@ card keeps its shape.
 
 ### When are urgent calls floated to the top of the feed?
 
-**Situation.** The feed carries every card, in the order of the cards' names: by the day each call
-was found, then by title.
+**Situation.** The feed carries every card it can read back, in the order of the cards' names: by
+the day each call was found, then by title.
 
 **Question.** When should a call that closes soon be ordered above one that closes later?
 
@@ -147,7 +147,8 @@ readable without specialist tools.
 page and, where the source gives one, its record of it, and one folder holds a card for each call
 read. One log beside
 the folders has a row for each call the run tried, for each answer the model gave while reading a
-call, and for each call it read. It also has a row for each source, saying how the run ended for it.
+call, and for each call it read. It also has a row for each source, saying how the run ended for it,
+and a row for each card left out of the feed.
 No server, no database engine, no committed index. The cards are derived from the stored files and
 kept beside them, because a reading costs a request to the model and may not come out the same twice.
 The answer each card was made from (the second answer when it can be used, otherwise the first) is
@@ -166,7 +167,9 @@ exactly as the model sent it, in the last column. A reading that then fails keep
 person can read the model's own reasoning behind each fact, or why a reading failed. An answer is the
 model's own output, which cannot be made again, so keeping it is not keeping a copy of derived data.
 The identifier, title and link the log repeats are taken from what the source sent when a row is
-written, and never updated. The run's row for a source holds one of three words:
+written, and never updated. A source's row holds its search address as the link, and the row of a
+card left out of the feed holds the card's web address. The run's row for a source holds one of
+three words:
 `successful`, `failed` or `nothing new`. It also holds the numbers the run counted: how many calls
 were fetched, how many were new and how many failed. When the source itself could not be read, the
 row holds the error. The store writes it once, when the run is done with that source, and never
@@ -259,18 +262,22 @@ card's name.
 **Situation.** A feed reader collects a feed by itself, and shows as new any entry it has not seen
 before.
 
-**Decision.** One RSS 2.0 file, `data/feed.xml`, rebuilt from every card on each run, with one entry
-per card in the order of the cards' names. Each entry holds the title and the closing date, a link
-to the card on github.com, the summary, a category for each of the call's topics and for each mark
-they carry, primary before secondary, and the call's code as its identity. The feed holds no date of
-the build, and no entry is marked closed. A reader fetches it from its raw address on the `data`
-branch.
+**Decision.** One RSS 2.0 file, `data/feed.xml`, rebuilt on each run from every card it can read
+back, with one entry per card in the order of the cards' names. Each entry holds the title and the
+closing date, a link to the card on github.com, the summary, a category for each of the call's
+topics and for each mark they carry, primary before secondary, and the call's code as its identity.
+The feed holds no date of the build, and no entry is marked closed. A reader fetches it from its raw
+address on the `data` branch. A card that cannot be read back is left out of the feed and gets a row
+in the log, `left out of the feed`, with the card's web address and the reason. The feed is built
+from the other cards, and the run ends with a failure once its work is done.
 
 **Rationale.** With no date of the build and a fixed order, the same cards give the same file, so a
 morning with no new card changes nothing. The code never changes, so a reader shows each call once.
 If a reader refuses the raw address, GitHub's own page hosting can serve the same file. What it
 gives up: a closed call stays in the feed, and urgent calls are not floated to the top. An entry
-shows the summary without its sentence or its warning; the card it links to shows both.
+shows the summary without its sentence or its warning; the card it links to shows both. One card
+that cannot be read back no longer costs the whole feed. The card is not repaired or rewritten, so
+it stays out, and its row is written again, on every run until it is fixed by hand.
 
 **Technical detail.** The feed is built last, so a run stopped by an error leaves it as it was until
 the next run that reaches its end. Python's own XML tree writer writes the file. The project's
@@ -311,7 +318,7 @@ request needs a key.
 topics and checks the funder's name.
 
 **Rationale.** A card is never updated, and a card without its topics or without the funder's mark
-cannot be read back, so one such card would stop every later run when the feed is built. What it
+cannot be read back, so one such card would be left out of the feed on every later run. What it
 gives up: until the secret is saved, every reading in the daily run fails and is written in the
 log, and the morning ends with a failure. Collecting and storing go on.
 

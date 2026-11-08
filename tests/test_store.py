@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from field_monitoring_pipeline.fetch import JSON, NO_RECORD, FetchedCall
+from field_monitoring_pipeline.publish import CARDS
 from field_monitoring_pipeline.store import (
     COLUMNS,
     Saved,
@@ -19,6 +20,7 @@ from field_monitoring_pipeline.store import (
     store_card,
     store_failure,
     store_feed,
+    store_left_out,
     store_reading,
     store_run,
     stored,
@@ -116,6 +118,16 @@ def test_a_failed_call_has_a_failed_row_and_no_file_until_it_is_stored(tmp_path:
     assert saved(tmp_path) == []
     store(tmp_path, SOURCE, CALL, PAGE, FETCHED)
     assert saved(tmp_path) == [SAVED]
+
+
+def test_a_card_left_out_of_the_feed_has_a_row_naming_the_card_and_is_not_a_saved_call(tmp_path: Path) -> None:
+    link = CARDS + "calls/2026-09-27-two-b710c74df0.md"
+    store_left_out(tmp_path, link, FETCHED, "ValueError: no record")
+    assert log(tmp_path) == [
+        list(COLUMNS),
+        ["", "", "", "", link, STAMP, "left out of the feed", "ValueError: no record"],
+    ]
+    assert saved(tmp_path) == []
 
 
 def test_the_runs_row_names_no_call_and_is_not_a_saved_call(tmp_path: Path) -> None:

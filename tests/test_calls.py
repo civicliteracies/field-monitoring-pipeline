@@ -151,6 +151,7 @@ def test_a_first_run_saves_every_call_and_a_second_adds_only_its_row(
         assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
     assert capsys.readouterr().out == (
         "EU Funding and Tenders Portal: 4 calls, 4 new, 0 failed\nRead: 4 calls, 4 cards written, 0 failed\n"
+        "Feed: 4 cards, 0 left out\n"
     )
     assert len(asked) == 4
     stored = files(data)
@@ -165,6 +166,7 @@ def test_a_first_run_saves_every_call_and_a_second_adds_only_its_row(
         assert run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
     assert capsys.readouterr().out == (
         "EU Funding and Tenders Portal: 4 calls, 0 new, 0 failed\nRead: 0 calls, 0 cards written, 0 failed\n"
+        "Feed: 4 cards, 0 left out\n"
     )
     assert asked == []
     after = files(data)
@@ -182,6 +184,7 @@ def test_closed_calls_are_judged_by_the_time_of_the_run(
         assert run(tmp_path / "data", watch_list, topic_list, client, dt.datetime(2023, 9, 1, tzinfo=dt.UTC), KEY) == 0
     assert capsys.readouterr().out == (
         "EU Funding and Tenders Portal: 7 calls, 7 new, 0 failed\nRead: 7 calls, 7 cards written, 0 failed\n"
+        "Feed: 7 cards, 0 left out\n"
     )
 
 
@@ -205,6 +208,7 @@ def test_a_failed_page_is_logged_and_tried_again(
         assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
     assert capsys.readouterr().out == (
         "EU Funding and Tenders Portal: 4 calls, 1 new, 0 failed\nRead: 1 calls, 1 cards written, 0 failed\n"
+        "Feed: 4 cards, 0 left out\n"
     )
     assert log(data)[-4:] == [
         [*ROW, "saved", ""],
@@ -336,7 +340,7 @@ def test_every_failed_call_is_counted_and_printed(
     out = capsys.readouterr().out
     assert out.startswith("EU Funding and Tenders Portal: 4 calls, 0 new, 4 failed\n")
     assert out.count(": httpx2.HTTPStatusError: Redirect response '301 Moved Permanently'") == 4
-    assert out.endswith("\nRead: 0 calls, 0 cards written, 0 failed\n")
+    assert out.endswith("\nRead: 0 calls, 0 cards written, 0 failed\nFeed: 0 cards, 0 left out\n")
     assert [row[STATUS] for row in log(data)[1:]] == ["failed"] * 5
     assert log(data)[-1] == [*RUN, STAMP, "failed", "4 calls, 0 new, 4 failed"]
 

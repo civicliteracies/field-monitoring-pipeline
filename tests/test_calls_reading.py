@@ -115,6 +115,31 @@ def test_the_feed_is_built_from_every_card_after_the_reading(
     assert files(data)["feed.xml"] == built
 
 
+def test_a_card_the_feed_cannot_read_is_left_out_logged_and_counted_and_the_feed_built_from_the_rest(
+    tmp_path: Path, watch_list: Path, topic_list: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    data = tmp_path / "data"
+    with portal() as client:
+        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
+    capsys.readouterr()
+    cards = sorted(name for name in files(data) if name.startswith("calls/"))
+    # A card in an older shape: the funder as plain text, with no mark.
+    old = files(data)[cards[0]].replace(b"funder: null", b'funder: "European Commission"', 1)
+    assert old != files(data)[cards[0]]
+    (data / cards[0]).write_bytes(old)
+
+    with portal() as client:
+        assert run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY) == 1
+    entries = ET.fromstring(files(data)["feed.xml"]).findall("channel/item")
+    assert [entry.findtext("link") for entry in entries] == [CARDS + name for name in cards[1:]]
+    left_out = log(data)[-1]
+    assert left_out[:REASON] == ["", "", "", "", CARDS + cards[0], NEXT_DAY, "left out of the feed"]
+    assert left_out[REASON].startswith("pydantic_core._pydantic_core.ValidationError: ")
+    assert "\nfunder\n" in left_out[REASON]
+    assert capsys.readouterr().out.endswith(f"\nFeed: 3 cards, 1 left out\n{cards[0]}: {left_out[REASON]}\n")
+    assert files(data)[cards[0]] == old
+
+
 @pytest.mark.parametrize(
     ("answer", "reason", "answers"),
     [
@@ -156,7 +181,7 @@ def test_a_reading_that_fails_is_logged_counted_and_read_again_the_next_run(
 
     with portal() as client:
         assert run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
-    assert capsys.readouterr().out.endswith("\nRead: 1 calls, 1 cards written, 0 failed\n")
+    assert capsys.readouterr().out.endswith("\nRead: 1 calls, 1 cards written, 0 failed\nFeed: 4 cards, 0 left out\n")
     assert log(data)[-1] == [*ROW[:5], NEXT_DAY, "card written", NOTE]
     assert HERITAGE_CARD in files(data)
 
@@ -321,6 +346,7 @@ def test_an_eiti_call_is_saved_as_its_page_alone_and_read_from_it_with_its_sourc
         "EU Funding and Tenders Portal: 4 calls, 4 new, 0 failed\n"
         "EITI: 2 calls, 2 new, 0 failed\n"
         "Read: 6 calls, 6 cards written, 0 failed\n"
+        "Feed: 6 cards, 0 left out\n"
     )
     assert sorted(name for name in files(data) if name.startswith("raw/eiti/")) == sorted(
         f"raw/eiti/{code(link)}.html" for link in (VIEWS, STUDY)
