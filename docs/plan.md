@@ -10,7 +10,8 @@ Our daily automated run follows seven steps in order:
 2. Store the raw: Saving exact, untouched copies of the original pages.
 3. Identify: Giving each opportunity a permanent ID to avoid duplicates.
 4. Read the stated facts: Extracting key information, partly using artificial intelligence.
-5. Validate: Checking that all quoted proof sentences actually appear in the original text.
+5. Validate: Checking that all quoted proof sentences, and the funder's name, actually appear in
+   the original text.
 6. Write the card: Saving clean, structured summary sheets to our archive.
 7. Publish: Delivering new cards to subscribers through a news feed.
 
@@ -64,20 +65,20 @@ run by hand, and quarterly reports.
       it rests on. The code turns both into a record, which notes which instructions and which model
       read it. It was run by hand until item 10.
 - [x] **9. `feat(validate): check each quote against the stored text`**
-      Validate (validation). Every quoted sentence is looked for word for word in the stored text,
-      and the record marks each one found or not found. When a sentence is not found, or the model's
-      answer cannot be used, the model is asked once more, with a message the code writes naming
-      each problem. A sentence still not found stays on the record, marked. The code writes a note
-      for it, and one for each problem and each empty field.
+      Validate (validation). Every quoted sentence is looked for in the stored text, letter for
+      letter, and the record marks each one found or not found. When a sentence is not found,
+      or the model's answer cannot be used, the model is asked once more, with a message the code
+      writes naming each problem. A sentence still not found stays on the record, marked. The code
+      writes a note for it, and one for each problem and each empty field.
 - [x] **10. `feat(serialize): write each new record as a card`**
       Write the card (serialisation), with the coordination that sits on top of the steps. The daily
       run now reads every stored call that has no card. One record becomes one Markdown file that
-      GitHub shows as a page: the fields on top for machines, and each fact below them. The funder's
-      own sentence sits under the summary, who can apply and where, a line from the source's own
-      record under the dates and the budget, and a warning under a sentence not found. The log gains
-      a row for each call read, `card written` with its notes or `failed` with its reason. A call
-      that has a card is not read again, and one whose reading failed is read again the next
-      morning.
+      GitHub shows as a page: the fields on top for machines, and each fact below them. The
+      publisher's own sentence sits under the summary, who can apply and where, a line from the
+      source's own record under the dates and the budget, and a warning under a sentence not
+      found. The log gains a row for each call read, `card written` with its notes or `failed`
+      with its reason. A call that has a card is not read again, and one whose reading failed is
+      read again the next morning.
 - [x] **11. `feat(publish): build the feed from the cards`**
       Publish (publishing). An RSS file is rebuilt from the cards each morning, one entry per card,
       so a new funding call arrives in a feed reader the day it is found. Each entry carries the title
@@ -101,24 +102,29 @@ run by hand, and quarterly reports.
       that the website regularly publishes open calls. Any calls gathered from this new
       source are converted into standard cards, stored in the same archive directory, and published
       through the same RSS feed.
-- [ ] **15. `feat(reports): ingest project reports as cards`**
+- [x] **15. `feat(validate): check each funder's name against the stored text`**
+      The funder's name, as the model gave it, is looked for in the stored text with the same check
+      as each quoted sentence, and the record marks it found or not found. A name not found stays on
+      the card with a warning, and the log notes it; it is not sent back to the model. A funder
+      given as empty shows "not stated", with a note.
+- [ ] **16. `feat(reports): ingest project reports as cards`**
       Once a week, Fieldbook runs a separate background workflow dedicated to reading completed
       project reports rather than funding calls. It turns each report into its own card inside a
       dedicated folder, extracting the organization name alongside five key details: the target
       audience, the research methodology, the final results, the project duration, and the
       geographic area, with each detail accompanied by its exact supporting quote from the report.
-- [ ] **16. `feat(direction): generate the quarterly sector report`**
+- [ ] **17. `feat(direction): generate the quarterly sector report`**
       Once every quarter, Fieldbook runs a completely offline script without using artificial
       intelligence. The code analyzes all stored cards by funder and by topic, producing a quarterly
       summary with statistics and charts. This report highlights topics that attracted interest from
       three or more funders, shows which topics grew or declined compared to the previous quarter,
       and lists any newly detected funding organizations.
-- [ ] **17. `feat(discover): suggest new funders to watch`**
+- [ ] **18. `feat(discover): suggest new funders to watch`**
       This introduces an on-demand tool that a person can run by hand. The script compares our
       existing archive against a public registry to find funding organizations we have not
       encountered yet. It produces a list of suggested funders along with an explanation for why
       each one might be relevant, without altering the active watch list automatically.
-- [ ] **18. `docs: add a guide for adding a source`**
+- [ ] **19. `docs: add a guide for adding a source`**
       A new, straightforward guide added to the project documentation explains step by step how to
       add a new funding portal to the watch list, along with the specific quality checks to perform
       before adding it.

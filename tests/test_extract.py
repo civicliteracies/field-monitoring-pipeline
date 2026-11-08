@@ -8,7 +8,7 @@ import httpx2
 import pytest
 
 from field_monitoring_pipeline.extract import build, read, text
-from field_monitoring_pipeline.models import Call, Deadline, Quoted, Topic, TopicList
+from field_monitoring_pipeline.models import Call, Deadline, Named, Quoted, Topic, TopicList
 from field_monitoring_pipeline.store import AnswerWord, Saved
 from tests.test_fetch import VIEWS
 from tests.test_tags import TOPICS
@@ -357,7 +357,7 @@ def test_the_instructions_hold_what_the_code_writes_and_their_example_builds() -
     assert "`-----END SOURCE TEXT-----`" in INSTRUCTIONS
     [example] = [line for line in INSTRUCTIONS.splitlines() if line.startswith("fieldbook ")]
     call, _ = build(stored(), TOPICS, example)
-    assert call.funder == "Example Foundation"
+    assert call.funder == Named(name="Example Foundation", found=False)
 
 
 def test_a_clean_first_answer_is_handed_on_as_sent() -> None:

@@ -12,11 +12,11 @@ Asks the model under the instructions kept beside this file, hands each answer o
 the one command line of the answer, and looks for each quoted sentence in the text. When the answer
 cannot be used or a sentence is not found, asks once more, in the same conversation, naming each
 problem. Builds the record from the four fields, the five facts the model names and those topics, with
-the link, the call's identifier and the names of the model and the instructions. Marks each sentence
-found or not found, and returns the record with a note for each problem and each sentence not found,
-for each empty field among the funder, who can apply and where, saying what the answer did, for an
-opening date or a budget the source's page has no field for, for a record with no description, and
-for a call with no topic.
+the link, the call's identifier and the names of the model and the instructions. Marks each sentence,
+and the funder's name, found or not found; a name not found is never a reason to ask again. Returns
+the record with a note for each problem, each sentence and name not found, for each empty field among
+the funder, who can apply and where, saying what the answer did, for an opening date or a budget the
+source's page has no field for, for a record with no description, and for a call with no topic.
 """
 
 import datetime as dt
@@ -32,7 +32,7 @@ import httpx2
 from pydantic import ValidationError
 
 from field_monitoring_pipeline.fetch import JSON
-from field_monitoring_pipeline.models import Call, Deadline, Opening, Quoted, Topic, TopicList
+from field_monitoring_pipeline.models import Call, Deadline, Named, Opening, Quoted, Topic, TopicList
 from field_monitoring_pipeline.store import AnswerWord, Saved
 from field_monitoring_pipeline.tags import topics
 
@@ -191,7 +191,8 @@ def _facts(metadata: dict[str, Any]) -> tuple[str, tuple[dt.date, str], tuple[dt
 
 
 def _found(quote: object, words: str) -> bool:
-    # A sentence that is not text (missing, or a number) is not found, and the template then refuses it.
+    # A value that is not text (no quote given, a number, an object) is not found;
+    # the template then refuses the record, because its fields hold only text.
     return isinstance(quote, str) and _tidy(quote) in words
 
 
@@ -293,6 +294,14 @@ def _pair(given: dict[str, object], name: str, words: str) -> dict[str, object] 
     return {"value": given[name], "quote": quote, "found": _found(quote, words)}
 
 
+def _funder(given: dict[str, object], words: str) -> dict[str, object] | None:
+    name = given.get("funder")
+    # Only text is tidied; any other value goes under the name, where the template finds it is not text.
+    if name is None or (isinstance(name, str) and not _tidy(name)):
+        return None
+    return {"name": name, "found": _found(name, words)}
+
+
 def _notes(call: Call, given: dict[str, object], *, described: bool) -> list[str]:
     notes: list[str] = []
     for name, label in NAMES.items():
@@ -300,8 +309,14 @@ def _notes(call: Call, given: dict[str, object], *, described: bool) -> list[str
         alone = f"{name}-not-stated"
         if isinstance(box, Opening | Deadline | Quoted) and not box.found:
             notes.append(f"{label}: this sentence was not found in the call: {box.quote}")
+        elif isinstance(box, Named) and not box.found:
+            notes.append(f"{label}: this name was not found in the call: {box.name}")
         elif box is None and alone in given:
             notes.append(f"{label}: empty, because the model marked it not stated")
+        # Only the funder reaches this: a sentence field that is given is always built by _pair,
+        # so its box is never empty.
+        elif box is None and name in given:
+            notes.append(f"{label}: empty, because the model's answer gave no name")
         elif box is None and alone in ALONE and name not in given:
             notes.append(f"{label}: empty, because the model's answer did not mention it")
         elif box is None and name in COPIED:
@@ -318,7 +333,7 @@ def _build(stored: _Stored, found: tuple[Topic, ...], reply: str) -> tuple[Call,
     call = Call.model_validate({
         "title": stored.title,
         "type": given.get("type"),
-        "funder": given.get("funder"),
+        "funder": _funder(given, stored.words),
         "opening": stored.opening,
         "deadline": stored.deadline,
         "budget": stored.budget,

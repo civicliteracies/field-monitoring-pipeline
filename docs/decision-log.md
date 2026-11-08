@@ -233,13 +233,14 @@ UTF-8 text is not written, and the reading is logged as failed with that error.
 
 **Decision.** A card is one Markdown file. On top, between two `---` lines, sits the record, one
 field per line, each value written in JSON. A field that holds a sentence is written over several
-lines, its parts indented under it. The record also holds the call's topics, each with its mark,
-which the half for people leaves out. Below is the half for people: the title, then each fact. The
-funder's own sentence sits under the summary, who can apply and where, and the source's own line
-under the dates and the budget. A sentence not found has a warning under it, and an empty field says
-"not stated". The link and the model and instructions that read it come last. A card is named by the
-day the call was saved, its title made into a short name, and the first ten characters of the call's
-code. All cards sit in one folder, and a call with a card is never read again.
+lines, its parts indented under it, and so is the funder's name with its mark. The record also holds
+the call's topics, each with its mark, which the half for people leaves out. Below is the half for
+people: the title, then each fact. The publisher's own sentence sits under the summary, who can
+apply and where, and the source's own line under the dates and the budget. A sentence or a funder's
+name not found has a warning under it, and an empty field says "not stated". The link and the
+model and instructions that read it come last. A card is named by the day the call was saved, its
+title made into a short name, and the first ten characters of the call's code. All cards sit in one
+folder, and a call with a card is never read again.
 
 **Rationale.** The block on top is what GitHub shows as a table and what the code reads back.
 Written in JSON, a colon or a quotation mark in a value cannot break it. The day saved puts the
@@ -307,12 +308,12 @@ the log shows readings lost to a dropped connection.
 request needs a key.
 
 **Decision.** The key is saved as a repository secret only after the reading gives each card its
-topics.
+topics and checks the funder's name.
 
-**Rationale.** A card is never updated, and a card without its topics cannot be read back, so one
-such card would stop every later run when the feed is built. What it gives up: until the secret is
-saved, every reading in the daily run fails and is written in the log, and the morning ends with a
-failure. Collecting and storing go on.
+**Rationale.** A card is never updated, and a card without its topics or without the funder's mark
+cannot be read back, so one such card would stop every later run when the feed is built. What it
+gives up: until the secret is saved, every reading in the daily run fails and is written in the
+log, and the morning ends with a failure. Collecting and storing go on.
 
 **Technical detail.** The key is never written into a file of this repository. The daily run hands
 it to the command from the secret `GEMINI_API_KEY`, in the step that runs the command, and nowhere
@@ -324,15 +325,18 @@ else.
 on a funding card is worse than no card at all.
 
 **Decision.** Each value read from the prose travels with the sentence it was read from, and that
-sentence is looked for word for word in the stored copy. A sentence that cannot be found goes back
-to the model once. If it is still not found, it stays with its value, marked as not found, and is
-never repaired. A date or the budget that the source gives in a labelled field is copied rather than
-read, and its sentence is that field written out as one line.
+sentence is looked for in the stored copy. The funder's name has no sentence, so the name itself is
+looked for the same way. A sentence that cannot be found goes back to the model once. If it is still
+not found, it stays with its value, marked as not found, and is never repaired. A name that cannot
+be found stays as given, marked, and does not go back to the model. A date or the budget that the
+source gives in a labelled field is copied rather than read, and its sentence is that field written
+out as one line.
 
 **Rationale.** It makes a card checkable in seconds by a person who has never seen the tool. What it
-gives up: the title, the type, the funder's name and the link are taken as given, because they are
-not read out of a sentence. The check shows whether a sentence is present. It cannot show that the
-sentence supports the value beside it.
+gives up: the title, the type and the link are taken as given, because they are not read out of a
+sentence; the type is one word from a fixed list. The check shows whether a sentence, or the
+funder's name, is in the stored copy. It cannot show that the sentence supports the value beside
+it, or that the call names that party as the one offering it.
 
 No check yet requires a figure in the budget to appear in the budget's own sentence. A check of that
 kind, tried in earlier work, refused honest summaries on real pages, and the only fault it ever caught
@@ -351,23 +355,26 @@ cannot read, or leave a field empty. Refusing such a record would hide the fault
 reach the card, and nobody would see what went wrong.
 
 **Decision.** A fault is marked and noted, never hidden by refusing the record. A sentence not found
-after the second try stays on the record, marked as not found. The reading writes a note for each
-problem in either answer and for each sentence not found. Each empty field among the funder, who can
-apply and where gets a note saying what the answer did: the model marked it not stated, or did not
-mention it. An opening date or a budget that the source's page has no field for gets a note saying
-so. A call whose record has no description is read from its conditions alone, and gets a note saying
-so. A call with no topic gets a note saying so, after the others. Only two faults make no record: an
-answer that cannot be used on either try, and a request the model service turns away. The error then
-names the problems of each answer already received.
+after the second try stays on the record, marked as not found, and so does a funder's name not
+found. The reading writes a note for each problem in either answer and for each sentence and name
+not found. Each empty field among the funder, who can apply and where gets a note saying what the
+answer did: the model marked it not stated, did not mention it, or, for the funder, gave no
+name. An opening date or a budget that the source's page has no field for gets a note saying so. A
+call whose record has no description is read from its conditions alone, and gets a note saying
+so. A call with no topic gets a note saying so, after the others. Only two faults make no record:
+an answer that cannot be used on either try, and a request the model service turns away. The error
+then names the problems of each answer already received.
 
 **Rationale.** A marked fault can be seen and judged by the person reading the card; a refused
-record cannot. What it gives up: a card can carry a sentence the source never wrote, with its
-warning beside it. The notes say only what the code saw, never why the model chose it; the model's
-answer, kept in the log, shows its own reasoning beside its choice.
+record cannot. A name not found is not sent back to the model, so the model's job stays the one
+reading; the warning lets the person reading the card judge the name. What it gives up: a card can
+carry a sentence the source never wrote, or a funder's name it never gave, with its warning beside
+it. The notes say only what the code saw, never why the model chose it; the model's answer, kept in
+the log, shows its own reasoning beside its choice.
 
-**Technical detail.** Each sentence carries a mark, `found`. The notes are plain lines written by
-the code. Each problem note names the answer it came from, first or second, so a fault the second
-answer put right reads differently from one kept on the record.
+**Technical detail.** Each sentence, and the funder's name, carries a mark, `found`. The notes are
+plain lines written by the code. Each problem note names the answer it came from, first or second,
+so a fault the second answer put right reads differently from one kept on the record.
 
 ### How does a card hold the dates of a call?
 
@@ -469,6 +476,6 @@ template.
 be used. What it gives up: the code reads that one line and nothing else, and a line it cannot read
 goes back to the model once, with the rule it broke, and is never repaired by the code.
 
-**Technical detail.** Each free-text value is written as a JSON string, so a funder's own quotation
+**Technical detail.** Each free-text value is written as a JSON string, so a publisher's own quotation
 marks reach the record unbroken. A flag the instructions never offered, a flag given twice and a flag
 with no value are refused.
