@@ -4,19 +4,20 @@ from itertools import pairwise
 import pytest
 
 from field_monitoring_pipeline.extract import build
-from field_monitoring_pipeline.models import Call, Deadline, Opening
+from field_monitoring_pipeline.models import Call, Deadline, Named, Opening
 from field_monitoring_pipeline.write import card, read_card
 from tests.test_extract import REPLY, stored
 from tests.test_tags import TOPICS
 
 CALL, _ = build(stored(), TOPICS, REPLY)
 WARNING = "This sentence was not found in the call."
+NAME_WARNING = "This name was not found in the call."
 SENTENCES = ("opening", "deadline", "budget", "summary", "eligibility", "area")
 EMPTY = CALL.model_copy(
     update={"funder": None, "opening": None, "budget": None, "eligibility": None, "area": None, "topics": ()}
 )
 MISSED = CALL.model_copy(
-    update={"funder": "European Commission"}
+    update={"funder": Named(name="European Commission", found=False)}
     | {name: getattr(CALL, name).model_copy(update={"found": False}) for name in SENTENCES}
 )
 TITLED = CALL.model_copy(update={"title": 'Grants: the “open” call, "Media: now"'})
@@ -67,6 +68,12 @@ def test_a_warning_sits_under_each_sentence_not_found() -> None:
         assert f"\n\n> {getattr(MISSED, name).quote}\n\n{WARNING}\n\n" in text
     assert text.count(WARNING) == len(SENTENCES)
     assert WARNING not in half(CALL)
+
+
+def test_a_warning_sits_under_a_funder_not_found() -> None:
+    assert f"\n\nFunder: European Commission\n\n{NAME_WARNING}\n\n" in half(MISSED)
+    assert half(MISSED).count(NAME_WARNING) == 1
+    assert NAME_WARNING not in half(CALL)
 
 
 def test_an_empty_field_says_not_stated_and_a_named_funder_is_shown() -> None:

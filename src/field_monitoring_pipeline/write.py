@@ -2,21 +2,23 @@
 
 A card is one Markdown file. On top, between two `---` lines, sits the record, one field per line,
 each value written in JSON. A field that holds a sentence is written over several lines, its parts
-indented under it. Below is the half for people: the title, then each fact on its own line. The
-funder's own sentence sits under the summary, who can apply and where, and the source's own line
-under the dates and the budget. A sentence not found has a warning under it, and an empty field says
-"not stated". The link and the model and instructions that read the call come last.
+indented under it, and so is the funder's name with its mark. Below is the half for people: the
+title, then each fact on its own line. The publisher's own sentence sits under the summary, who can
+apply and where, and the source's own line under the dates and the budget. A sentence or a funder's
+name not found has a warning under it, and an empty field says "not stated". The link and the model
+and instructions that read the call come last.
 """
 
 import datetime as dt
 import json
 from typing import cast
 
-from field_monitoring_pipeline.models import Call, Deadline, Opening, Quoted
+from field_monitoring_pipeline.models import Call, Deadline, Named, Opening, Quoted
 
 FENCE = "---"
 NOT_STATED = "not stated"
 WARNING = "This sentence was not found in the call."
+NAME_WARNING = "This name was not found in the call."
 STAYS_OPEN = "stays open"
 
 
@@ -39,12 +41,18 @@ def _under(fact: Opening | Deadline | Quoted) -> list[str]:
     return [f"> {fact.quote}"] if fact.found else [f"> {fact.quote}", WARNING]
 
 
+def _funder(funder: Named | None) -> list[str]:
+    if funder is None:
+        return [f"Funder: {NOT_STATED}"]
+    return [f"Funder: {funder.name}"] if funder.found else [f"Funder: {funder.name}", NAME_WARNING]
+
+
 def _facts(call: Call) -> list[str]:
     opening, deadline = call.opening, call.deadline
     paragraphs = [
         f"# {call.title}",
         f"Type: {call.type}",
-        f"Funder: {NOT_STATED if call.funder is None else call.funder}",
+        *_funder(call.funder),
         *([f"Opens: {NOT_STATED}"] if opening is None else [f"Opens: {day(opening.date)}", *_under(opening)]),
         f"Deadline: {STAYS_OPEN if deadline.date is None else day(deadline.date)}",
         *_under(deadline),

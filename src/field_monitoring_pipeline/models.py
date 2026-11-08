@@ -4,15 +4,15 @@ A call has a title, a type, a funder, an opening date, a deadline, a budget, a s
 apply, where, its topics, and a link, and it names the call's identifier, as the source gives it or
 else the call's full address, and the model and the instructions that read it. Both dates, the
 budget, the summary, who can apply and where each carry a sentence beside the value, so a person can
-check it. Each of those sentences carries a mark saying whether it was found in the text the model
-read. Where the source gives a date or the budget in a labelled field, that sentence is the field
-written out as one plain line. The funder, the opening date, the budget, who can apply and where are
-empty when the source does not give them, and a call with no deadline stays open. Each topic carries
-its name and the mark it had on the topic list that day, primary or secondary, and a call may have
-no topic. This template refuses a call with a field missing, a field added, or a date it cannot read.
-It accepts a date in the past, and keeps the link exactly as given. A call cannot be changed once it
-is made. The topic list gives each topic its mark and the words that also count for it, and refuses
-any other mark and any key it does not know.
+check it. Each of those sentences, and the funder's name, carries a mark saying whether it was found
+in the text the model read. Where the source gives a date or the budget in a labelled field, that
+sentence is the field written out as one plain line. The funder, the opening date, the budget, who
+can apply and where are empty when the source does not give them, and a call with no deadline stays
+open. Each topic carries its name and the mark it had on the topic list that day, primary or
+secondary, and a call may have no topic. This template refuses a call with a field missing, a
+field added, or a date it cannot read. It accepts a date in the past, and keeps the link exactly as
+given. A call cannot be changed once it is made. The topic list gives each topic its mark and the
+words that also count for it, and refuses any other mark and any key it does not know.
 
 The watch list maps each source's id to its entry: its name, its address, its route and the topics
 it names, with the search words the EU route takes. It refuses an entry with a required field
@@ -76,12 +76,19 @@ class TopicList(BaseModel):
     topics: Mapping[str, TopicEntry]
 
 
+class Named(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str
+    found: bool
+
+
 class Call(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     title: str
     type: CallType
-    funder: str | None
+    funder: Named | None
     opening: Opening | None
     deadline: Deadline
     budget: Quoted | None

@@ -9,6 +9,7 @@ from field_monitoring_pipeline.models import (
     Call,
     Deadline,
     EuSearch,
+    Named,
     Opening,
     Quoted,
     Topic,
@@ -41,6 +42,7 @@ KNOWN: list[tuple[type[BaseModel], dict[str, Any]]] = [
     (Quoted, {"value": "v", "quote": "q", "found": True}),
     (Opening, OPENING),
     (Deadline, {"date": None, "quote": "q", "found": False}),
+    (Named, {"name": "n", "found": True}),
     (Call, CALL),
     (Topic, TOPIC),
     (TopicEntry, ENTRY),
@@ -85,9 +87,9 @@ def test_a_call_with_a_field_left_out_is_refused(field: str) -> None:
         Call.model_validate({name: value for name, value in CALL.items() if name != field})
 
 
-@pytest.mark.parametrize(("shape", "known"), KNOWN[:3])
+@pytest.mark.parametrize(("shape", "known"), KNOWN[:4])
 @pytest.mark.parametrize("mark", [{}, {"found": None}], ids=["left out", "empty"])
-def test_a_sentence_without_its_mark_is_refused(
+def test_a_checked_value_without_its_mark_is_refused(
     shape: type[BaseModel], known: dict[str, Any], mark: dict[str, Any]
 ) -> None:
     unmarked = {name: value for name, value in known.items() if name != "found"}
