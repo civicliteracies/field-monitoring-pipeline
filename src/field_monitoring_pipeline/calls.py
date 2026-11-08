@@ -10,8 +10,10 @@ reads the topic list, which stops the run if it cannot be read or lacks a topic 
 reads each saved call that has no card, in a fixed order, from what was stored for it, with that list
 and the topics its source names, and writes a row for each answer the model gives, as it arrives.
 Writes the call's card and a row with the reading's notes, or a failed row with the reason, so the
-next run reads it again. Last, builds the feed from every card. Prints the numbers for each source and
-for the reading, and then each failure.
+next run reads it again. Last, builds the feed from every card it can read back; a card it cannot
+read back is left out of the feed and written in the log with the reason. Prints the numbers for
+each source, for the reading and for the feed, and then each failure. Once its work is done, the run
+ends with a failure if a call's page, a search, a reading or a card failed.
 """
 
 import datetime as dt
@@ -27,8 +29,8 @@ import httpx2
 
 from field_monitoring_pipeline.extract import read
 from field_monitoring_pipeline.fetch import fetch, fetch_page, new_client
-from field_monitoring_pipeline.models import Source, TopicList, WatchList
-from field_monitoring_pipeline.publish import feed
+from field_monitoring_pipeline.models import Call, Source, TopicList, WatchList
+from field_monitoring_pipeline.publish import CARDS, feed
 from field_monitoring_pipeline.store import (
     carded,
     cards,
@@ -38,6 +40,7 @@ from field_monitoring_pipeline.store import (
     store_card,
     store_failure,
     store_feed,
+    store_left_out,
     store_reading,
     store_run,
     stored,
@@ -73,6 +76,23 @@ def _read(
         store_card(data, call, card(made))
         store_reading(data, call, fetched, "card written", "; ".join(notes))
     print(f"Read: {len(unread)} calls, {len(unread) - len(failures)} cards written, {len(failures)} failed")
+    for failure in failures:
+        print(failure)
+    return len(failures)
+
+
+def _publish(data: Path, fetched: dt.datetime) -> int:
+    readable: list[tuple[str, Call]] = []
+    failures: list[str] = []
+    for path, text in cards(data):
+        try:
+            readable.append((path, read_card(text)))
+        except ValueError as error:
+            reason = _reason(error)
+            store_left_out(data, CARDS + path, fetched, reason)
+            failures.append(f"{path}: {reason}")
+    store_feed(data, feed(readable))
+    print(f"Feed: {len(readable)} cards, {len(failures)} left out")
     for failure in failures:
         print(failure)
     return len(failures)
@@ -118,7 +138,7 @@ def run(data: Path, watch_list: Path, topic_list: Path, client: httpx2.Client, f
         failed += len(failures)
     listed = read_topic_list(topic_list, tuple(topic for source in sources.values() for topic in source.topics))
     failed += _read(data, sources, listed, client, fetched, key)
-    store_feed(data, feed([(path, read_card(text)) for path, text in cards(data)]))
+    failed += _publish(data, fetched)
     return failed
 
 

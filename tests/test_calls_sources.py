@@ -51,6 +51,7 @@ def test_a_failed_search_is_the_source_s_failed_run_and_the_run_carries_on(
     assert sorted(files(data)) == ["feed.xml", LOG]
     assert capsys.readouterr().out == (
         f"EU Funding and Tenders Portal: {reason}\nRead: 0 calls, 0 cards written, 0 failed\n"
+        "Feed: 0 cards, 0 left out\n"
     )
 
 
@@ -106,6 +107,7 @@ def test_after_a_failed_search_the_next_source_is_searched_and_the_saved_calls_a
     assert out.startswith("EU Funding and Tenders Portal: httpx2.HTTPStatusError: Server error '500 ")
     assert out.endswith(
         "EU Funding and Tenders Portal: 4 calls, 4 new, 0 failed\nRead: 4 calls, 4 cards written, 0 failed\n"
+        "Feed: 4 cards, 0 left out\n"
     )
     assert [(row[1], row[STATUS]) for row in log(data)[1:] if not row[CODE]] == [
         ("broken", "failed"),
