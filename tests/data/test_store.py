@@ -5,9 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from field_monitoring_pipeline.fetch import JSON, NO_RECORD, FetchedCall
-from field_monitoring_pipeline.publish import CARDS
-from field_monitoring_pipeline.store import (
+from field_monitoring_pipeline.data.fetch import JSON, NO_RECORD, FetchedCall
+from field_monitoring_pipeline.data.store import (
     COLUMNS,
     Saved,
     card_name,
@@ -25,6 +24,7 @@ from field_monitoring_pipeline.store import (
     store_run,
     stored,
 )
+from field_monitoring_pipeline.presentation.publish import CARDS
 
 SOURCE = "eu-funding-tenders"
 FETCHED = dt.datetime(2026, 9, 27, 6, 0, tzinfo=dt.UTC)

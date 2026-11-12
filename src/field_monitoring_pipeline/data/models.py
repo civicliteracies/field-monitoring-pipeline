@@ -1,4 +1,4 @@
-"""Define the typed shapes the run passes and reads: a funding call, the topic list and the watch list.
+"""Define the typed shape the run passes from step to step: a funding call.
 
 A call has a title, a type, a funder, an opening date, a deadline, a budget, a summary, who can
 apply, where, its topics, and a link, and it names the call's identifier, as the source gives it or
@@ -11,19 +11,13 @@ can apply and where are empty when the source does not give them, and a call wit
 open. Each topic carries its name and the mark it had on the topic list that day, primary or
 secondary, and a call may have no topic. This template refuses a call with a field missing, a
 field added, or a date it cannot read. It accepts a date in the past, and keeps the link exactly as
-given. A call cannot be changed once it is made. The topic list gives each topic its mark and the
-words that also count for it, and refuses any other mark and any key it does not know.
-
-The watch list maps each source's id to its entry: its name, its address, its route and the topics
-it names, with the search words the EU route takes. It refuses an entry with a required field
-missing, a field added or a route it does not know; the topics may be left out.
+given. A call cannot be changed once it is made.
 """
 
 import datetime as dt
-from collections.abc import Mapping
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 type CallType = Literal[
     "grant", "tender", "rfp", "eoi", "framework", "fellowship", "prize", "training", "post", "other"
@@ -63,19 +57,6 @@ class Topic(BaseModel):
     mark: Mark
 
 
-class TopicEntry(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    mark: Mark
-    words: tuple[str, ...] = ()
-
-
-class TopicList(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    topics: Mapping[str, TopicEntry]
-
-
 class Named(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -100,29 +81,3 @@ class Call(BaseModel):
     identifier: str
     model: str
     instructions: str
-
-
-class _Entry(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    name: str
-    url: str
-    topics: tuple[str, ...] = ()
-
-
-class EuSearch(_Entry):
-    how: Literal["eu-search"]
-    words: tuple[str, ...]
-
-
-class EitiPage(_Entry):
-    how: Literal["eiti-page"]
-
-
-type Source = Annotated[EuSearch | EitiPage, Field(discriminator="how")]
-
-
-class WatchList(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    source: Mapping[str, Source]

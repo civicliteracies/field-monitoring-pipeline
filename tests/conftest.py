@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.data.test_tags import TOPIC_LIST
 from tests.test_calls import WATCH_LIST
-from tests.test_tags import TOPIC_LIST
 
 
 # The morning run's tests are in three files, and each writes the same watch list and topic list into the test folder.

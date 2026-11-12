@@ -75,6 +75,11 @@ topic list, and name the rest with a language model. The model is asked once mor
 cannot be used or a sentence it quotes is not found. Check what was read against what was stored.
 Write the card. Save the cards and build the feed.
 
+The code keeps these steps in two layers, with the command above both. The data layer does the first
+five: it reaches the sources, keeps what they published, each under a stable name of its own, reads
+and checks it, and holds the shape of a call. The presentation layer writes each card and builds the
+feed, and the data layer's one writer saves them.
+
 Three things stay apart inside every step: the data, declared in files a person can read; the
 behaviour, plain functions that act on it; and the coordination, a single command that calls the
 steps in order. The command decides what to skip and what to do when a step fails, and holds no rule
@@ -187,7 +192,8 @@ the daily reading starts. And the file the run reads to know which calls are sto
 answers.
 
 **Technical detail.** Collected items, cards and the feed live on the `data` branch, which shares no
-history with the code. One module writes everything under the data folder and owns every path there.
+history with the code. One module of the data layer writes everything under the data folder, the
+cards and the feed included, and owns every path there.
 
 ### Is a page read before or after it is stored?
 

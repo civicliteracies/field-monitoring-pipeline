@@ -7,15 +7,18 @@ from typing import Any
 import httpx2
 import pytest
 
-from field_monitoring_pipeline.extract import build, read, text
-from field_monitoring_pipeline.models import Call, Deadline, Named, Quoted, Topic, TopicList
-from field_monitoring_pipeline.store import AnswerWord, Saved
-from tests.test_fetch import VIEWS
-from tests.test_tags import TOPICS
+from field_monitoring_pipeline.data.extract import build, read, text
+from field_monitoring_pipeline.data.models import Call, Deadline, Named, Quoted, Topic
+from field_monitoring_pipeline.data.settings import TopicList
+from field_monitoring_pipeline.data.store import AnswerWord, Saved
+from tests.data.test_fetch import VIEWS
+from tests.data.test_tags import TOPICS
 
-ROOT = Path(__file__).parent.parent
-REPLIES = Path(__file__).parent / "replies"
-INSTRUCTIONS = (ROOT / "src" / "field_monitoring_pipeline" / "instructions" / "v3.md").read_text(encoding="utf-8")
+ROOT = Path(__file__).parent.parent.parent
+REPLIES = Path(__file__).parent.parent / "replies"
+INSTRUCTIONS = (ROOT / "src" / "field_monitoring_pipeline" / "data" / "instructions" / "v3.md").read_text(
+    encoding="utf-8"
+)
 REPLY = (REPLIES / "model_reply.txt").read_text(encoding="utf-8")
 GUIDE = "See the information in the Horizon Europe Programme Guide."
 CONSUMPTION = "Users’ consumption patterns of news are identified (online and offline)."

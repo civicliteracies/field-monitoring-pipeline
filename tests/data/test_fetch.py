@@ -7,12 +7,12 @@ from pathlib import Path
 import httpx2
 import pytest
 
-from field_monitoring_pipeline.fetch import NO_RECORD, FetchedCall, fetch, fetch_page, new_client, search_eu
-from field_monitoring_pipeline.models import EitiPage, EuSearch, WatchList
-from field_monitoring_pipeline.tags import read_topic_list
+from field_monitoring_pipeline.data.fetch import NO_RECORD, FetchedCall, fetch, fetch_page, new_client, search_eu
+from field_monitoring_pipeline.data.settings import EitiPage, EuSearch, WatchList
+from field_monitoring_pipeline.data.tags import read_topic_list
 
-ROOT = Path(__file__).parent.parent
-REPLIES = Path(__file__).parent / "replies"
+ROOT = Path(__file__).parent.parent.parent
+REPLIES = Path(__file__).parent.parent / "replies"
 URL = "https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA"
 TODAY = dt.date(2026, 9, 27)
 EITI = EitiPage(name="EITI", url="https://eiti.org/consultancy-opportunities", how="eiti-page")

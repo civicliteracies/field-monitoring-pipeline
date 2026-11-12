@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from field_monitoring_pipeline.fetch import JSON, FetchedCall, NoRecord
+from field_monitoring_pipeline.data.fetch import JSON, FetchedCall, NoRecord
 
 COLUMNS = ("code", "source", "identifier", "title", "link", "fetched", "status", "reason")
 SHORT_TITLE = 60

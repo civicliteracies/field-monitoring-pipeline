@@ -3,11 +3,11 @@ from itertools import pairwise
 
 import pytest
 
-from field_monitoring_pipeline.extract import build
-from field_monitoring_pipeline.models import Call, Deadline, Named, Opening
-from field_monitoring_pipeline.write import card, read_card
-from tests.test_extract import REPLY, stored
-from tests.test_tags import TOPICS
+from field_monitoring_pipeline.data.extract import build
+from field_monitoring_pipeline.data.models import Call, Deadline, Named, Opening
+from field_monitoring_pipeline.presentation.write import card, read_card
+from tests.data.test_extract import REPLY, stored
+from tests.data.test_tags import TOPICS
 
 CALL, _ = build(stored(), TOPICS, REPLY)
 WARNING = "This sentence was not found in the call."

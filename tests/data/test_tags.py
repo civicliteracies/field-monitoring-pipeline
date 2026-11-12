@@ -5,10 +5,11 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from field_monitoring_pipeline.models import Topic, TopicEntry, TopicList
-from field_monitoring_pipeline.tags import read_topic_list, topics
+from field_monitoring_pipeline.data.models import Topic
+from field_monitoring_pipeline.data.settings import TopicEntry, TopicList
+from field_monitoring_pipeline.data.tags import read_topic_list, topics
 
-ROOT = Path(__file__).parent.parent
+ROOT = Path(__file__).parent.parent.parent
 # A small topic list for the tests: two topics the stored call's labels name, and one they do not.
 TOPIC_LIST = """[topics.AI-and-civic]
 mark = "primary"

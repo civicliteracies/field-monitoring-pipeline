@@ -13,7 +13,7 @@ import datetime as dt
 import json
 from typing import cast
 
-from field_monitoring_pipeline.models import Call, Deadline, Named, Opening, Quoted
+from field_monitoring_pipeline.data.models import Call, Deadline, Named, Opening, Quoted
 
 FENCE = "---"
 NOT_STATED = "not stated"

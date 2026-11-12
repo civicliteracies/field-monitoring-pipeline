@@ -5,7 +5,9 @@ import httpx2
 import pytest
 
 from field_monitoring_pipeline.calls import run
-from field_monitoring_pipeline.store import COLUMNS
+from field_monitoring_pipeline.data.store import COLUMNS
+from tests.data.test_fetch import REPLIES, STUDY
+from tests.data.test_store import FETCHED, SOURCE, STAMP, log
 from tests.test_calls import (
     CODE,
     EITI_ENTRY,
@@ -29,8 +31,6 @@ from tests.test_calls import (
     reply,
     server_error,
 )
-from tests.test_fetch import REPLIES, STUDY
-from tests.test_store import FETCHED, SOURCE, STAMP, log
 
 
 @pytest.mark.parametrize(
