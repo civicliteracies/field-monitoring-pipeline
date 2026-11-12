@@ -18,7 +18,7 @@ from typing import override
 
 import httpx2
 
-from field_monitoring_pipeline.models import EitiPage, EuSearch, Source
+from field_monitoring_pipeline.data.settings import EitiPage, EuSearch, Source
 
 type JSON = dict[str, JSON] | list[JSON] | str | int | float | bool | None
 

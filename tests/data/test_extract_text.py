@@ -3,10 +3,10 @@ from typing import Any
 
 import pytest
 
-from field_monitoring_pipeline.extract import build, text
-from field_monitoring_pipeline.models import Deadline, Quoted
-from tests.test_extract import GUIDE, REPLY, stored
-from tests.test_tags import TOPICS
+from field_monitoring_pipeline.data.extract import build, text
+from field_monitoring_pipeline.data.models import Deadline, Quoted
+from tests.data.test_extract import GUIDE, REPLY, stored
+from tests.data.test_tags import TOPICS
 
 
 def test_the_page_tags_are_stripped_and_a_sentence_keeps_its_stop() -> None:

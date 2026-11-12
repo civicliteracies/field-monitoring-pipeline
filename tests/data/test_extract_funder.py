@@ -1,10 +1,10 @@
 import pytest
 
-from field_monitoring_pipeline.extract import build, text
-from field_monitoring_pipeline.models import Named
-from field_monitoring_pipeline.write import card, read_card
-from tests.test_extract import AGAIN, FUNDER, LINE, REPLY, reading, stored
-from tests.test_tags import TOPICS
+from field_monitoring_pipeline.data.extract import build, text
+from field_monitoring_pipeline.data.models import Named
+from field_monitoring_pipeline.presentation.write import card, read_card
+from tests.data.test_extract import AGAIN, FUNDER, LINE, REPLY, reading, stored
+from tests.data.test_tags import TOPICS
 
 FOUND = "Horizon Europe"
 GONE = "European Commission"

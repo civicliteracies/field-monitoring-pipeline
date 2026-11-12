@@ -111,24 +111,28 @@ run by hand, and quarterly reports.
       When the feed is built, a card that cannot be read is left out of it and gets a row in the
       log with its web address and the reason. The feed is built from the other cards, and the run
       finishes all its work before it reports the failure.
-- [ ] **17. `feat(reports): ingest project reports as cards`**
+- [x] **17. `refactor(layers): arrange the code in its layers`**
+      The code moves into two folders, one for each layer. The data layer gets each call, keeps a
+      copy, and checks and sorts each fact; the presentation layer writes the card and the feed. The
+      one command stays on top and runs as before, so nothing Fieldbook does changes.
+- [ ] **18. `feat(reports): ingest project reports as cards`**
       Once a week, Fieldbook runs a separate background workflow dedicated to reading completed
       project reports rather than funding calls. It turns each report into its own card inside a
       dedicated folder, extracting the organization name alongside five key details: the target
       audience, the research methodology, the final results, the project duration, and the
       geographic area, with each detail accompanied by its exact supporting quote from the report.
-- [ ] **18. `feat(direction): generate the quarterly sector report`**
+- [ ] **19. `feat(direction): generate the quarterly sector report`**
       Once every quarter, Fieldbook runs a completely offline script without using artificial
       intelligence. The code analyzes all stored cards by funder and by topic, producing a quarterly
       summary with statistics and charts. This report highlights topics that attracted interest from
       three or more funders, shows which topics grew or declined compared to the previous quarter,
       and lists any newly detected funding organizations.
-- [ ] **19. `feat(discover): suggest new funders to watch`**
+- [ ] **20. `feat(discover): suggest new funders to watch`**
       This introduces an on-demand tool that a person can run by hand. The script compares our
       existing archive against a public registry to find funding organizations we have not
       encountered yet. It produces a list of suggested funders along with an explanation for why
       each one might be relevant, without altering the active watch list automatically.
-- [ ] **20. `docs: add a guide for adding a source`**
+- [ ] **21. `docs: add a guide for adding a source`**
       A new, straightforward guide added to the project documentation explains step by step how to
       add a new funding portal to the watch list, along with the specific quality checks to perform
       before adding it.

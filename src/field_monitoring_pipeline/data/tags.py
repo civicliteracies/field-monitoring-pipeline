@@ -13,7 +13,8 @@ import tomllib
 from collections.abc import Sequence
 from pathlib import Path
 
-from field_monitoring_pipeline.models import Topic, TopicList
+from field_monitoring_pipeline.data.models import Topic
+from field_monitoring_pipeline.data.settings import TopicList
 
 
 def read_topic_list(path: Path, named: tuple[str, ...]) -> TopicList:

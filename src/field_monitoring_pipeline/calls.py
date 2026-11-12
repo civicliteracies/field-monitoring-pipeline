@@ -24,14 +24,14 @@ import tomllib
 import traceback
 from collections.abc import Mapping
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx2
 
-from field_monitoring_pipeline.extract import read
-from field_monitoring_pipeline.fetch import fetch, fetch_page, new_client
-from field_monitoring_pipeline.models import Call, Source, TopicList, WatchList
-from field_monitoring_pipeline.publish import CARDS, feed
-from field_monitoring_pipeline.store import (
+from field_monitoring_pipeline.data.extract import read
+from field_monitoring_pipeline.data.fetch import fetch, fetch_page, new_client
+from field_monitoring_pipeline.data.settings import Source, TopicList, WatchList
+from field_monitoring_pipeline.data.store import (
     carded,
     cards,
     saved,
@@ -45,8 +45,12 @@ from field_monitoring_pipeline.store import (
     store_run,
     stored,
 )
-from field_monitoring_pipeline.tags import read_topic_list
-from field_monitoring_pipeline.write import card, read_card
+from field_monitoring_pipeline.data.tags import read_topic_list
+from field_monitoring_pipeline.presentation.publish import CARDS, feed
+from field_monitoring_pipeline.presentation.write import card, read_card
+
+if TYPE_CHECKING:
+    from field_monitoring_pipeline.data.models import Call
 
 
 def _reason(error: Exception) -> str:

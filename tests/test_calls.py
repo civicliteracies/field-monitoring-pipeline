@@ -10,12 +10,12 @@ import pytest
 from pydantic import ValidationError
 
 from field_monitoring_pipeline.calls import main, run
-from field_monitoring_pipeline.extract import ADDRESS
-from field_monitoring_pipeline.store import COLUMNS, code
-from tests.test_extract import EITI_REPLY, REPLY
-from tests.test_fetch import REPLIES, ROOT, URL
-from tests.test_store import FETCHED, IDENTIFIER, SOURCE, STAMP, log
-from tests.test_tags import TOPIC_LIST
+from field_monitoring_pipeline.data.extract import ADDRESS
+from field_monitoring_pipeline.data.store import COLUMNS, code
+from tests.data.test_extract import EITI_REPLY, REPLY
+from tests.data.test_fetch import REPLIES, ROOT, URL
+from tests.data.test_store import FETCHED, IDENTIFIER, SOURCE, STAMP, log
+from tests.data.test_tags import TOPIC_LIST
 
 EITI_ENTRY = """
 [source.eiti]
@@ -399,6 +399,6 @@ def test_the_file_runs_as_the_command(
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["calls", "data"])
     monkeypatch.setenv("GEMINI_API_KEY", KEY)
-    monkeypatch.setattr("field_monitoring_pipeline.fetch.new_client", portal)
+    monkeypatch.setattr("field_monitoring_pipeline.data.fetch.new_client", portal)
     runpy.run_path(str(ROOT / "src" / "field_monitoring_pipeline" / "calls.py"), run_name="__main__")
     assert capsys.readouterr().out.startswith("EU Funding and Tenders Portal: ")
