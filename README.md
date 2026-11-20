@@ -8,7 +8,7 @@ Collecting, keeping, reading, checking, the cards and the feed run by themselves
 
 ## What it does
 
-It finds the opportunities CLI can act on, for funding, for paid work or to give its views: grants, tenders, requests for proposals, expressions of interest, framework agreements, fellowships, prizes, training and teaching posts, and consultations. Each becomes a card. Later versions add the project reports peer organisations publish, a quarterly reading of where the sector is going, and proposals of funders to follow; [`docs/plan.md`](docs/plan.md) lists them.
+It finds the opportunities CLI can act on, for funding, for paid work or to give its views: grants, tenders, requests for proposals, expressions of interest, framework agreements, fellowships, prizes, training and teaching posts, and consultations. Each becomes a card. Later versions add the reports, strategies and funded projects organisations publish, the events of the field, a quarterly map of who is active and where, a quarterly reading of where the sector is going, and proposals of funders to follow; [`docs/plan.md`](docs/plan.md) lists them.
 
 ## How a run works
 
@@ -24,7 +24,7 @@ The check shows whether a quoted sentence, or the funder's name, is in what was 
 
 ## This version
 
-The first version carries the funding calls of one source the whole way: collected, kept, read, checked, written as a card and delivered to a feed reader, every morning. The second version starts with five changes: every answer of the model is kept in the log; each card's record carries its topics from CLI's topic list, each with its mark, with a category in the feed for each topic and each mark; a second source joins the watch list, the consultancy opportunities page of the Extractive Industries Transparency Initiative (EITI), whose calls all carry the topic extractives-eiti; the funder's name on each card is checked against what was collected, with a warning when it is not there; and a card that cannot be read back is left out of the feed and written in the log, so the feed still arrives. The project reports, the quarterly reading, the proposals of funders to watch and a guide to adding a source follow. [`docs/plan.md`](docs/plan.md) lists them in order.
+The first version carries the funding calls of one source the whole way: collected, kept, read, checked, written as a card and delivered to a feed reader, every morning. The second version starts with five changes: every answer of the model is kept in the log; each card's record carries its topics from CLI's topic list, each with its mark, with a category in the feed for each topic and each mark; a second source joins the watch list, the consultancy opportunities page of the Extractive Industries Transparency Initiative (EITI), whose calls all carry the topic extractives-eiti; the funder's name on each card is checked against what was collected, with a warning when it is not there; and a card that cannot be read back is left out of the feed and written in the log, so the feed still arrives. Reports, strategies, funded projects and events follow, then what they show: the work CLI could apply for, the quarterly map, the quarterly reading and the networking opportunities, and a dashboard beside the feed. The proposals of funders to watch and a guide to adding a source come last. [`docs/plan.md`](docs/plan.md) lists them in order.
 
 ## The records
 
