@@ -105,3 +105,6 @@ f24132da283ebff55adaf8a631df19a3366a243df3d88532d4ac01285e0bdfd5,eu-funding-tend
 ,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-11-17T15:56:49+00:00,nothing new,"43 calls, 0 new, 0 failed"
 ,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-11-18T15:35:52+00:00,nothing new,"43 calls, 0 new, 0 failed"
 ,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-11-19T15:41:47+00:00,nothing new,"43 calls, 0 new, 0 failed"
+edc2c8fa5f230f11a2ae50fa343779e95bb5c923ed738fa4f1d72e516c16fa61,eu-funding-tenders,ERASMUS-EDU-2027-PEX-COVE-TOP2,Community of practice,https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/ERASMUS-EDU-2027-PEX-COVE-TOP2,2026-11-20T15:23:54+00:00,saved,
+208986856d667fe1f9fced554c83fa0d4319353b334729da88a605e2d6f18c80,eu-funding-tenders,ERASMUS-EDU-2027-PEX-COVE-TOP1,Centres of Vocational Excellence,https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/ERASMUS-EDU-2027-PEX-COVE-TOP1,2026-11-20T15:23:54+00:00,saved,
+,eu-funding-tenders,,,https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA,2026-11-20T15:23:54+00:00,successful,"45 calls, 2 new, 0 failed"
