@@ -4,16 +4,17 @@ This plan lists everything we are building, in the order it will be built. Each 
 pull request title and a plain-English explanation of what it does. Items are checked off as each
 update is completed.
 
-Our daily automated run follows seven steps in order:
+Each run follows seven steps in order. The daily run does this for funding calls, and each other kind
+of item has its own run on its own schedule:
 
-1. Fetch: Finding new funding opportunities.
-2. Store the raw: Saving exact, untouched copies of the original pages.
-3. Identify: Giving each opportunity a permanent ID to avoid duplicates.
+1. Fetch: Finding new items at each source.
+2. Store the raw: Saving exact, untouched copies of the original documents.
+3. Identify: Giving each item a permanent ID to avoid duplicates.
 4. Read the stated facts: Extracting key information, partly using artificial intelligence.
-5. Validate: Checking that all quoted proof sentences, and the funder's name, actually appear in
-   the original text.
+5. Validate: Checking that all quoted proof sentences, and the names given, actually appear in the
+   original text.
 6. Write the card: Saving clean, structured summary sheets to our archive.
-7. Publish: Delivering new cards to subscribers through a news feed.
+7. Publish: Delivering new funding call cards to subscribers through a news feed.
 
 Some tasks sit outside this daily run, including project documentation, code quality checks, tools
 run by hand, and quarterly reports.
@@ -84,7 +85,7 @@ run by hand, and quarterly reports.
       so a new funding call arrives in a feed reader the day it is found. Each entry carries the title
       with the closing date, a link to the card, the summary, and the call's code as its identity.
 
-## The second version: topics, more sources, the project reports and the sector's direction
+## The second version: topics, more sources, more kinds of item, and what they show
 
 - [x] **12. `feat(extract): log each model response`**
       Whenever the artificial intelligence reads a funding call, Fieldbook saves the model's exact,
@@ -93,7 +94,7 @@ run by hand, and quarterly reports.
       arrived at each extracted fact.
 - [x] **13. `feat(tags): tag cards with topics from the topic list`**
       We maintain a plain text list of relevant topics, classifying each topic as either primary
-      (areas where our organization actively works) or secondary (areas we simply monitor). Instead
+      (areas where our organisation actively works) or secondary (areas we simply monitor). Instead
       of relying on the artificial intelligence, Fieldbook's own code automatically matches the labels
       the source put on each call against this list and attaches the matching topics to its card,
       making it easy to group and filter cards by topic.
@@ -115,26 +116,56 @@ run by hand, and quarterly reports.
       The code moves into two folders, one for each layer. The data layer gets each call, keeps a
       copy, and checks and sorts each fact; the presentation layer writes the card and the feed. The
       one command stays on top and runs as before, so nothing Fieldbook does changes.
-- [ ] **18. `feat(reports): ingest project reports as cards`**
-      Once a week, Fieldbook runs a separate background workflow dedicated to reading completed
-      project reports rather than funding calls. It turns each report into its own card inside a
-      dedicated folder, extracting the organization name alongside five key details: the target
-      audience, the research methodology, the final results, the project duration, and the
-      geographic area, with each detail accompanied by its exact supporting quote from the report.
-- [ ] **19. `feat(direction): generate the quarterly sector report`**
+- [ ] **18. `feat(reports): collect reports as cards`**
+      Once a week, Fieldbook reads the reports organisations publish about their own work: project
+      results reports, evaluations, annual reports, and research or case studies. Each report becomes
+      its own card in a dedicated folder, with the organisation that did the work and five details:
+      who it was for, the method, the results, how long it ran, and where, each with its exact
+      supporting sentence from the report. Reports are read from web pages, feeds, PDF files, Word
+      documents and spreadsheets.
+- [ ] **19. `feat(strategies): collect strategies as cards`**
+      Fieldbook collects the strategies organisations publish on their own sites, whether for the
+      whole organisation, a country, a sector or a theme. Each strategy becomes its own card in a
+      dedicated folder.
+- [ ] **20. `feat(projects): collect funded projects as cards`**
+      Fieldbook collects the projects that the funders CLI watches publish to open registries, and
+      each project becomes its own card in a dedicated folder. This brings in many funders, and the
+      organisations doing the work, beyond the first sources of calls.
+- [ ] **21. `feat(events): collect events as cards`**
+      Once a week, Fieldbook looks for conferences, workshops, webinars, hackathons and calls for
+      papers related to CLI's work, on the pages that list events and inside every document it holds,
+      so they are known well in advance. Each event becomes its own card in a dedicated folder.
+- [ ] **22. `feat(work): show the available work`**
+      The first analysis reads the funding call cards and shows the work CLI could apply for.
+- [ ] **23. `feat(map): write the quarterly map of the field`**
+      Once every quarter, with no artificial intelligence, Fieldbook writes a page with two tables:
+      the funders, what they fund and where, and the organisations doing the work, what they work on
+      and where. Each row links to its sources. Only those active in the last 24 months are listed,
+      and those new this quarter are marked. The news feed gets one entry for each page.
+- [ ] **24. `feat(direction): generate the quarterly sector report`**
       Once every quarter, Fieldbook runs a completely offline script without using artificial
-      intelligence. The code analyzes all stored cards by funder and by topic, producing a quarterly
-      summary with statistics and charts. This report highlights topics that attracted interest from
-      three or more funders, shows which topics grew or declined compared to the previous quarter,
-      and lists any newly detected funding organizations.
-- [ ] **20. `feat(discover): suggest new funders to watch`**
+      intelligence. The code analyses the stored calls, reports, strategies and funded projects by
+      funder and by topic, producing a quarterly summary with statistics and charts. This report
+      highlights topics that attracted interest from three or more funders, shows which topics grew
+      or declined compared to the previous quarter, and points to the quarterly map for the funders
+      and organisations new this quarter.
+- [ ] **25. `feat(networking): point out networking opportunities`**
+      Once a week, Fieldbook reads the event cards and points out the events worth attending, well
+      before each one takes place.
+- [ ] **26. `feat(present): define what each analysis hands on`**
+      Each analysis hands its result to the news feed and the dashboard in one agreed shape, with one
+      rule: nothing is shown twice. Results point to the quarterly map instead of listing its funders
+      and organisations again.
+- [ ] **27. `feat(dashboard): add the dashboard`**
+      A second way to see the results, beside the news feed, within the free tier.
+- [ ] **28. `feat(discover): suggest new funders to watch`**
       This introduces an on-demand tool that a person can run by hand. The script compares our
-      existing archive against a public registry to find funding organizations we have not
+      existing archive against a public registry to find funding organisations we have not
       encountered yet. It produces a list of suggested funders along with an explanation for why
       each one might be relevant, without altering the active watch list automatically.
-- [ ] **21. `docs: add a guide for adding a source`**
+- [ ] **29. `docs: add a guide for adding a source`**
       A new, straightforward guide added to the project documentation explains step by step how to
-      add a new funding portal to the watch list, along with the specific quality checks to perform
+      add a new source to the watch list, along with the specific quality checks to perform
       before adding it.
 
 ## Looking ahead: Ideas after version two
