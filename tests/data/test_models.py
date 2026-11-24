@@ -103,10 +103,11 @@ def test_a_mark_other_than_the_two_is_refused() -> None:
         Topic.model_validate(TOPIC | {"mark": "Secondary"})
 
 
-def test_a_call_keeps_its_topics_in_order_and_may_have_none() -> None:
+def test_a_call_keeps_its_topics_in_order_and_needs_one() -> None:
     two = [{"name": "data-journalism", "mark": "secondary"}, TOPIC]
     assert Call.model_validate(CALL | {"topics": two}).topics == (
         Topic(name="data-journalism", mark="secondary"),
         Topic(name="AI-and-civic", mark="primary"),
     )
-    assert Call.model_validate(CALL | {"topics": []}).topics == ()
+    with pytest.raises(ValidationError, match="topics"):
+        Call.model_validate(CALL | {"topics": []})

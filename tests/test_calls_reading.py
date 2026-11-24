@@ -11,29 +11,34 @@ from field_monitoring_pipeline.calls import run
 from field_monitoring_pipeline.data.extract import ADDRESS
 from field_monitoring_pipeline.data.fetch import FetchedCall
 from field_monitoring_pipeline.data.store import code, store
+from field_monitoring_pipeline.data.tags import NO_MATCH
 from field_monitoring_pipeline.presentation.publish import CARDS
 from field_monitoring_pipeline.presentation.write import read_card
-from tests.data.test_extract import REPLY
-from tests.data.test_fetch import REPLIES, STUDY, VIEWS
-from tests.data.test_store import FETCHED, IDENTIFIER, log
-from tests.test_calls import (
+from tests.samples import (
     CODE,
     EITI_ENTRY,
     EITI_RUN,
     EITI_TOPICS,
+    FETCHED,
+    IDENTIFIER,
     KEY,
     NEXT_DAY,
     NOTE,
     PAGES,
     REASON,
+    REPLIES,
+    REPLY,
     ROW,
     RUN,
     STATUS,
     STORED,
+    STUDY,
+    VIEWS,
     WATCH_LIST,
     Answer,
     eiti,
     files,
+    log,
     model_answer,
     portal,
     reply,
@@ -102,10 +107,11 @@ def test_the_feed_is_built_from_every_card_after_the_reading(
     entries = ET.fromstring(built).findall("channel/item")
     assert [entry.findtext("link") for entry in entries] == [CARDS + name for name in cards]
     assert len(cards) == 4
-    # Every recorded call carries the stored call's labels, so each card has the same two topics.
+    # Every recorded call carries the stored call's call title and description, so each card has the same three topics.
     assert [(category.get("domain"), category.text) for category in entries[0].findall("category")] == [
         ("topic", "AI-and-civic"),
         ("topic", "data-journalism"),
+        ("topic", "civic-space"),
         ("mark", "primary"),
         ("mark", "secondary"),
     ]
@@ -170,7 +176,7 @@ def test_a_reading_that_fails_is_logged_counted_and_read_again_the_next_run(
     with portal(reading_of(IDENTIFIER, answer)) as client:
         assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 1
     out = capsys.readouterr().out
-    assert "\nRead: 4 calls, 3 cards written, 1 failed\n" in out
+    assert "\nRead: 4 calls, 3 cards written, 0 set aside, 1 failed\n" in out
     [failed] = [row for row in log(data) if row[CODE] and row[STATUS] == "failed"]
     assert failed[:STATUS] == ROW
     assert failed[REASON].startswith(reason)
@@ -181,7 +187,9 @@ def test_a_reading_that_fails_is_logged_counted_and_read_again_the_next_run(
 
     with portal() as client:
         assert run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
-    assert capsys.readouterr().out.endswith("\nRead: 1 calls, 1 cards written, 0 failed\nFeed: 4 cards, 0 left out\n")
+    assert capsys.readouterr().out.endswith(
+        "\nRead: 1 calls, 1 cards written, 0 set aside, 0 failed\nFeed: 4 cards, 0 left out\n"
+    )
     assert log(data)[-1] == [*ROW[:5], NEXT_DAY, "card written", NOTE]
     assert HERITAGE_CARD in files(data)
 
@@ -209,7 +217,7 @@ def test_a_morning_with_no_key_saves_every_call_and_fails_every_reading(
     data = tmp_path / "data"
     with portal() as client:
         assert run(data, watch_list, topic_list, client, FETCHED, "") == 4
-    assert "\nRead: 4 calls, 0 cards written, 4 failed\n" in capsys.readouterr().out
+    assert "\nRead: 4 calls, 0 cards written, 0 set aside, 4 failed\n" in capsys.readouterr().out
     assert [row[STATUS] for row in log(data)[1:] if row[CODE]] == ["saved"] * 4 + ["failed"] * 4
     assert not any(name.startswith("calls/") for name in files(data))
 
@@ -235,9 +243,13 @@ def test_the_calls_are_read_by_source_then_identifier(tmp_path: Path, watch_list
     with portal() as client:
         assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
     assert [row[2] for row in log(data) if row[STATUS] == "card written"] == [*CURRENT, own]
-    # Its source is not on the watch list, so its card has only the topics its labels give.
+    # Its source is not on the watch list, so its card has only the topics its titles and description give.
     [card] = [text for name, text in files(data).items() if name.endswith(f"{code(own)[:10]}.md")]
-    assert [topic.name for topic in read_card(card.decode("utf-8")).topics] == ["AI-and-civic", "data-journalism"]
+    assert [topic.name for topic in read_card(card.decode("utf-8")).topics] == [
+        "AI-and-civic",
+        "data-journalism",
+        "civic-space",
+    ]
 
 
 def test_a_reply_with_no_content_leaves_its_empty_answer_row_before_the_run_stops(
@@ -257,24 +269,37 @@ def test_a_reply_with_no_content_leaves_its_empty_answer_row_before_the_run_stop
     assert "feed.xml" not in files(data)
 
 
-def test_a_call_whose_labels_match_nothing_has_the_note_in_its_card_written_row(
-    tmp_path: Path, watch_list: Path, topic_list: Path
+def test_a_call_with_no_topic_is_set_aside_once_unread_and_counted(
+    tmp_path: Path, watch_list: Path, topic_list: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    sent: list[bytes] = []
+
     def unmatched(request: httpx2.Request) -> httpx2.Response | None:
-        if request.method != "POST" or str(request.url) == ADDRESS:
+        if str(request.url) == ADDRESS:
+            sent.append(request.read())
+            return None
+        if request.method != "POST":
             return None
         body = reply(request)
+        # Its own title names no topic, and with no call title and no description nothing else can.
         for record in body["results"]:
             if record["metadata"]["identifier"][0] == IDENTIFIER:
-                record["metadata"]["tags"] = ["Cultural heritage", "Tourism"]
+                record["metadata"] |= {"callTitle": [], "descriptionByte": []}
         return httpx2.Response(200, json=body)
 
     data = tmp_path / "data"
     with portal(unmatched) as client:
         assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
-    untagged = "topics: empty, because the call gets no topic on the topic list from its source or its labels"
-    notes = {row[2]: row[REASON] for row in log(data) if row[STATUS] == "card written"}
-    assert notes == dict.fromkeys(CURRENT, NOTE) | {IDENTIFIER: f"{NOTE}; {untagged}"}
+    assert "\nRead: 4 calls, 3 cards written, 1 set aside, 0 failed\n" in capsys.readouterr().out
+    assert [row for row in log(data) if row[STATUS] == "set aside"] == [[*ROW, "set aside", NO_MATCH]]
+    assert not any(f"Title: {CURRENT[IDENTIFIER]}".encode() in body for body in sent)
+    assert HERITAGE_CARD not in files(data)
+
+    rows = log(data)
+    with portal(unmatched) as client:
+        assert run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
+    assert "\nRead: 0 calls, 0 cards written, 0 set aside, 0 failed\n" in capsys.readouterr().out
+    assert log(data)[len(rows) :] == [[*RUN, NEXT_DAY, "nothing new", "4 calls, 0 new, 0 failed"]]
 
 
 def test_a_record_with_no_description_is_read_from_its_conditions_with_the_note_in_its_card_written_row(
@@ -345,7 +370,7 @@ def test_an_eiti_call_is_saved_as_its_page_alone_and_read_from_it_with_its_sourc
     assert capsys.readouterr().out == (
         "EU Funding and Tenders Portal: 4 calls, 4 new, 0 failed\n"
         "EITI: 2 calls, 2 new, 0 failed\n"
-        "Read: 6 calls, 6 cards written, 0 failed\n"
+        "Read: 6 calls, 6 cards written, 0 set aside, 0 failed\n"
         "Feed: 6 cards, 0 left out\n"
     )
     assert sorted(name for name in files(data) if name.startswith("raw/eiti/")) == sorted(
@@ -357,7 +382,6 @@ def test_an_eiti_call_is_saved_as_its_page_alone_and_read_from_it_with_its_sourc
         "opening date: empty, because this source's page has no field for it; "
         "budget: empty, because this source's page has no field for it"
     )
-    assert "topics:" not in written[0][REASON]
     assert [*EITI_RUN, "successful", "2 calls, 2 new, 0 failed"] in log(data)
     entries = ET.fromstring(files(data)["feed.xml"]).findall("channel/item")
     eiti_entries = [entry for entry in entries if entry.findtext("guid") in (code(VIEWS), code(STUDY))]

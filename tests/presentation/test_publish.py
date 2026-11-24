@@ -6,8 +6,7 @@ import pytest
 from field_monitoring_pipeline.data.models import Call, Topic
 from field_monitoring_pipeline.data.store import code
 from field_monitoring_pipeline.presentation.publish import feed
-from tests.data.test_tags import AI, CIVIC_TECH, JOURNALISM
-from tests.presentation.test_write import CALL
+from tests.samples import AI, CALL, CIVIC_TECH, JOURNALISM
 
 PATH = "calls/2026-10-15-identifying-user-focused-solutions-to-support-news-media-8cf6b3041b.md"
 CARD = "https://github.com/civicliteracies/field-monitoring-pipeline/blob/data/data/" + PATH
@@ -108,8 +107,3 @@ def test_an_entry_carries_a_category_per_topic_then_per_distinct_mark_primary_fi
         *(("topic", topic.name) for topic in topics),
         *(("mark", mark) for mark in marks),
     ]
-
-
-def test_a_card_with_no_topic_has_no_category() -> None:
-    [entry] = items(feed([(PATH, CALL.model_copy(update={"topics": ()}))]))
-    assert entry.findall("category") == []

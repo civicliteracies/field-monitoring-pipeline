@@ -6,16 +6,12 @@ import pytest
 from field_monitoring_pipeline.data.extract import build
 from field_monitoring_pipeline.data.models import Call, Deadline, Named, Opening
 from field_monitoring_pipeline.presentation.write import card, read_card
-from tests.data.test_extract import REPLY, stored
-from tests.data.test_tags import TOPICS
+from tests.samples import CALL, GIVEN, REPLY, stored
 
-CALL, _ = build(stored(), TOPICS, REPLY)
 WARNING = "This sentence was not found in the call."
 NAME_WARNING = "This name was not found in the call."
 SENTENCES = ("opening", "deadline", "budget", "summary", "eligibility", "area")
-EMPTY = CALL.model_copy(
-    update={"funder": None, "opening": None, "budget": None, "eligibility": None, "area": None, "topics": ()}
-)
+EMPTY = CALL.model_copy(update={"funder": None, "opening": None, "budget": None, "eligibility": None, "area": None})
 MISSED = CALL.model_copy(
     update={"funder": Named(name="European Commission", found=False)}
     | {name: getattr(CALL, name).model_copy(update={"found": False}) for name in SENTENCES}
@@ -52,7 +48,7 @@ def test_the_model_and_the_instructions_are_in_the_block() -> None:
 
 
 def test_the_same_record_gives_the_same_bytes() -> None:
-    assert card(CALL).encode() == card(build(stored(), TOPICS, REPLY)[0]).encode()
+    assert card(CALL).encode() == card(build(stored(), GIVEN, REPLY)[0]).encode()
 
 
 @pytest.mark.parametrize("call", RECORDS)
@@ -117,5 +113,4 @@ def test_the_topics_sit_in_the_record_each_with_its_mark_and_not_below() -> None
         '\ntopics: [{"name": "AI-and-civic", "mark": "primary"}, '
         '{"name": "data-journalism", "mark": "secondary"}]\nlink: '
     ) in block
-    assert "\ntopics: []\n" in card(EMPTY)
     assert "AI-and-civic" not in rest
