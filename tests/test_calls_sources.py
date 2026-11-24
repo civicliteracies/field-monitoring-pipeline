@@ -137,7 +137,9 @@ def test_eiti_s_link_that_cannot_be_read_fails_only_its_call(
     tmp_path: Path, watch_list: Path, topic_list: Path
 ) -> None:
     listing = (REPLIES / "eiti_list.html").read_bytes()
-    broken = listing.replace(b'href="/offers/example-consultancy"', b'href="/offers/example-consultancy\n"')
+    broken = listing.replace(
+        b'href="/call-for-proposals/example-consultancy"', b'href="/call-for-proposals/example-consultancy\n"'
+    )
     watch_list.write_text(WATCH_LIST + EITI_ENTRY, encoding="utf-8")
     topic_list.write_text(EITI_TOPICS, encoding="utf-8")
     data = tmp_path / "data"

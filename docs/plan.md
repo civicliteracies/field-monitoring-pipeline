@@ -116,54 +116,58 @@ run by hand, and quarterly reports.
       The code moves into two folders, one for each layer. The data layer gets each call, keeps a
       copy, and checks and sorts each fact; the presentation layer writes the card and the feed. The
       one command stays on top and runs as before, so nothing Fieldbook does changes.
-- [ ] **18. `feat(reports): collect reports as cards`**
+- [x] **18. `fix(sources): read EITI calls at their new address`**
+      EITI moved the pages of its calls to a new address, so Fieldbook refused every call on its
+      list; the reader now accepts the calls at their new address and still refuses a link anywhere
+      else.
+- [ ] **19. `feat(reports): collect reports as cards`**
       Once a week, Fieldbook reads the reports organisations publish about their own work: project
       results reports, evaluations, annual reports, and research or case studies. Each report becomes
       its own card in a dedicated folder, with the organisation that did the work and five details:
       who it was for, the method, the results, how long it ran, and where, each with its exact
       supporting sentence from the report. Reports are read from web pages, feeds, PDF files, Word
       documents and spreadsheets.
-- [ ] **19. `feat(strategies): collect strategies as cards`**
+- [ ] **20. `feat(strategies): collect strategies as cards`**
       Fieldbook collects the strategies organisations publish on their own sites, whether for the
       whole organisation, a country, a sector or a theme. Each strategy becomes its own card in a
       dedicated folder.
-- [ ] **20. `feat(projects): collect funded projects as cards`**
+- [ ] **21. `feat(projects): collect funded projects as cards`**
       Fieldbook collects the projects that the funders CLI watches publish to open registries, and
       each project becomes its own card in a dedicated folder. This brings in many funders, and the
       organisations doing the work, beyond the first sources of calls.
-- [ ] **21. `feat(events): collect events as cards`**
+- [ ] **22. `feat(events): collect events as cards`**
       Once a week, Fieldbook looks for conferences, workshops, webinars, hackathons and calls for
       papers related to CLI's work, on the pages that list events and inside every document it holds,
       so they are known well in advance. Each event becomes its own card in a dedicated folder.
-- [ ] **22. `feat(work): show the available work`**
+- [ ] **23. `feat(work): show the available work`**
       The first analysis reads the funding call cards and shows the work CLI could apply for.
-- [ ] **23. `feat(map): write the quarterly map of the field`**
+- [ ] **24. `feat(map): write the quarterly map of the field`**
       Once every quarter, with no artificial intelligence, Fieldbook writes a page with two tables:
       the funders, what they fund and where, and the organisations doing the work, what they work on
       and where. Each row links to its sources. Only those active in the last 24 months are listed,
       and those new this quarter are marked. The news feed gets one entry for each page.
-- [ ] **24. `feat(direction): generate the quarterly sector report`**
+- [ ] **25. `feat(direction): generate the quarterly sector report`**
       Once every quarter, Fieldbook runs a completely offline script without using artificial
       intelligence. The code analyses the stored calls, reports, strategies and funded projects by
       funder and by topic, producing a quarterly summary with statistics and charts. This report
       highlights topics that attracted interest from three or more funders, shows which topics grew
       or declined compared to the previous quarter, and points to the quarterly map for the funders
       and organisations new this quarter.
-- [ ] **25. `feat(networking): point out networking opportunities`**
+- [ ] **26. `feat(networking): point out networking opportunities`**
       Once a week, Fieldbook reads the event cards and points out the events worth attending, well
       before each one takes place.
-- [ ] **26. `feat(present): define what each analysis hands on`**
+- [ ] **27. `feat(present): define what each analysis hands on`**
       Each analysis hands its result to the news feed and the dashboard in one agreed shape, with one
       rule: nothing is shown twice. Results point to the quarterly map instead of listing its funders
       and organisations again.
-- [ ] **27. `feat(dashboard): add the dashboard`**
+- [ ] **28. `feat(dashboard): add the dashboard`**
       A second way to see the results, beside the news feed, within the free tier.
-- [ ] **28. `feat(discover): suggest new funders to watch`**
+- [ ] **29. `feat(discover): suggest new funders to watch`**
       This introduces an on-demand tool that a person can run by hand. The script compares our
       existing archive against a public registry to find funding organisations we have not
       encountered yet. It produces a list of suggested funders along with an explanation for why
       each one might be relevant, without altering the active watch list automatically.
-- [ ] **29. `docs: add a guide for adding a source`**
+- [ ] **30. `docs: add a guide for adding a source`**
       A new, straightforward guide added to the project documentation explains step by step how to
       add a new source to the watch list, along with the specific quality checks to perform
       before adding it.

@@ -136,10 +136,10 @@ between two mornings is not seen, and the document a call links to is not downlo
 **Technical detail.** Each search word is its own search, because the portal's search mishandles
 several phrases in one query. EITI's list is the page's one element marked `view-id-offers`, holding
 calls or its own empty mark; a page with no such list or two of them, a list holding both calls and
-its empty mark or neither, a call without exactly one title and a link under `/offers/`, a list page
-that is not UTF-8, or a refused request is that source's failed run, naming what was found. An EITI
-call's identifier is its full address. An EITI call's deadline is the one date tag on its page; a
-page with none, or more than one, fails its reading.
+its empty mark or neither, a call without exactly one title and a link under `/call-for-proposals/`,
+a list page that is not UTF-8, or a refused request is that source's failed run, naming what was
+found. An EITI call's identifier is its full address. An EITI call's deadline is the one date tag on
+its page; a page with none, or more than one, fails its reading.
 
 ## 4. Storage
 
@@ -374,9 +374,10 @@ not found. Each empty field among the funder, who can apply and where gets a not
 answer did: the model marked it not stated, did not mention it, or, for the funder, gave no
 name. An opening date or a budget that the source's page has no field for gets a note saying so. A
 call whose record has no description is read from its conditions alone, and gets a note saying
-so. A call with no topic gets a note saying so, after the others. Only two faults make no record:
-an answer that cannot be used on either try, and a request the model service turns away. The error
-then names the problems of each answer already received.
+so. A call with no topic gets a note saying so, after the others. Three faults make no record. Two
+are an answer that cannot be used on either try and a request the model service turns away; the
+error names the problems of each answer already received. The third is an EITI call page that cannot
+be read, which fails its reading before any request, as the sources entry says.
 
 **Rationale.** A marked fault can be seen and judged by the person reading the card; a refused
 record cannot. A name not found is not sent back to the model, so the model's job stays the one
