@@ -202,7 +202,7 @@ def test_a_stored_record_is_read_back(tmp_path: Path) -> None:
 
 
 def test_a_call_with_no_record_is_stored_as_its_page_alone_and_read_back_as_it(tmp_path: Path) -> None:
-    link = "https://eiti.org/offers/example-consultancy"
+    link = "https://eiti.org/call-for-proposals/example-consultancy"
     store(tmp_path, "eiti", FetchedCall(link, link, "An example study", NO_RECORD), PAGE, FETCHED)
     assert [path.name for path in (tmp_path / "raw" / "eiti").iterdir()] == [f"{code(link)}.html"]
     assert stored(tmp_path, Saved("eiti", link, "An example study", link, dt.date(2026, 9, 27))) == PAGE

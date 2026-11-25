@@ -7,7 +7,7 @@ search record exactly as received. The EITI route reads the one list of current 
 consultancy opportunities page and returns each call once, by its full address, with the title its
 heading gives, and no record. A list page that holds no such list or two of them, a list that holds
 both calls and its empty mark or neither, or a call without exactly one title and a link under
-/offers/, fails the source. A call's web page can be fetched as the site serves it.
+/call-for-proposals/, fails the source. A call's web page can be fetched as the site serves it.
 """
 
 import datetime as dt
@@ -34,7 +34,8 @@ CURRENT = "view-id-offers"
 EMPTY = "c-listing__empty"
 CARD = "c-card"
 HEADING = "c-card__heading"
-OFFERS = "/offers/"
+# The path that the link of each current call starts with: the address of EITI's call pages.
+OFFERS = "/call-for-proposals/"
 # Tags that have no closing tag, so they never count in the depth of the list.
 VOID = frozenset({"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"})
 

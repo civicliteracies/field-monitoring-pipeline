@@ -167,3 +167,32 @@ is not empty, and the note comes from the project's own code; the model's instru
 change. Test that now fails on the old behaviour: the morning run's test of a record with no
 description, which stopped with an `IndexError` before the fix and now gives the call's card and the
 note.
+
+### BUG-006: EITI moved its call pages, so its reader refused them
+
+**Severity:** medium. **Class:** correctness of the run. **Status:** fixed in this build.
+
+**Summary.** EITI moved the page of each of its calls from an address under `/offers/` to one under
+`/call-for-proposals/`. The reader checks that each call on EITI's list links to a call page, and it
+knew only the old address, so it refused every current call and EITI's run failed, naming the new
+address it found. The move was first seen on 3 November 2026. On 24 November 2026 all 11 calls on
+EITI's list linked to the new address, and the old address answered "not found". No call was saved
+wrongly, but no EITI call was collected while the fault lasted.
+
+**Root cause.** The reader states as a fact the address EITI gives its call pages, as it was when the
+reader was built, and EITI changed it.
+
+**Fix.** The reader accepts a call whose link is under `/call-for-proposals/`. A link anywhere else
+is still refused.
+
+**Prevention.** No new rule. The reader still refuses a page it does not recognise and names what it
+found, as the decision log's entry "Which sources are on the watch list, and how is each reached?"
+says, so a later change to EITI's site stops EITI's run with a message rather than saving a wrong
+call.
+
+**Technical detail.** The address is one value in `data/fetch.py`, which the check and its message
+both read; only the value changes. The tests' copies of EITI's list and call pages move to the new
+address, as on the live site. A call's identifier is its full address, and no EITI call had been
+saved under the old one, so no saved identifier changes. Test that now fails on the old behaviour:
+the test that EITI's reader returns each current call once by its full address, which the old check
+refused at the list's first call and which now passes.

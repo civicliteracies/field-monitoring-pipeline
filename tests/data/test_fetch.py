@@ -17,8 +17,8 @@ URL = "https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA"
 TODAY = dt.date(2026, 9, 27)
 EITI = EitiPage(name="EITI", url="https://eiti.org/consultancy-opportunities", how="eiti-page")
 EITI_LIST = (REPLIES / "eiti_list.html").read_text(encoding="utf-8")
-VIEWS = "https://eiti.org/offers/example-2027-call-for-views"
-STUDY = "https://eiti.org/offers/example-consultancy"
+VIEWS = "https://eiti.org/call-for-proposals/example-2027-call-for-views"
+STUDY = "https://eiti.org/call-for-proposals/example-consultancy"
 # The current list of the hand-made page with its three rows taken out and its empty mark put in.
 EMPTY_LIST = EITI_LIST.replace(
     EITI_LIST[EITI_LIST.index('<div class="c-listing__items ">') : EITI_LIST.index("<!-- end of current -->")],
@@ -108,20 +108,25 @@ def test_a_line_break_at_the_start_of_each_heading_keeps_every_call_and_its_titl
             id="calls and the empty mark",
         ),
         pytest.param(
-            EITI_LIST.replace('href="/offers/example-consultancy"', 'href="/news/example"'),
-            "a current call must have exactly one title and a link under /offers/; one has 1 and links to '/news/example'",
+            EITI_LIST.replace('href="/call-for-proposals/example-consultancy"', 'href="/news/example"'),
+            "a current call must have exactly one title and a link under /call-for-proposals/; one has 1 and links to '/news/example'",
             id="a link elsewhere",
         ),
         pytest.param(
+            EITI_LIST.replace('href="/call-for-proposals/example-consultancy"', 'href="/offers/example-consultancy"'),
+            "a current call must have exactly one title and a link under /call-for-proposals/; one has 1 and links to '/offers/example-consultancy'",
+            id="the old address",
+        ),
+        pytest.param(
             EITI_LIST.replace('class="c-card__heading"', 'class="c-card__head"', 1),
-            "one has 0 and links to '/offers/example-2027-call-for-views'",
+            "one has 0 and links to '/call-for-proposals/example-2027-call-for-views'",
             id="a card with no heading",
         ),
         pytest.param(
             EITI_LIST.replace(
                 '<div class="c-card__meta">19 Oct 2026</div>', '<div class="c-card__heading"><span>Again</span></div>'
             ),
-            "one has 2 and links to '/offers/example-consultancy'",
+            "one has 2 and links to '/call-for-proposals/example-consultancy'",
             id="a card with two headings",
         ),
     ],
