@@ -6,17 +6,17 @@ the lines are written from the record's fields, and the words are the descriptio
 has one, and the conditions, with the page's tags stripped. For a call stored as its page alone, the
 title is the one the list gave, the deadline is the one date tag on the page, the opening date and
 the budget are not stated, and the words are all the page's text, without its scripts and styles.
-Before any request, gives the call the topics of the topic list that its source names and that the
-labels its source put on it name.
-Asks the model under the instructions kept beside this file, hands each answer on as it arrives, reads
-the one command line of the answer, and looks for each quoted sentence in the text. When the answer
-cannot be used or a sentence is not found, asks once more, in the same conversation, naming each
-problem. Builds the record from the four fields, the five facts the model names and those topics, with
-the link, the call's identifier and the names of the model and the instructions. Marks each sentence,
-and the funder's name, found or not found; a name not found is never a reason to ask again. Returns
-the record with a note for each problem, each sentence and name not found, for each empty field among
-the funder, who can apply and where, saying what the answer did, for an opening date or a budget the
-source's page has no field for, for a record with no description, and for a call with no topic.
+Gives the topic check what it reads of a stored call: its title; the call title of a call stored with
+its record; and its body, that record's description, read by the same rule as the words above.
+Takes the topics the check made, before any request. Asks the model under the instructions kept beside
+this file, hands each answer on as it arrives, reads the one command line of the answer, and looks for
+each quoted sentence in the text. When the answer cannot be used or a sentence is not found, asks once
+more, in the same conversation, naming each problem. Builds the record from the four fields, the five
+facts the model names and those topics, with the link, the call's identifier and the names of the model
+and the instructions. Marks each sentence, and the funder's name, found or not found; a name not found
+is never a reason to ask again. Returns the record with a note for each problem, each sentence and name
+not found, for each empty field among the funder, who can apply and where, saying what the answer did,
+for an opening date or a budget the source's page has no field for, and for a record with no description.
 """
 
 import datetime as dt
@@ -33,9 +33,8 @@ from pydantic import ValidationError
 
 from field_monitoring_pipeline.data.fetch import JSON
 from field_monitoring_pipeline.data.models import Call, Deadline, Named, Opening, Quoted, Topic
-from field_monitoring_pipeline.data.settings import TopicList
 from field_monitoring_pipeline.data.store import AnswerWord, Saved
-from field_monitoring_pipeline.data.tags import topics
+from field_monitoring_pipeline.data.tags import Subject
 
 MODEL = "gemini-3.5-flash-lite"
 ADDRESS = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
@@ -54,7 +53,7 @@ COPIED = frozenset({"opening", "budget"})
 NOT_STATED = "not stated"
 # The contents of these tags are not text a reader sees.
 HIDDEN = frozenset({"script", "style"})
-# How a note names each box, in the record's own order; the note on the topics follows the boxes.
+# How a note names each box, in the record's own order.
 NAMES = {
     "funder": "funder",
     "opening": "opening date",
@@ -86,7 +85,6 @@ class _Stored:
     budget: Quoted | None
     link: str
     identifier: str
-    labels: tuple[str, ...]
     described: bool
 
 
@@ -197,12 +195,17 @@ def _found(quote: object, words: str) -> bool:
     return isinstance(quote, str) and _tidy(quote) in words
 
 
+def _description(metadata: dict[str, Any]) -> list[str]:
+    # The description is a one-item list; the portal can give a call an empty one, which leaves no description.
+    return [_plain(text) for text in metadata["descriptionByte"][:1]]
+
+
 def _stored(record: JSON) -> _Stored:
     metadata = _metadata(record)
     title, (opening, opening_line), (deadline, deadline_line), (budget, budget_line) = _facts(metadata)
     lines = [f"{LABELS[0]}: {_tidy(title)}", opening_line, deadline_line, budget_line]
-    # The portal can give a call an empty description; the call is then read from its conditions alone.
-    description = [_plain(text) for text in metadata["descriptionByte"][:1]]
+    # A call with no description is read from its conditions alone.
+    description = _description(metadata)
     joined = "\n".join([*lines, *description, _plain(metadata["topicConditions"][0])])
     words = _tidy(joined)
     return _Stored(
@@ -214,7 +217,6 @@ def _stored(record: JSON) -> _Stored:
         budget=Quoted(value=budget, quote=budget_line, found=_found(budget_line, words)),
         link=metadata["url"][0],
         identifier=metadata["identifier"][0],
-        labels=tuple(metadata["tags"]),
         described=bool(description),
     )
 
@@ -243,7 +245,6 @@ def _eiti_page(call: Saved, page: bytes) -> _Stored:
         budget=None,
         link=call.link,
         identifier=call.identifier,
-        labels=(),
         described=True,
     )
 
@@ -324,8 +325,6 @@ def _notes(call: Call, given: dict[str, object], *, described: bool) -> list[str
             notes.append(f"{label}: empty, because this source's page has no field for it")
     if not described:
         notes.append("description: empty, because the source's record has none")
-    if not call.topics:
-        notes.append("topics: empty, because the call gets no topic on the topic list from its source or its labels")
     return notes
 
 
@@ -350,9 +349,8 @@ def _build(stored: _Stored, found: tuple[Topic, ...], reply: str) -> tuple[Call,
     return call, _notes(call, given, described=stored.described)
 
 
-def build(record: JSON, listed: TopicList, reply: str) -> tuple[Call, list[str]]:
-    stored = _stored(record)
-    return _build(stored, topics(listed, stored.labels, ()), reply)
+def build(record: JSON, found: tuple[Topic, ...], reply: str) -> tuple[Call, list[str]]:
+    return _build(_stored(record), found, reply)
 
 
 def _misses(call: Call) -> list[str]:
@@ -376,19 +374,30 @@ def _use(stored: _Stored, found: tuple[Topic, ...], reply: str) -> _Answer:
     return _Answer(call=call, notes=notes, problems=_misses(call))
 
 
+def subject(call: Saved, kept: JSON | bytes) -> Subject:
+    # A page alone is EITI's, which gives no call title and no description; its call is checked on its list's title.
+    if isinstance(kept, bytes):
+        return Subject(title=call.title, other_titles=(), body="")
+    metadata = _metadata(kept)
+    # The call title is a one-item list, as the description is; an empty list leaves the title alone as the head.
+    return Subject(
+        title=metadata["title"][0],
+        other_titles=tuple(metadata["callTitle"][:1]),
+        body=" ".join(_description(metadata)),
+    )
+
+
 def read(
     call: Saved,
     kept: JSON | bytes,
-    listed: TopicList,
-    own: tuple[str, ...],
+    found: tuple[Topic, ...],
     key: str,
     client: httpx2.Client,
     keep: Callable[[AnswerWord, str], None],
 ) -> tuple[Call, list[str]]:
-    # The text, the copied facts and the topics are made first, so a fault in what was stored stops the reading before any request.
+    # The text and the copied facts are made first, so a fault in what was stored stops the reading before any request.
     # A page alone is read by EITI's rule, the one source read from its page.
     stored = _eiti_page(call, kept) if isinstance(kept, bytes) else _stored(kept)
-    found = topics(listed, stored.labels, own)
     instructions = (Path(__file__).parent / "instructions" / f"{INSTRUCTIONS}.md").read_text(encoding="utf-8")
     messages: list[Message] = [{"role": "user", "content": f"{instructions}\n{BEGIN}\n{stored.text}\n{END}"}]
     reply = ask(messages, key, client)

@@ -70,8 +70,9 @@ derived from what was kept.
 A run takes each item through seven steps, in order. Reach the sources on the watch list and bring
 back what they published. Write down each item collected, once and whole, together with where it
 came from. Give each item a stable name of its own. Read the facts the item states: copy those the
-source gives in its own fields, give it the topics its source names and those its labels match on the
-topic list, and name the rest with a language model. The model is asked once more when its answer
+source gives in its own fields, give it the topics its source names and those its titles and
+description show on the topic list, setting aside an item with none, and name the rest with a
+language model. The model is asked once more when its answer
 cannot be used or a sentence it quotes is not found. Check what was read against what was stored.
 Write the card. Save the cards and build the feed.
 
@@ -150,17 +151,17 @@ readable without specialist tools.
 
 **Decision.** Plain files in this repository. Each source has a folder, which holds every call's web
 page and, where the source gives one, its record of it, and one folder holds a card for each call
-read. One log beside
-the folders has a row for each call the run tried, for each answer the model gave while reading a
-call, and for each call it read. It also has a row for each source, saying how the run ended for it,
-and a row for each card left out of the feed.
-No server, no database engine, no committed index. The cards are derived from the stored files and
-kept beside them, because a reading costs a request to the model and may not come out the same twice.
-The answer each card was made from (the second answer when it can be used, otherwise the first) is
-kept in the log, so a card can be checked against it, or made again from what was stored for the
-call and that answer while the instructions, the model, the topic list, the topics its source names
-and the way the text is made stay the same. The feed is rebuilt from the cards on every run that
-reaches its end, and kept beside them so a feed reader can fetch it. Nothing else derived is kept.
+read. One log beside the folders has a row for each call the run tried, for each answer the model
+gave while reading a call, and for each call it checked: set aside, card written or failed. It also
+has a row for each source, saying how the run ended for it, and a row for each card left out of the
+feed. No server, no database engine, no committed index. The cards are derived from the stored files
+and kept beside them, because a reading costs a request to the model and may not come out the same
+twice. The answer each card was made from (the second answer when it can be used, otherwise the
+first) is kept in the log, so a card can be checked against it, or made again from what was stored
+for the call and that answer while the instructions, the model, the topic list, the topics its
+source names and the way the text is made stay the same. The feed is rebuilt from the cards on every
+run that reaches its end, and kept beside them so a feed reader can fetch it. Nothing else derived
+is kept.
 
 **Rationale.** The history of the repository becomes the audit log, its permissions become the
 access control, and nothing in it can be withdrawn by a supplier. The log of calls is one table,
@@ -215,26 +216,27 @@ the copy, where they are useful for applying, and never appear on a card.
 **Technical detail.** A call's files are written first and its row in the log last, and a call
 counts as stored once it has a `saved` row. A run that stops partway therefore never leaves a call
 marked as saved with a file missing, and the next run does that call again. A run stores a call only
-when it has no `saved` row, and reads it only when it has no card. So a run with nothing new,
-nothing failing and nothing left to read rewrites nothing but the feed, which comes out byte for
-byte the same. It adds the run's row for each source, and every other stored byte stays as it was.
-BUG-002 in the bug history is where that rule came from. A call that keeps failing adds its rows each
-run: the answers the model gave, if any, then its failed row. That is deliberate: recording each try,
-and how each run ended, is what the log is for. The fetch may leave out a whole call, by its
-identifier or its closing date, but never changes one: each saved call is stored whole, as the
-source served it. The record is its own file because, for the EU portal, the page holds none of the
-call's text. It is not kept inside the log. An EITI call keeps its page alone, because its page holds
-its text. A saved call is read from what was stored for it: its record when it has one, otherwise
-its page. With one source read from its page, a page alone means EITI's reading; a second such source
-would need its route stored with each call. The records of 33 calls came to 1.2 MB, and GitHub
-shows a log as a table only up to 512 KB. An answer is about 4 KB, against about 43 KB for a record,
-which is why the answers are kept in the log and the records are not. Three rare cases of an answer,
-none seen, show in the log this way. An answer longer than 131,072 characters, the most the log's
-reader takes in one value, is written whole; its reading ends as usual, and every later run then
-stops when it reads the log, before collecting anything, until the code changes. A reply with no text
-at all leaves an empty `first answer` or `second answer` row, and the run stops at that call every
-morning, as it did before answers were kept. An answer holding a character that cannot be written as
-UTF-8 text is not written, and the reading is logged as failed with that error.
+when it has no `saved` row, and checks and reads it only when it has neither a card nor a
+`set aside` row. So a run with nothing new, nothing failing and nothing left to read rewrites
+nothing but the feed, which comes out byte for byte the same. It adds the run's row for each source,
+and every other stored byte stays as it was. BUG-002 in the bug history is where that rule came
+from. A call that keeps failing adds its rows each run: the answers the model gave, if any, then its
+failed row. That is deliberate: recording each try, and how each run ended, is what the log is for.
+The fetch may leave out a whole call, by its identifier or its closing date, but never changes one:
+each saved call is stored whole, as the source served it. The record is its own file because, for
+the EU portal, the page holds none of the call's text. It is not kept inside the log. An EITI call
+keeps its page alone, because its page holds its text. A saved call is read from what was stored for
+it: its record when it has one, otherwise its page. With one source read from its page, a page alone
+means EITI's reading; a second such source would need its route stored with each call. The records
+of 33 calls came to 1.2 MB, and GitHub shows a log as a table only up to 512 KB. An answer is about
+4 KB, against about 43 KB for a record, which is why the answers are kept in the log and the records
+are not. Three rare cases of an answer, none seen, show in the log this way. An answer longer than
+131,072 characters, the most the log's reader takes in one value, is written whole; its reading ends
+as usual, and every later run then stops when it reads the log, before collecting anything, until
+the code changes. A reply with no text at all leaves an empty `first answer` or `second answer` row,
+and the run stops at that call every morning, as it did before answers were kept. An answer holding
+a character that cannot be written as UTF-8 text is not written, and the reading is logged as failed
+with that error.
 
 ### What does a card hold, and how is it named?
 
@@ -374,10 +376,10 @@ not found. Each empty field among the funder, who can apply and where gets a not
 answer did: the model marked it not stated, did not mention it, or, for the funder, gave no
 name. An opening date or a budget that the source's page has no field for gets a note saying so. A
 call whose record has no description is read from its conditions alone, and gets a note saying
-so. A call with no topic gets a note saying so, after the others. Three faults make no record. Two
-are an answer that cannot be used on either try and a request the model service turns away; the
-error names the problems of each answer already received. The third is an EITI call page that cannot
-be read, which fails its reading before any request, as the sources entry says.
+so. Three faults make no record. Two are an answer that cannot be used on either try and a request
+the model service turns away; the error names the problems of each answer already received. The
+third is an EITI call page that cannot be read, which fails its reading before any request, as the
+sources entry says.
 
 **Rationale.** A marked fault can be seen and judged by the person reading the card; a refused
 record cannot. A name not found is not sent back to the model, so the model's job stays the one
@@ -445,37 +447,53 @@ and styles.
 
 **Situation.** CLI keeps its own list of topics, each marked primary, a field it works in to win
 revenue, or secondary, one it watches for intelligence, so that the feed can be filtered by them.
-The EU portal puts its own labels on every call; EITI puts none.
+The EU portal's search words bring back many calls outside CLI's field, each of which would cost a
+request to the model and add a card no one at CLI needs.
 
-**Decision.** The code gives a call its topics when the call is read, before any request to the
-model. A call gets every topic its source names on the watch list, and every topic on the topic list
-whose name, or one of the few words listed with it, appears as a whole phrase in one of the labels its
-source put on it. The topics come in the list's order, each once. The card's record keeps each topic
-with the mark the list gave it that day. A call that gets no topic from its source or its labels has
-none, and its row in the log says so. The feed carries each topic and each mark as an RSS category,
-and does not change the order of the entries.
+**Decision.** Before any request to the model, the code checks each call against the topic list and
+gives it its topics. A call gets every topic its source names on the watch list; every topic whose
+name, or one of the words listed with it, appears as a whole phrase in the call's title or the title
+of the call it belongs to; and the topics of two different phrases standing within ten words of each
+other in its description. A weak word counts in the titles only. A cancelling name, such as
+"democratic republic", is taken out before matching wherever it appears, its plural included. A
+title that names another sector, such as tourism, and holds no phrase of the list outside a
+cancelling name cancels the matches in the titles. A call with no topic is set aside: it gets a
+`set aside` row in the log with the reason, what its titles gave and that its description held no
+two phrases near each other, and no card. A call set aside is never checked again. The topics come
+in the list's order, each once, and the card's record keeps each with the mark the list gave it that
+day. The feed carries each topic and each mark as an RSS category, and does not change the order of
+the entries.
 
-**Rationale.** The labels are the source's own reading of each call, so matching them is a rule
-anyone can check, and the model's job does not change. Both sides are compared in one form, as the
-check of a quoted sentence compares both sides in one form, so a label and a topic cannot miss each
-other by how they are written. Unlike that check, case is ignored, because the portal's labels vary
-in case. A card is never updated, so it keeps the marks of its day, and its record and its entry in
+**Rationale.** The rule was measured on 235 EU calls, 230 of them judged by hand as in CLI's field,
+borderline, or not. It keeps 44: 14 in the field, 24 borderline and 6 not, so 86% of what it keeps
+is in the field or borderline. It finds 14 of the 15 calls in the field, and 38 of the 59 in the
+field or borderline. A rule anyone can check does this work, and the model's job does not change.
+Both sides are compared in one form, so a title and a topic cannot miss each other by how they are
+written. A card is never updated, so it keeps the marks of its day, and its record and its entry in
 the feed agree. The list is read after the calls are collected, so a list that cannot be read costs
-that morning's cards and never what was collected. What it gives up: a topic that a call's text
-names but its labels do not is missed. A change to the list reaches only the cards made after it, so
-cards made before and after a change carry topics from different lists. "civil society" is both one
-of the words for civic-space and a search word on the watch list, so the number of calls given
-civic-space moves with the watch list. Every EITI card carries extractives-eiti because EITI is on
-the watch list, not because the call says so; counted across cards, that topic shows the watch list
-rather than movement in the sector.
+that morning's cards and never what was collected. What it gives up: on the judged calls, one call
+in CLI's field in fifteen is set aside, 20 of the 44 borderline calls are set aside, and about one
+card in seven is for a call outside it. A change to the list reaches only the calls checked after
+it: a call set aside stays set aside, and cards made before and after a change carry topics from
+different lists. "democracy" is both one of the words for civic-space and a search word on the watch
+list, so the number of calls given civic-space moves with the watch list. An EITI call is checked on
+its list's title alone, and every EITI card carries extractives-eiti because EITI is on the watch
+list, not because the call says so; counted across cards, that topic shows the watch list rather
+than movement in the sector.
 
-**Technical detail.** The list is `config/tags.toml`, one table per topic with its mark and, for a
-few topics, its words. It is read whole, and a mark other than primary or secondary or a key it does
-not know is refused, naming where. A topic a source names that is not on the list is refused when
-the list is read, after the calls are collected. In the one form, a hyphen is read as a space and a
-run of spacing as one space. A whole phrase has no letter or digit just before or after it, so "AI"
-is found in "AI-driven solutions" but not inside a longer word. In the feed, each category's
-`domain` says whether it names a topic or a mark.
+**Technical detail.** The list is `config/tags.toml`: four lists the check reads (the weak words,
+the cancelling names, the other sectors and the names not matched as phrases, such as "governance"),
+then one table per topic with its mark and, for most topics, its words. It is read whole, and a
+missing list, a mark other than primary or secondary or a key it does not know is refused, naming
+where. A topic a source names that is not on the list, a weak word that is not a phrase of the list
+and a name not matched that is not a topic's name are refused when the list is read, after the calls
+are collected. In the one form, case is ignored, a hyphen (the non-breaking hyphen too) is read as a
+space and a run of spacing as one space. A whole phrase has no letter or digit just before or after
+it, so "fact checking" is found in "fact-checking" but not inside a longer word. Two phrases are
+different when their forms differ and they stand at different places, neither inside a longer phrase
+found there, so one mention of "investigative journalism" counts once. For an EU call, the title of
+the call it belongs to is the record's `callTitle`, and the description is its `descriptionByte`. In
+the feed, each category's `domain` says whether it names a topic or a mark.
 
 ### Why does the model answer with one command line?
 

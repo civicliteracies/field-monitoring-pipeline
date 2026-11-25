@@ -1,4 +1,4 @@
-"""Run the steps in order for every source on the watch list, read every call without a card, and build the feed.
+"""Run the steps in order for every source on the watch list, check and read every call not yet read, and build the feed.
 
 Reads the watch list into its typed entries. Fetches each source's calls by its route, skips those
 already saved, and downloads and stores the rest. A call whose page fails is written in the log and
@@ -6,11 +6,13 @@ the run carries on. A search that fails is written in the log and printed as tha
 run, and the next source is searched. When a source's calls are done, writes one row for it in the
 log: failed if any call failed, successful if none failed and at least one was new, nothing new
 otherwise. The row holds how many calls were fetched, how many were new and how many failed. Then
-reads the topic list, which stops the run if it cannot be read or lacks a topic a source names, and
-reads each saved call that has no card, in a fixed order, from what was stored for it, with that list
-and the topics its source names, and writes a row for each answer the model gives, as it arrives.
-Writes the call's card and a row with the reading's notes, or a failed row with the reason, so the
-next run reads it again. Last, builds the feed from every card it can read back; a card it cannot
+reads the topic list, which stops the run if it cannot be read or breaks one of its rules, and takes
+each saved call that has neither a card nor a set aside row, in a fixed order. Checks it against the
+topic list, from what was stored for it and the topics its source names, before any request: a call
+with no topic gets a set aside row with the check's reason and is never read. A call with topics is
+read with them, and a row is written for each answer the model gives, as it arrives. Writes the
+call's card and a row with the reading's notes, or a failed row with the reason, so the next run
+checks and reads it again. Last, builds the feed from every card it can read back; a card it cannot
 read back is left out of the feed and written in the log with the reason. Prints the numbers for
 each source, for the reading and for the feed, and then each failure. Once its work is done, the run
 ends with a failure if a call's page, a search, a reading or a card failed.
@@ -28,12 +30,12 @@ from typing import TYPE_CHECKING
 
 import httpx2
 
-from field_monitoring_pipeline.data.extract import read
+from field_monitoring_pipeline.data.extract import read, subject
 from field_monitoring_pipeline.data.fetch import fetch, fetch_page, new_client
 from field_monitoring_pipeline.data.settings import Source, TopicList, WatchList
 from field_monitoring_pipeline.data.store import (
-    carded,
     cards,
+    item_key,
     saved,
     store,
     store_answer,
@@ -44,8 +46,9 @@ from field_monitoring_pipeline.data.store import (
     store_reading,
     store_run,
     stored,
+    unread,
 )
-from field_monitoring_pipeline.data.tags import read_topic_list
+from field_monitoring_pipeline.data.tags import Kept, SetAside, check, read_topic_list
 from field_monitoring_pipeline.presentation.publish import CARDS, feed
 from field_monitoring_pipeline.presentation.write import card, read_card
 
@@ -60,26 +63,32 @@ def _reason(error: Exception) -> str:
 def _read(
     data: Path, sources: Mapping[str, Source], listed: TopicList, client: httpx2.Client, fetched: dt.datetime, key: str
 ) -> int:
-    unread = sorted(
-        (call for call in saved(data) if not carded(data, call)),
-        key=lambda call: (call.source, call.identifier),
-    )
+    calls = unread(data)
+    written = 0
+    aside = 0
     failures: list[str] = []
-    for call in unread:
+    for call in calls:
         kept = stored(data, call)
-        # A saved call whose source has left the watch list is still read, with no topics of its source.
+        # A saved call whose source has left the watch list is still checked, with no topics of its source.
         own = sources[call.source].topics if call.source in sources else ()
         keep = functools.partial(store_answer, data, call, fetched)
         try:
-            made, notes = read(call, kept, listed, own, key, client, keep)
+            match check(listed, subject(call, kept), own):
+                case SetAside(reason=reason):
+                    store_reading(data, call, fetched, "set aside", reason)
+                    aside += 1
+                    continue
+                case Kept(topics=found):
+                    made, notes = read(call, kept, found, key, client, keep)
         except (ValueError, httpx2.HTTPError) as error:
             reason = _reason(error)
             store_reading(data, call, fetched, "failed", reason)
             failures.append(f"{call.identifier}: {reason}")
             continue
-        store_card(data, call, card(made))
+        store_card(data, call, item_key(call), card(made))
         store_reading(data, call, fetched, "card written", "; ".join(notes))
-    print(f"Read: {len(unread)} calls, {len(unread) - len(failures)} cards written, {len(failures)} failed")
+        written += 1
+    print(f"Read: {len(calls)} calls, {written} cards written, {aside} set aside, {len(failures)} failed")
     for failure in failures:
         print(failure)
     return len(failures)

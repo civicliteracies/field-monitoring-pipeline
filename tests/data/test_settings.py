@@ -1,3 +1,4 @@
+import re
 import tomllib
 from typing import Any
 
@@ -7,13 +8,44 @@ from pydantic import BaseModel, ValidationError
 from field_monitoring_pipeline.data.settings import EuSearch, TopicEntry, TopicList, WatchList
 
 ENTRY: dict[str, Any] = {"mark": "primary", "words": ["AI"]}
+LISTS: dict[str, Any] = {"weak_words": [], "cancelling_names": [], "other_sectors": [], "names_not_matched": []}
 
 
-@pytest.mark.parametrize(("shape", "known"), [(TopicEntry, ENTRY), (TopicList, {"topics": {"AI-and-civic": ENTRY}})])
+@pytest.mark.parametrize(
+    ("shape", "known"), [(TopicEntry, ENTRY), (TopicList, LISTS | {"topics": {"AI-and-civic": ENTRY}})]
+)
 def test_a_topic_list_key_it_does_not_know_is_refused(shape: type[BaseModel], known: dict[str, Any]) -> None:
     shape.model_validate(known)
     with pytest.raises(ValidationError):
         shape.model_validate(known | {"added": "x"})
+
+
+@pytest.mark.parametrize(
+    ("lists", "refusal"),
+    [
+        pytest.param(
+            {"weak_words": ["open data", "Artificial-Intelligence", "civil society"]},
+            "weak words that are not phrases of the list: civil society, open data",
+            id="a weak word that is no phrase",
+        ),
+        pytest.param(
+            {"weak_words": ["governance"], "names_not_matched": ["governance"]},
+            "weak words that are not phrases of the list: governance",
+            id="a weak word that is a name not matched",
+        ),
+        pytest.param(
+            {"names_not_matched": ["governance", "state", "journalism"]},
+            "names not matched that are not topics' names: journalism, state",
+            id="a name not matched that is no topic's name",
+        ),
+    ],
+)
+def test_a_word_the_check_cannot_match_is_refused_naming_it(lists: dict[str, Any], refusal: str) -> None:
+    topics = {"AI-and-civic": ENTRY | {"words": ["artificial intelligence"]}, "governance": {"mark": "secondary"}}
+    TopicList.model_validate(LISTS | {"names_not_matched": ["governance"], "topics": topics})
+    # The sentence is followed by the error's type, so a name left off its end would fail.
+    with pytest.raises(ValidationError, match=re.escape(f"{refusal} [type=value_error")):
+        TopicList.model_validate(LISTS | lists | {"topics": topics})
 
 
 def test_a_topic_entry_mark_other_than_the_two_is_refused() -> None:

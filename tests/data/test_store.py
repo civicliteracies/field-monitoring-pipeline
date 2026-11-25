@@ -1,4 +1,3 @@
-import csv
 import datetime as dt
 import json
 from pathlib import Path
@@ -13,6 +12,7 @@ from field_monitoring_pipeline.data.store import (
     carded,
     cards,
     code,
+    item_key,
     saved,
     store,
     store_answer,
@@ -23,25 +23,19 @@ from field_monitoring_pipeline.data.store import (
     store_reading,
     store_run,
     stored,
+    unread,
 )
+from field_monitoring_pipeline.data.tags import NO_MATCH
 from field_monitoring_pipeline.presentation.publish import CARDS
+from tests.samples import FETCHED, IDENTIFIER, SOURCE, STAMP, log
 
-SOURCE = "eu-funding-tenders"
-FETCHED = dt.datetime(2026, 9, 27, 6, 0, tzinfo=dt.UTC)
-STAMP = "2026-09-27T06:00:00+00:00"
 PAGE = b"<html>caf\xe9\r\n\x00</html>"
-IDENTIFIER = "HORIZON-CL2-2027-01-HERITAGE-06"
 RECORD: JSON = {"summary": "Tourism “for all”", "metadata": {"identifier": [IDENTIFIER]}, "weight": 1.5}
 STORED_RECORD = (json.dumps(RECORD, indent=1, ensure_ascii=False) + "\n").encode()
 CALL = FetchedCall(IDENTIFIER, "https://example.org/calls/one", "Tourism “for all”", RECORD)
 OTHER = FetchedCall("EuropeAid/187605/DD/ACT/ID", "https://example.org/calls/two", "Two", {})
 SAVED = Saved(SOURCE, IDENTIFIER, CALL.title, CALL.link, dt.date(2026, 9, 27))
 OTHER_SAVED = Saved(SOURCE, OTHER.identifier, OTHER.title, OTHER.link, dt.date(2026, 9, 28))
-
-
-def log(data: Path) -> list[list[str]]:
-    with (data / "raw" / "log.csv").open(encoding="utf-8", newline="") as file:
-        return list(csv.reader(file))
 
 
 def test_code_is_the_sha256_of_the_identifier() -> None:
@@ -166,24 +160,28 @@ def test_the_runs_row_names_no_call_and_is_not_a_saved_call(tmp_path: Path) -> N
     ],
 )
 def test_a_card_s_name_is_the_day_saved_a_short_title_and_the_code(title: str, name: str) -> None:
-    assert card_name(Saved(SOURCE, IDENTIFIER, title, CALL.link, dt.date(2026, 9, 27))) == name
+    assert card_name(dt.date(2026, 9, 27), title, item_key(SAVED)) == name
 
 
-def test_a_card_is_written_and_found_by_its_code(tmp_path: Path) -> None:
+def test_an_item_s_card_key_is_its_identifier() -> None:
+    assert item_key(SAVED) == IDENTIFIER
+
+
+def test_a_card_is_written_and_found_by_its_card_key(tmp_path: Path) -> None:
     text = '---\ntitle: "Tourism \\u201cfor all\\u201d"\n---\n\n# Tourism “for all”\n'
-    assert not carded(tmp_path, SAVED)
-    store_card(tmp_path, SAVED, text)
+    assert not carded(tmp_path, item_key(SAVED))
+    store_card(tmp_path, SAVED, item_key(SAVED), text)
     card = tmp_path / "calls" / "2026-09-27-tourism-for-all-b710c74df0.md"
     assert card.read_bytes() == text.encode()
     assert b"\r" not in card.read_bytes()
-    assert carded(tmp_path, SAVED)
-    assert not carded(tmp_path, OTHER_SAVED)
+    assert carded(tmp_path, item_key(SAVED))
+    assert not carded(tmp_path, item_key(OTHER_SAVED))
 
 
 def test_the_cards_are_listed_with_their_paths_in_the_order_of_their_names(tmp_path: Path) -> None:
     assert cards(tmp_path) == []
-    store_card(tmp_path, OTHER_SAVED, "two “x”")
-    store_card(tmp_path, SAVED, "one €")
+    store_card(tmp_path, OTHER_SAVED, item_key(OTHER_SAVED), "two “x”")
+    store_card(tmp_path, SAVED, item_key(SAVED), "one €")
     assert cards(tmp_path) == [
         ("calls/2026-09-27-tourism-for-all-b710c74df0.md", "one €"),
         (f"calls/2026-09-28-two-{code(OTHER.identifier)[:10]}.md", "two “x”"),
@@ -212,12 +210,27 @@ def test_a_call_with_no_record_is_stored_as_its_page_alone_and_read_back_as_it(t
 def test_the_reading_s_row_names_the_call_and_what_the_reading_met(tmp_path: Path) -> None:
     store_reading(tmp_path, SAVED, FETCHED, "card written", "funder: empty, because the model marked it not stated")
     store_reading(tmp_path, SAVED, FETCHED, "failed", "ValueError: no budget line")
+    store_reading(tmp_path, SAVED, FETCHED, "set aside", NO_MATCH)
     row = [code(IDENTIFIER), SOURCE, IDENTIFIER, CALL.title, CALL.link, STAMP]
     assert log(tmp_path)[1:] == [
         [*row, "card written", "funder: empty, because the model marked it not stated"],
         [*row, "failed", "ValueError: no budget line"],
+        [*row, "set aside", NO_MATCH],
     ]
     assert saved(tmp_path) == []
+
+
+def test_a_saved_call_is_unread_until_it_has_a_card_or_a_set_aside_row(tmp_path: Path) -> None:
+    third = FetchedCall("A-THIRD", "https://example.org/calls/three", "Three", {})
+    for call in (OTHER, CALL, third):
+        store(tmp_path, SOURCE, call, PAGE, FETCHED)
+    first, second, last = (Saved(SOURCE, c.identifier, c.title, c.link, SAVED.day) for c in (third, OTHER, CALL))
+    assert unread(tmp_path) == [first, second, last]
+    # A failed reading leaves a call unread; a card or a set aside row reads it.
+    store_reading(tmp_path, first, FETCHED, "failed", "ValueError: no budget line")
+    store_card(tmp_path, last, item_key(last), "one")
+    store_reading(tmp_path, second, FETCHED, "set aside", NO_MATCH)
+    assert unread(tmp_path) == [first]
 
 
 def test_an_answer_row_holds_its_word_and_the_answer_whole(tmp_path: Path) -> None:

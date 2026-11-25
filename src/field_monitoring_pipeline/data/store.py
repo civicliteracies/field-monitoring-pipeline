@@ -2,15 +2,16 @@
 
 Each saved call has its web page as downloaded in its source's folder and, when the source gives
 one, the source's record of it. Both are named by a code made from the call's identifier. A saved
-call is given back as its record, or as its page when it has no record. Each call read has a card in
-one folder for all sources, named by the day it was saved, its title and the first ten characters of
-its code. One log beside the folders has a row for each call the run tried, saved or failed; for
-each answer the model gave while reading a call, first or second, with the answer as it came; and
-for each call it read, card written or failed. It also has a row for each source, which says how the
-run ended for it, and a row for each card the feed could not read back, which was left out of the feed.
-What a step produced is written before the row that says the step is done. The feed, built from the
-cards, sits beside them and is written again on every run that reaches its end.
-A call counts as stored once it has a saved row, and as read once it has a card.
+call is given back as its record, or as its page when it has no record. Each call carded has a card
+in one folder for all sources, named by the day it was saved, its title and the first ten characters
+of the code of its card key, which is the call's identifier. One log beside the folders has a row for
+each call the run tried, saved or failed; for each answer the model gave while reading a call, first
+or second, with the answer as it came; and for each call checked, set aside, card written or failed.
+It also has a row for each source, which says how the run ended for it, and a row for each card the
+feed could not read back, which was left out of the feed. What a step produced is written before the
+row that says the step is done. The feed, built from the cards, sits beside them and is written again
+on every run that reaches its end.
+A call counts as stored once it has a saved row, and as read once it has a card or a set aside row.
 """
 
 import csv
@@ -20,7 +21,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, NewType, get_args
 
 from field_monitoring_pipeline.data.fetch import JSON, FetchedCall, NoRecord
 
@@ -28,7 +29,9 @@ COLUMNS = ("code", "source", "identifier", "title", "link", "fetched", "status",
 SHORT_TITLE = 60
 SHORT_CODE = 10
 type Status = Literal["saved", "failed"]
-type Reading = Literal["card written", "failed"]
+# The rows that say a call was read without a card.
+type Finished = Literal["set aside"]
+type Reading = Literal["card written", "failed"] | Finished
 type AnswerWord = Literal["first answer", "second answer"]
 type Outcome = Literal["successful", "failed", "nothing new"]
 type LeftOut = Literal["left out of the feed"]
@@ -42,6 +45,14 @@ class Saved:
     title: str
     link: str
     day: dt.date
+
+
+# The key a card is named and found by.
+CardKey = NewType("CardKey", str)
+
+
+def item_key(item: Saved) -> CardKey:
+    return CardKey(item.identifier)
 
 
 def code(text: str) -> str:
@@ -60,22 +71,35 @@ def _cards(data: Path) -> Path:
     return data / "calls"
 
 
-def saved(data: Path) -> list[Saved]:
+def _rows(data: Path) -> list[dict[str, str]]:
     log = _log(data)
     if not log.exists():
         return []
     with log.open(encoding="utf-8", newline="") as file:
-        return [
-            Saved(
-                row["source"],
-                row["identifier"],
-                row["title"],
-                row["link"],
-                dt.datetime.fromisoformat(row["fetched"]).date(),
-            )
-            for row in csv.DictReader(file)
-            if row["status"] == "saved"
-        ]
+        return list(csv.DictReader(file))
+
+
+def saved(data: Path) -> list[Saved]:
+    return [
+        Saved(
+            row["source"],
+            row["identifier"],
+            row["title"],
+            row["link"],
+            dt.datetime.fromisoformat(row["fetched"]).date(),
+        )
+        for row in _rows(data)
+        if row["status"] == "saved"
+    ]
+
+
+def unread(data: Path) -> list[Saved]:
+    # Saved, with no card and no row that says it was read without one, both under its card key, in a fixed order.
+    finished = {CardKey(row["identifier"]) for row in _rows(data) if row["status"] in get_args(Finished.__value__)}
+    return sorted(
+        (item for item in saved(data) if item_key(item) not in finished and not carded(data, item_key(item))),
+        key=lambda item: (item.source, item.identifier),
+    )
 
 
 def _add_row(data: Path, row: Row) -> None:
@@ -124,25 +148,25 @@ def stored(data: Path, call: Saved) -> JSON | bytes:
     return json.loads(record.read_bytes()) if record.exists() else page.read_bytes()
 
 
-def _card_code(identifier: str) -> str:
-    return code(identifier)[:SHORT_CODE]
+def _card_code(key: CardKey) -> str:
+    return code(key)[:SHORT_CODE]
 
 
-def card_name(call: Saved) -> str:
-    title = re.sub(r"[^a-z0-9]+", "-", call.title.lower()).strip("-")
+def card_name(day: dt.date, title: str, key: CardKey) -> str:
+    title = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
     # A long title is cut at a hyphen, so a word is never cut in half.
     if len(title) > SHORT_TITLE:
         title = title[: SHORT_TITLE + 1].rsplit("-", 1)[0]
-    return f"{call.day}-{title}-{_card_code(call.identifier)}.md"
+    return f"{day}-{title}-{_card_code(key)}.md"
 
 
-def carded(data: Path, call: Saved) -> bool:
-    return any(_cards(data).glob(f"*-{_card_code(call.identifier)}.md"))
+def carded(data: Path, key: CardKey) -> bool:
+    return any(_cards(data).glob(f"*-{_card_code(key)}.md"))
 
 
-def store_card(data: Path, call: Saved, card: str) -> None:
+def store_card(data: Path, item: Saved, key: CardKey, card: str) -> None:
     _cards(data).mkdir(parents=True, exist_ok=True)
-    (_cards(data) / card_name(call)).write_bytes(card.encode("utf-8"))
+    (_cards(data) / card_name(item.day, item.title, key)).write_bytes(card.encode("utf-8"))
 
 
 def cards(data: Path) -> list[tuple[str, str]]:

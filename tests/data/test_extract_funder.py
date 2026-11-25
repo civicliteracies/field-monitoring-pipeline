@@ -3,8 +3,7 @@ import pytest
 from field_monitoring_pipeline.data.extract import build, text
 from field_monitoring_pipeline.data.models import Named
 from field_monitoring_pipeline.presentation.write import card, read_card
-from tests.data.test_extract import AGAIN, FUNDER, LINE, REPLY, reading, stored
-from tests.data.test_tags import TOPICS
+from tests.samples import AGAIN, FUNDER, GIVEN, LINE, REPLY, reading, stored
 
 FOUND = "Horizon Europe"
 GONE = "European Commission"
@@ -19,14 +18,14 @@ def test_the_stored_test_call_holds_the_found_name_and_not_the_missing_one() -> 
 
 
 def test_a_funder_named_as_in_the_text_is_found_and_the_card_has_no_warning() -> None:
-    call, notes = build(stored(), TOPICS, f'{LINE} --funder "{FOUND}"')
+    call, notes = build(stored(), GIVEN, f'{LINE} --funder "{FOUND}"')
     assert call.funder == Named(name=FOUND, found=True)
     assert not any(note.startswith("funder:") for note in notes)
     assert "This name was not found in the call." not in card(call)
 
 
 def test_a_funder_not_in_the_text_is_kept_marked_with_a_warning_and_a_note() -> None:
-    call, notes = build(stored(), TOPICS, f'{LINE} --funder "{GONE}"')
+    call, notes = build(stored(), GIVEN, f'{LINE} --funder "{GONE}"')
     assert call.funder == Named(name=GONE, found=False)
     assert notes[0] == f"funder: this name was not found in the call: {GONE}"
 
@@ -39,7 +38,7 @@ def test_a_funder_not_in_the_text_is_kept_marked_with_a_warning_and_a_note() -> 
     ],
 )
 def test_an_empty_funder_by_the_answer_keeps_its_note(line: str, note: str) -> None:
-    call, notes = build(stored(), TOPICS, line)
+    call, notes = build(stored(), GIVEN, line)
     assert call.funder is None
     assert notes[0] == note
 
@@ -55,19 +54,19 @@ def test_an_empty_or_null_name_is_not_stated_with_its_note_and_no_second_request
 
 @pytest.mark.parametrize("given", ["-", "2027"])
 def test_a_text_with_no_letter_becomes_a_name_with_its_mark(given: str) -> None:
-    call, _ = build(stored(), TOPICS, f'{LINE} --funder "{given}"')
+    call, _ = build(stored(), GIVEN, f'{LINE} --funder "{given}"')
     assert call.funder == Named(name=given, found=True)
 
 
 @pytest.mark.parametrize("name", [FOUND, GONE])
 def test_a_card_with_a_funder_reads_back_to_the_same_record(name: str) -> None:
-    call, _ = build(stored(), TOPICS, f'{LINE} --funder "{name}"')
+    call, _ = build(stored(), GIVEN, f'{LINE} --funder "{name}"')
     assert read_card(card(call)) == call
 
 
 def test_the_name_is_matched_after_the_same_tidying_as_a_sentence() -> None:
     spaced = r"  Horizon \n  Europe "
-    call, _ = build(stored(), TOPICS, f'{LINE} --funder "{spaced}"')
+    call, _ = build(stored(), GIVEN, f'{LINE} --funder "{spaced}"')
     assert call.funder == Named(name="  Horizon \n  Europe ", found=True)
 
 

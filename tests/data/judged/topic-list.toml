@@ -1,0 +1,99 @@
+# A copy of the topic list as it was on 23 November 2026, kept with the judged calls beside it. The
+# test of the topic check reads this copy, not config/tags.toml, so a word CLI adds or removes there
+# does not change what the test expects. Below, the list as it was that day.
+#
+# The topic list: CLI's topics, each marked primary (a field CLI works in to win revenue) or
+# secondary (watched for intelligence), with the words that also count for it. A phrase counts as a
+# whole phrase, ignoring case and reading a hyphen as a space.
+# Before a call is read, the topic check gives it its topics: every topic its source names in
+# config/sources.toml, and every topic a phrase of this list names in the call's title and call
+# title, or in two different phrases standing within ten words of each other in its description. A
+# call with no topic is set aside: it gets no card, and its row in the log says which words matched
+# and why it was set aside. A card keeps the topics and marks of the day it was made; a change here
+# reaches later calls only.
+# The morning's reading stops when a topic a source names is not on this list, when one of the four
+# lists below is missing, when a weak word is not a phrase of this list, or when a name not matched
+# is not a topic's name.
+
+# A weak word counts in a call's title and call title only, never by itself in the description.
+weak_words = [
+    "civil society organizations",
+    "civil society organisations",
+    "civil society groups",
+    "responsible AI",
+    "responsible artificial intelligence",
+    "AI policy",
+    "AI policies",
+    "accountability",
+    "public procurement",
+    "access to information",
+    "democratic",
+]
+# A name that cancels a match: it is taken out of the text before matching, so no phrase inside it
+# counts.
+cancelling_names = ["democratic republic", "global citizen"]
+# A title that names another sector cancels the matches in the title and call title, unless the
+# title itself holds a phrase of this list.
+other_sectors = [
+    "police", "crime", "criminal", "terrorism", "terrorist", "disaster", "remembrance", "holocaust",
+    "heritage", "malaria", "tuberculosis", "hiv", "vaccine", "vaccines", "disease", "diseases",
+    "maternal", "nutrition", "agriculture", "agricultural", "farmers", "fisheries", "climate",
+    "water", "energy", "transport", "tourism",
+]
+# A topic's name that is never matched as a phrase on its own; its words still count.
+names_not_matched = ["governance"]
+
+[topics.transparency]
+mark = "primary"
+words = ["beneficial ownership", "open budget", "freedom of information", "right to information", "access to information", "free flow of information", "budget transparency", "fiscal transparency", "tax transparency"]
+
+[topics.accountability]
+mark = "primary"
+words = ["accountable", "social accountability", "watchdog", "public oversight", "citizen accountability", "accountability reporting", "accountability driven", "hold decision makers accountable", "hold governments accountable", "hold government accountable", "hold leaders accountable", "hold officials accountable", "hold authorities accountable", "hold power accountable", "public accountability", "accountability mechanism", "accountability mechanisms"]
+
+[topics.anti-corruption]
+mark = "primary"
+words = ["corruption", "illicit financial flows", "illicit finance", "economic crimes"]
+
+[topics.open-data]
+mark = "primary"
+words = ["open knowledge", "data sovereignty", "data justice", "data revolution", "development data", "gender data", "data for development", "open data charter", "data barometer"]
+
+[topics.civic-tech]
+mark = "primary"
+words = ["civic technology", "civic innovation", "civic innovations", "govtech"]
+
+[topics.AI-and-civic]
+mark = "primary"
+words = ["responsible AI", "AI governance", "AI policy", "AI ethics", "governance of AI", "algorithmic accountability", "artificial intelligence policy", "responsible artificial intelligence", "data and AI", "AI and society", "AI policies", "AI standards", "AI regulation"]
+
+[topics.data-literacy]
+mark = "primary"
+words = ["media literacy", "digital literacy", "information literacy", "data skills"]
+
+[topics.extractives-eiti]
+mark = "primary"
+words = ["publish what you pay"]
+
+[topics.governance]
+mark = "secondary"
+words = ["good governance", "democratic governance", "data governance", "economic governance", "public governance", "inclusive governance", "improve governance", "governance reform"]
+
+[topics.open-government]
+mark = "secondary"
+words = ["open governance", "public participation", "citizen participation", "participatory budgeting", "democratic participation", "legislative transparency"]
+
+[topics.civic-space]
+mark = "secondary"
+words = ["civic space", "freedom of expression", "human rights defenders", "digital rights", "civil rights", "civic engagement", "citizen engagement", "active citizen", "active citizenry", "civic empowerment", "democracy", "democratic", "democratization", "access to justice", "independent media", "privacy", "civil society organizations", "civil society organisations", "civil society groups", "online abuse", "press freedom", "media freedom"]
+
+[topics.data-journalism]
+mark = "secondary"
+words = ["journalism", "journalists", "journalistic", "investigative reporting", "investigative journalism", "fact checking", "investigative", "information integrity", "data driven investigations", "fact checkers", "newsroom", "newsrooms", "media monitoring", "disinformation", "misinformation"]
+
+[topics.open-contracting]
+mark = "secondary"
+words = ["public procurement"]
+
+[topics.geospatial]
+mark = "secondary"

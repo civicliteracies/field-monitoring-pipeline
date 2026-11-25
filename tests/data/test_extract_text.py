@@ -5,8 +5,7 @@ import pytest
 
 from field_monitoring_pipeline.data.extract import build, text
 from field_monitoring_pipeline.data.models import Deadline, Quoted
-from tests.data.test_extract import GUIDE, REPLY, stored
-from tests.data.test_tags import TOPICS
+from tests.samples import GIVEN, GUIDE, REPLY, stored
 
 
 def test_the_page_tags_are_stripped_and_a_sentence_keeps_its_stop() -> None:
@@ -41,7 +40,7 @@ def test_the_description_comes_before_the_conditions() -> None:
     ],
 )
 def test_each_form_of_the_deadline_line(deadlines: list[str], date: dt.date, line: str) -> None:
-    call, _ = build(stored(deadlines), TOPICS, REPLY)
+    call, _ = build(stored(deadlines), GIVEN, REPLY)
     assert call.deadline == Deadline(date=date, quote=line, found=True)
 
 
@@ -86,7 +85,7 @@ def test_each_form_of_the_deadline_line(deadlines: list[str], date: dt.date, lin
     ],
 )
 def test_each_form_of_the_budget_line(own: dict[str, Any], value: str, line: str) -> None:
-    call, _ = build(stored(**own), TOPICS, REPLY)
+    call, _ = build(stored(**own), GIVEN, REPLY)
     assert call.budget == Quoted(value=value, quote=line, found=True)
 
 
@@ -94,7 +93,7 @@ def test_a_pot_the_call_s_topics_share_says_so() -> None:
     record = stored(
         shared=5, budgetYearMap={"2026": "28000000"}, minContribution=0, maxContribution=0, expectedGrants=0
     )
-    call, _ = build(record, TOPICS, REPLY)
+    call, _ = build(record, GIVEN, REPLY)
     assert call.budget == Quoted(
         value="28 000 000 € (shared by the 5 topics of this call)",
         quote="Budget 2026: 28 000 000 € (shared by the 5 topics of this call)",

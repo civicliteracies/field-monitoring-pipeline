@@ -8,16 +8,16 @@ check it. Each of those sentences, and the funder's name, carries a mark saying 
 in the text the model read. Where the source gives a date or the budget in a labelled field, that
 sentence is the field written out as one plain line. The funder, the opening date, the budget, who
 can apply and where are empty when the source does not give them, and a call with no deadline stays
-open. Each topic carries its name and the mark it had on the topic list that day, primary or
-secondary, and a call may have no topic. This template refuses a call with a field missing, a
-field added, or a date it cannot read. It accepts a date in the past, and keeps the link exactly as
+open. A call has at least one topic, and each carries its name and the mark it had on the topic list
+that day, primary or secondary. This template refuses a call with a field missing, a field added, no
+topic, or a date it cannot read. It accepts a date in the past, and keeps the link exactly as
 given. A call cannot be changed once it is made.
 """
 
 import datetime as dt
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 type CallType = Literal[
     "grant", "tender", "rfp", "eoi", "framework", "fellowship", "prize", "training", "post", "other"
@@ -76,7 +76,7 @@ class Call(BaseModel):
     summary: Quoted
     eligibility: Quoted | None
     area: Quoted | None
-    topics: tuple[Topic, ...]
+    topics: Annotated[tuple[Topic, ...], Field(min_length=1)]
     link: str
     identifier: str
     model: str

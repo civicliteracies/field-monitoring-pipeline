@@ -1,9 +1,6 @@
 import datetime as dt
-import json
 import runpy
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
 import httpx2
 import pytest
@@ -11,110 +8,38 @@ from pydantic import ValidationError
 
 from field_monitoring_pipeline.calls import main, run
 from field_monitoring_pipeline.data.extract import ADDRESS
-from field_monitoring_pipeline.data.store import COLUMNS, code
-from tests.data.test_extract import EITI_REPLY, REPLY
-from tests.data.test_fetch import REPLIES, ROOT, URL
-from tests.data.test_store import FETCHED, IDENTIFIER, SOURCE, STAMP, log
-from tests.data.test_tags import TOPIC_LIST
-
-EITI_ENTRY = """
-[source.eiti]
-name = "EITI"
-url = "https://eiti.org/consultancy-opportunities"
-how = "eiti-page"
-topics = ["extractives-eiti"]
-"""
-EITI_RUN = ["", "eiti", "", "", "https://eiti.org/consultancy-opportunities", STAMP]
-# The topic EITI's entry names, added to the test topic list for each run that reads EITI.
-EITI_TOPICS = TOPIC_LIST + '\n[topics.extractives-eiti]\nmark = "primary"\n'
-
-
-def eiti(listing: bytes) -> Callable[[httpx2.Request], httpx2.Response | None]:
-    def special(request: httpx2.Request) -> httpx2.Response | None:
-        if str(request.url) == ADDRESS and b"Budget: not stated" in request.read():
-            return httpx2.Response(200, json={"choices": [{"message": {"content": EITI_REPLY}}]})
-        if request.url.host != "eiti.org":
-            return None
-        if request.url.path == "/consultancy-opportunities":
-            return httpx2.Response(200, content=listing)
-        return httpx2.Response(200, content=(REPLIES / "eiti_offer.html").read_bytes())
-
-    return special
-
-
-SEARCHES = {
-    ("democracy", "1"): "democracy.json",
-    ('"civil society"', "1"): "civil_society.json",
-    ("digital", "1"): "digital_page_1.json",
-    ("digital", "2"): "digital_page_2.json",
-}
-WATCH_LIST = f"""[source.{SOURCE}]
-name = "EU Funding and Tenders Portal"
-url = "{URL}"
-how = "eu-search"
-words = ["democracy", '"civil society"', "digital"]
-"""
-PAGES = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/"
-HERITAGE = PAGES + IDENTIFIER
-ROW = [code(IDENTIFIER), SOURCE, IDENTIFIER, "Future-proofing sustainable cultural tourism", HERITAGE, STAMP]
-CODE, STATUS, REASON = COLUMNS.index("code"), COLUMNS.index("status"), COLUMNS.index("reason")
-SEARCH = f"{URL}&text=democracy&pageSize=100&pageNumber=1"
-RUN = ["", SOURCE, "", "", URL]
-SECOND = ["", "second", "", "", URL]
-NEXT_DAY = "2026-09-28T06:00:00+00:00"
-LOG = "raw/log.csv"
-SERVER_ERROR = (
-    f"httpx2.HTTPStatusError: Server error '500 Internal Server Error' for url '{SEARCH}'\n"
-    "For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+from field_monitoring_pipeline.data.store import code
+from tests.samples import (
+    CODE,
+    FETCHED,
+    HERITAGE,
+    IDENTIFIER,
+    KEY,
+    LOG,
+    NEXT_DAY,
+    NO_CONNECTION,
+    NOTE,
+    REASON,
+    REPLIES,
+    REPLY,
+    ROOT,
+    ROW,
+    RUN,
+    SOURCE,
+    STAMP,
+    STATUS,
+    TIMEOUT,
+    URL,
+    WATCH_LIST,
+    Answer,
+    files,
+    log,
+    portal,
+    raising,
+    reply,
 )
-TIMEOUT = "httpx2.ReadTimeout: The read operation timed out"
-NO_CONNECTION = "httpx2.ConnectError: All connection attempts failed"
-KEY = "the key"
-NOTE = "funder: empty, because the model marked it not stated"
-STORED = json.loads((REPLIES / "stored_call.json").read_bytes())["metadata"]
-OWN = STORED["identifier"][0] + " "
 
-type Answer = Callable[[httpx2.Request], httpx2.Response | None]
-
-
-def reply(request: httpx2.Request) -> dict[str, Any]:
-    name = SEARCHES[request.url.params["text"], request.url.params["pageNumber"]]
-    body = json.loads((REPLIES / name).read_bytes())
-    # Each recorded call takes the fields the reading uses from the stored call, and the budget line takes its identifier.
-    for record in body["results"]:
-        metadata = record["metadata"]
-        metadata |= {field: STORED[field] for field in ("startDate", "descriptionByte", "topicConditions", "tags")}
-        metadata["budgetOverview"] = [STORED["budgetOverview"][0].replace(OWN, metadata["identifier"][0] + " ")]
-    return body
-
-
-def model_answer(content: str) -> httpx2.Response:
-    return httpx2.Response(200, json={"choices": [{"message": {"content": content}}]})
-
-
-def portal(special: Answer | None = None) -> httpx2.Client:
-    def handler(request: httpx2.Request) -> httpx2.Response:
-        if special is not None and (answer := special(request)) is not None:
-            return answer
-        if str(request.url) == ADDRESS:
-            # The model service answers only the key the tests hand to the run.
-            if request.headers["Authorization"] != f"Bearer {KEY}":
-                return httpx2.Response(401)
-            return model_answer(REPLY)
-        if request.method == "POST":
-            return httpx2.Response(200, json=reply(request))
-        return httpx2.Response(200, content=(REPLIES / "page.html").read_bytes())
-
-    return httpx2.Client(transport=httpx2.MockTransport(handler))
-
-
-def raising(error: Exception, link: str | None = None) -> Answer:
-    def answer(request: httpx2.Request) -> httpx2.Response | None:
-        if link is None or str(request.url) == link:
-            raise error
-        return None
-
-    return answer
+SECOND = ["", "second", "", "", URL]
 
 
 def moved(request: httpx2.Request) -> httpx2.Response | None:
@@ -127,14 +52,6 @@ def bad_host(request: httpx2.Request) -> httpx2.Response | None:
     if str(request.url) == HERITAGE:
         "ec..europa.eu".encode("idna")
     return None
-
-
-def server_error(request: httpx2.Request) -> httpx2.Response:
-    return httpx2.Response(500)
-
-
-def files(data: Path) -> dict[str, bytes]:
-    return {path.relative_to(data).as_posix(): path.read_bytes() for path in data.rglob("*") if path.is_file()}
 
 
 def test_a_first_run_saves_every_call_and_a_second_adds_only_its_row(
@@ -150,7 +67,7 @@ def test_a_first_run_saves_every_call_and_a_second_adds_only_its_row(
     with portal(watch) as client:
         assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
     assert capsys.readouterr().out == (
-        "EU Funding and Tenders Portal: 4 calls, 4 new, 0 failed\nRead: 4 calls, 4 cards written, 0 failed\n"
+        "EU Funding and Tenders Portal: 4 calls, 4 new, 0 failed\nRead: 4 calls, 4 cards written, 0 set aside, 0 failed\n"
         "Feed: 4 cards, 0 left out\n"
     )
     assert len(asked) == 4
@@ -165,7 +82,7 @@ def test_a_first_run_saves_every_call_and_a_second_adds_only_its_row(
     with portal(watch) as client:
         assert run(data, watch_list, topic_list, client, FETCHED + dt.timedelta(days=1), KEY) == 0
     assert capsys.readouterr().out == (
-        "EU Funding and Tenders Portal: 4 calls, 0 new, 0 failed\nRead: 0 calls, 0 cards written, 0 failed\n"
+        "EU Funding and Tenders Portal: 4 calls, 0 new, 0 failed\nRead: 0 calls, 0 cards written, 0 set aside, 0 failed\n"
         "Feed: 4 cards, 0 left out\n"
     )
     assert asked == []
@@ -183,7 +100,7 @@ def test_closed_calls_are_judged_by_the_time_of_the_run(
     with portal() as client:
         assert run(tmp_path / "data", watch_list, topic_list, client, dt.datetime(2023, 9, 1, tzinfo=dt.UTC), KEY) == 0
     assert capsys.readouterr().out == (
-        "EU Funding and Tenders Portal: 7 calls, 7 new, 0 failed\nRead: 7 calls, 7 cards written, 0 failed\n"
+        "EU Funding and Tenders Portal: 7 calls, 7 new, 0 failed\nRead: 7 calls, 7 cards written, 0 set aside, 0 failed\n"
         "Feed: 7 cards, 0 left out\n"
     )
 
@@ -207,7 +124,7 @@ def test_a_failed_page_is_logged_and_tried_again(
     with portal() as client:
         assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 0
     assert capsys.readouterr().out == (
-        "EU Funding and Tenders Portal: 4 calls, 1 new, 0 failed\nRead: 1 calls, 1 cards written, 0 failed\n"
+        "EU Funding and Tenders Portal: 4 calls, 1 new, 0 failed\nRead: 1 calls, 1 cards written, 0 set aside, 0 failed\n"
         "Feed: 4 cards, 0 left out\n"
     )
     assert log(data)[-4:] == [
@@ -340,7 +257,7 @@ def test_every_failed_call_is_counted_and_printed(
     out = capsys.readouterr().out
     assert out.startswith("EU Funding and Tenders Portal: 4 calls, 0 new, 4 failed\n")
     assert out.count(": httpx2.HTTPStatusError: Redirect response '301 Moved Permanently'") == 4
-    assert out.endswith("\nRead: 0 calls, 0 cards written, 0 failed\nFeed: 0 cards, 0 left out\n")
+    assert out.endswith("\nRead: 0 calls, 0 cards written, 0 set aside, 0 failed\nFeed: 0 cards, 0 left out\n")
     assert [row[STATUS] for row in log(data)[1:]] == ["failed"] * 5
     assert log(data)[-1] == [*RUN, STAMP, "failed", "4 calls, 0 new, 4 failed"]
 
