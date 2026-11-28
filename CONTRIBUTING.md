@@ -31,13 +31,14 @@ uvx pre-commit install --hook-type pre-commit --hook-type pre-push --hook-type c
 ```
 pyproject.toml   # project metadata, runtime deps, dev deps, and every tool's config
 uv.lock          # exact resolved versions — committed, never hand-edited
-config/          # the watch list: the sources Fieldbook reads, each with its route, and the words the EU portal is searched for; the topic list: CLI's topics and their marks
+config/          # the watch list: the sources Fieldbook reads, each with its route and the kind of item it gives, calls or reports, and the words the EU portal is searched for; the topic list: CLI's topics and their marks
 src/field_monitoring_pipeline/   # the package
 tests/           # pytest suite, mirrors src/
+typings/         # type marks written by hand for feedparser and pypdfium2, which ship none
 docs/            # the records: the plan, the decision log, the bug history, the map of every file
 mise.toml        # task runner: setup, check, verify, lint, format, typecheck, test
 .pre-commit-config.yaml   # git hook definitions
-.github/workflows/   # the daily run: GitHub collects, stores and reads funding calls and builds the feed every morning
+.github/workflows/   # the two runs of the one command, whose first word names the kind: `calls`, every morning, collects, stores and reads funding calls and builds the feed; `reports`, every Monday evening, collects, stores and reads reports
 ```
 
 Everything lives in one `pyproject.toml`:

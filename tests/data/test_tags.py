@@ -4,11 +4,12 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from field_monitoring_pipeline.data.extract import CALL_PARTS
 from field_monitoring_pipeline.data.models import Topic
 from field_monitoring_pipeline.data.phrases import Phrase
 from field_monitoring_pipeline.data.settings import TopicEntry
-from field_monitoring_pipeline.data.tags import NO_MATCH, NOT_NEAR, Kept, SetAside, Subject, check, read_topic_list
-from tests.samples import AI, CIVIC_TECH, JOURNALISM, LISTS, TOPIC_LIST, TOPICS
+from field_monitoring_pipeline.data.tags import Kept, SetAside, Subject, check, read_topic_list
+from tests.samples import AI, CIVIC_TECH, JOURNALISM, LISTS, NO_MATCH, NOT_NEAR, TOPIC_LIST, TOPICS
 
 ROOT = Path(__file__).parent.parent.parent
 CIVIC_SPACE = Topic(name="civic-space", mark="secondary")
@@ -16,7 +17,7 @@ GOVERNANCE = Topic(name="governance", mark="secondary")
 
 
 def _head(*head: str, body: str = "", own: tuple[str, ...] = ()) -> Kept | SetAside:
-    return check(TOPICS, Subject(title=head[0], other_titles=head[1:], body=body), own)
+    return check(TOPICS, Subject(title=head[0], other_titles=head[1:], body=body, parts=CALL_PARTS), own)
 
 
 def test_the_topic_list_is_read_whole_in_its_order(tmp_path: Path) -> None:
@@ -92,6 +93,14 @@ def test_the_phrases_are_each_topic_s_name_and_words_less_the_names_not_matched(
 )
 def test_a_phrase_in_the_head_gives_its_topic(title: str, given: tuple[Topic, ...]) -> None:
     assert _head(title) == Kept(topics=given)
+
+
+def test_a_call_s_reason_names_its_titles_and_its_description() -> None:
+    # The words a call's log rows have always held.
+    assert NO_MATCH == (
+        "no phrase of the topic list in the titles; "
+        "in the description, no two different phrases that are not weak within ten words of each other"
+    )
 
 
 @pytest.mark.parametrize(

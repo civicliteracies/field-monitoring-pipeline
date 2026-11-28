@@ -6,7 +6,7 @@ import tomllib
 import httpx2
 import pytest
 
-from field_monitoring_pipeline.data.fetch import NO_RECORD, FetchedCall, fetch, fetch_page, new_client, search_eu
+from field_monitoring_pipeline.data.fetch import NO_RECORD, Fetched, fetch, fetch_page, new_client, search_eu
 from field_monitoring_pipeline.data.settings import EitiPage, EuSearch, WatchList
 from field_monitoring_pipeline.data.tags import read_topic_list
 from tests.samples import REPLIES, ROOT, STUDY, URL, VIEWS
@@ -59,8 +59,8 @@ def test_eiti_s_reader_returns_each_current_call_once_by_its_full_address() -> N
         calls = fetch(EITI, client, TODAY)
     assert seen == [EITI.url]
     assert calls == [
-        FetchedCall(VIEWS, VIEWS, "Example 2027 EITI Validation: call for views on stakeholder engagement", NO_RECORD),
-        FetchedCall(STUDY, STUDY, "Consultancy opportunity: an example study", NO_RECORD),
+        Fetched(VIEWS, VIEWS, "Example 2027 EITI Validation: call for views on stakeholder engagement", NO_RECORD),
+        Fetched(STUDY, STUDY, "Consultancy opportunity: an example study", NO_RECORD),
     ]
 
 

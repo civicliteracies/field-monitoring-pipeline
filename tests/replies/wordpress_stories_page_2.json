@@ -1,0 +1,25 @@
+[
+ {
+  "date": "2024-08-05T20:00:00",
+  "link": "https://data.org/stories/artpark/",
+  "title": {
+   "rendered": "ARTPARK Invests in People and Process to Improve Health Outcomes"
+  },
+  "content": {
+   "rendered": "\n<p class=\"wp-block-paragraph\">The <a href=\"https://artpark.in/\">AI &amp; Robotics Technology Park, or ARTPARK</a>, in Karnataka, India, is advancing data, technology, and AI across three primary workstreams: startups, platforms, and skilling.&nbsp;</p>",
+   "protected": false
+  },
+  "_embedded": {
+   "wp:term": [
+    [
+     {
+      "name": "Capacity Accelerator Network (CAN)",
+      "taxonomy": "post_tag"
+     }
+    ],
+    [],
+    []
+   ]
+  }
+ }
+]

@@ -13,9 +13,10 @@ phrases that are not weak give their topics when they stand within ten words of 
 in form, at places that do not overlap, and neither inside a longer phrase found there, so one mention of
 a phrase that holds others is one phrase.
 An item with any topic, or whose source names topics, is kept with its topics, in the list's order, each
-once, with its mark. Any other item is set aside, with a reason in two halves: what the titles gave (no
-phrase, a phrase only inside a cancelling name, or a title naming another sector), then that the
-description held no near pair.
+once, with its mark. Any other item is set aside, with a reason in two halves: what the head gave (no
+phrase, a phrase only inside a cancelling name, or a title naming another sector), then that the body
+held no near pair. The reason calls the head and the body by the names the item's subject gives them, such
+as a call's titles and description.
 """
 
 import re
@@ -28,9 +29,21 @@ from field_monitoring_pipeline.data.phrases import Phrase, form
 from field_monitoring_pipeline.data.settings import TopicList
 
 NEAR = 10
-NO_TITLE_MATCH = "no phrase of the topic list in the titles"
-NOT_NEAR = "in the description, no two different phrases that are not weak within ten words of each other"
-NO_MATCH = f"{NO_TITLE_MATCH}; {NOT_NEAR}"
+
+
+@dataclass(frozen=True)
+class Parts:
+    # What a reason calls an item's head and its body.
+    head: str
+    body: str
+
+
+def no_title_match(parts: Parts) -> str:
+    return f"no phrase of the topic list in the {parts.head}"
+
+
+def not_near(parts: Parts) -> str:
+    return f"in the {parts.body}, no two different phrases that are not weak within ten words of each other"
 
 
 @dataclass(frozen=True)
@@ -38,6 +51,7 @@ class Subject:
     title: str
     other_titles: tuple[str, ...]
     body: str
+    parts: Parts
 
     @property
     def head(self) -> tuple[str, ...]:
@@ -112,7 +126,7 @@ def _head(listed: TopicList, every: tuple[Phrase, ...], subject: Subject) -> set
     if not found:
         inside = sorted({phrase.text for phrase in every if _holds(raw, phrase.text)})
         if not inside:
-            return SetAside(reason=NO_TITLE_MATCH)
+            return SetAside(reason=no_title_match(subject.parts))
         cancelling = ", ".join(name for name in listed.cancelling_names if form(name) in raw)
         return SetAside(reason=f"the only match ({', '.join(inside)}) was inside a name that cancels: {cancelling}")
     title = form(subject.title)
@@ -128,7 +142,7 @@ def check(listed: TopicList, subject: Subject, own: tuple[str, ...]) -> Kept | S
     named = _near(every, _cancel(listed, form(subject.body))) | set(own)
     match _head(listed, every, subject):
         case SetAside(reason=titles) if not named:
-            return SetAside(reason=f"{titles}; {NOT_NEAR}")
+            return SetAside(reason=f"{titles}; {not_near(subject.parts)}")
         case SetAside():
             pass
         case set() as found:

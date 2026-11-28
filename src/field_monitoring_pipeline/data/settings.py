@@ -7,11 +7,15 @@ does not know, a weak word that is not one of its phrases and a name not matched
 name, however the list is made. Its phrases are each topic's name and words, without the names not
 matched, each with its topic and whether it is weak.
 
-The watch list maps each source's id to its entry: its name, its address, its route and the topics
-it names, with the search words the EU route takes. It refuses an entry with a required field
-missing, a field added or a route it does not know; the topics may be left out.
+The watch list maps each source's id to its entry: its name, its address, its route, the kind of item
+its route serves and the topics it names. The EU route takes its search words; the reports' WordPress
+and feed routes take the first day an item may be dated; the reports' list page route takes the path
+its report links start with, and the links route takes its addresses. It refuses an entry with a
+required field missing, a field added, a route it does not know or a kind its route does not serve;
+the topics may be left out, and a call source's kind, `calls`, need not be written.
 """
 
+import datetime as dt
 from collections.abc import Mapping
 from typing import Annotated, Literal, Self
 
@@ -65,14 +69,40 @@ class _Entry(BaseModel):
 
 class EuSearch(_Entry):
     how: Literal["eu-search"]
+    kind: Literal["calls"] = "calls"
     words: tuple[str, ...]
 
 
 class EitiPage(_Entry):
     how: Literal["eiti-page"]
+    kind: Literal["calls"] = "calls"
 
 
-type Source = Annotated[EuSearch | EitiPage, Field(discriminator="how")]
+class WordpressPosts(_Entry):
+    how: Literal["report-wordpress"]
+    kind: Literal["reports"]
+    since: dt.date
+
+
+class Feed(_Entry):
+    how: Literal["report-feed"]
+    kind: Literal["reports"]
+    since: dt.date
+
+
+class ListPage(_Entry):
+    how: Literal["report-page"]
+    kind: Literal["reports"]
+    path: str
+
+
+class Links(_Entry):
+    how: Literal["report-links"]
+    kind: Literal["reports"]
+    links: tuple[str, ...]
+
+
+type Source = Annotated[EuSearch | EitiPage | WordpressPosts | Feed | ListPage | Links, Field(discriminator="how")]
 
 
 class WatchList(BaseModel):

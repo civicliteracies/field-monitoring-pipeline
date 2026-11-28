@@ -5,7 +5,8 @@ import pytest
 
 from field_monitoring_pipeline.data.extract import build
 from field_monitoring_pipeline.data.models import Call, Deadline, Named, Opening
-from field_monitoring_pipeline.presentation.write import card, read_card
+from field_monitoring_pipeline.data.store import read_card
+from field_monitoring_pipeline.presentation.write import card
 from tests.samples import CALL, GIVEN, REPLY, stored
 
 WARNING = "This sentence was not found in the call."
@@ -55,7 +56,7 @@ def test_the_same_record_gives_the_same_bytes() -> None:
 def test_each_record_survives_the_round_trip_in_plain_ascii(call: Call) -> None:
     text = card(call)
     assert text.split("\n---\n\n", 1)[0].isascii()
-    assert read_card(text) == call
+    assert read_card("calls", text) == call
 
 
 def test_a_warning_sits_under_each_sentence_not_found() -> None:

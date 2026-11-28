@@ -128,13 +128,15 @@ run by hand, and quarterly reports.
       aside with the reason in the log, gets no card and costs no request to the model. Measured on
       235 calls, 230 of them judged by hand, the check keeps 44, of which 38 are in CLI's field or
       borderline (86%), and finds 14 of the 15 in CLI's field.
-- [ ] **20. `feat(reports): collect reports as cards`**
+- [x] **20. `feat(reports): collect reports as cards`**
       Once a week, Fieldbook reads the reports organisations publish about their own work: project
       results reports, evaluations, annual reports, and research or case studies. Each report in
       CLI's field becomes its own card in a dedicated folder, with the organisation that did the
       work and five details: who it was for, the method, the results, how long it ran, and where,
       each with its exact supporting sentence from the report. Reports are read from web pages,
       feeds, PDF files, Word documents and spreadsheets.
+      A report's activity, the kind of work it describes, joins its card when Candid's full list of
+      activities arrives.
 - [ ] **21. `feat(strategies): collect strategies as cards`**
       Fieldbook collects the strategies organisations publish on their own sites, whether for the
       whole organisation, a country, a sector or a theme. Each strategy in CLI's field becomes its

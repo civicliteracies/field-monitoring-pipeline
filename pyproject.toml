@@ -5,8 +5,12 @@ description = "Field monitoring data pipeline."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "feedparser>=6.0.14",
     "httpx2>=2.13.1",
+    "openpyxl>=3.1.5",
     "pydantic>=2.13.5",
+    "pypdfium2>=5.14.0",
+    "python-docx>=1.2.0",
 ]
 
 [build-system]

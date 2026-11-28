@@ -7,6 +7,8 @@
 # error, so what was already written is kept. It commits only when something
 # changed. A run adds one row to the log for each source it finishes, so a
 # morning with no new call still leaves a commit.
+# reports.yml is a copy of this file: a change to the steps or to an action's
+# pinned version is made in both.
 name: Daily run
 on:
   schedule:
@@ -28,7 +30,7 @@ jobs:
         env:
           PYTHONUNBUFFERED: "1"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: uv run --locked --no-dev python -m field_monitoring_pipeline.calls .archive/data
+        run: uv run --locked --no-dev python -m field_monitoring_pipeline.calls calls .archive/data
       - name: Commit what was stored
         if: ${{ !cancelled() }}
         working-directory: .archive

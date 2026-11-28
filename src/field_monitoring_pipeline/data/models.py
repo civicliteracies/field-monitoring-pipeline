@@ -1,4 +1,4 @@
-"""Define the typed shape the run passes from step to step: a funding call.
+"""Define the typed shapes the run passes from step to step: a funding call and a report.
 
 A call has a title, a type, a funder, an opening date, a deadline, a budget, a summary, who can
 apply, where, its topics, and a link, and it names the call's identifier, as the source gives it or
@@ -12,6 +12,12 @@ open. A call has at least one topic, and each carries its name and the mark it h
 that day, primary or secondary. This template refuses a call with a field missing, a field added, no
 topic, or a date it cannot read. It accepts a date in the past, and keeps the link exactly as
 given. A call cannot be changed once it is made.
+
+A report has a title, a type, the date its source gives, its topics and a link, and it names its
+identifier and the model and the instructions that read it. The organisation doing the work, the
+audience, the methodology, the results, the duration and where each carry a sentence beside the value,
+and each is empty when the source does not give it; the date is empty when the source gives none. A
+report holds the same rules as a call: at least one topic, no field missing or added, never changed.
 """
 
 import datetime as dt
@@ -24,6 +30,12 @@ type CallType = Literal[
 ]
 # The feed gives a card's marks in this order.
 type Mark = Literal["primary", "secondary"]
+# The kinds of item the run collects: the command's word, a card folder's name, and a source's kind on the watch list.
+type Kind = Literal["calls", "reports"]
+# The kinds whose documents a later kind's run reads once more.
+type Held = Literal["calls"]
+# What a reading's text and a card say for a fact the source does not give.
+NOT_STATED = "not stated"
 
 
 class Quoted(BaseModel):
@@ -76,6 +88,28 @@ class Call(BaseModel):
     summary: Quoted
     eligibility: Quoted | None
     area: Quoted | None
+    topics: Annotated[tuple[Topic, ...], Field(min_length=1)]
+    link: str
+    identifier: str
+    model: str
+    instructions: str
+
+
+type ReportType = Literal["project results report", "evaluation", "annual report", "research or case study"]
+
+
+class Report(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    title: str
+    type: ReportType
+    organisation: Quoted | None
+    audience: Quoted | None
+    methodology: Quoted | None
+    results: Quoted | None
+    duration: Quoted | None
+    area: Quoted | None
+    published: dt.date | None
     topics: Annotated[tuple[Topic, ...], Field(min_length=1)]
     link: str
     identifier: str
