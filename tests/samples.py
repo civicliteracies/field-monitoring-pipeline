@@ -10,8 +10,9 @@ from typing import Any
 
 import httpx2
 
-from field_monitoring_pipeline.data.extract import ADDRESS, build, read
-from field_monitoring_pipeline.data.models import Call, Topic
+from field_monitoring_pipeline.data.extract import CALL_PARTS, build, prepare
+from field_monitoring_pipeline.data.models import Call, Quoted, Report, Topic
+from field_monitoring_pipeline.data.reading import ADDRESS, read
 from field_monitoring_pipeline.data.settings import TopicList
 from field_monitoring_pipeline.data.store import (
     COLUMNS,
@@ -19,6 +20,7 @@ from field_monitoring_pipeline.data.store import (
     Saved,
     code,
 )
+from field_monitoring_pipeline.data.tags import no_title_match, not_near
 
 ROOT = Path(__file__).parent.parent
 REPLIES = Path(__file__).parent / "replies"
@@ -32,6 +34,10 @@ FETCHED = dt.datetime(2026, 9, 27, 6, 0, tzinfo=dt.UTC)
 STAMP = "2026-09-27T06:00:00+00:00"
 
 IDENTIFIER = "HORIZON-CL2-2027-01-HERITAGE-06"
+
+# A call's reason for being set aside when neither its titles nor its description match.
+NOT_NEAR = not_near(CALL_PARTS)
+NO_MATCH = f"{no_title_match(CALL_PARTS)}; {NOT_NEAR}"
 
 
 def log(data: Path) -> list[list[str]]:
@@ -128,7 +134,7 @@ def keeping(kept: list[tuple[AnswerWord, int, str]], seen: list[httpx2.Request])
 def reading(*answers: str) -> tuple[Call, list[str], list[Any]]:
     seen: list[httpx2.Request] = []
     with model(*answers, seen=seen) as client:
-        call, notes = read(EU, stored(), GIVEN, "the key", client, keeping([], seen))
+        call, notes = read(prepare(EU, stored(), GIVEN), "the key", client, keeping([], seen))
     return call, notes, [json.loads(request.read())["messages"] for request in seen]
 
 
@@ -241,3 +247,81 @@ def files(data: Path) -> dict[str, bytes]:
 
 
 CALL, _ = build(stored(), GIVEN, REPLY)
+
+
+def pdf(*lines: str, title: str = "") -> bytes:
+    # A one-page PDF written by hand, with its text in the standard Helvetica font and, when given, its own title.
+    stream = "BT /F1 12 Tf 72 720 Td 14 TL " + " ".join(f"({line}) Tj T*" for line in lines) + " ET"
+    objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        f"<< /Length {len(stream)} >>\nstream\n{stream}\nendstream",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        f"<< /Title ({title}) >>",
+    ]
+    out = b"%PDF-1.4\n"
+    offsets: list[int] = []
+    for number, body in enumerate(objects, 1):
+        offsets.append(len(out))
+        out += f"{number} 0 obj\n{body}\nendobj\n".encode("latin-1")
+    table = len(out)
+    out += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode()
+    out += "".join(f"{offset:010d} 00000 n \n" for offset in offsets).encode()
+    out += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R /Info 6 0 R >>\nstartxref\n{table}\n%%EOF\n".encode()
+    return out
+
+
+# The answers a model gives when the recorded EITI call page is read for the reports it names: one command line a report.
+SEND = "Send your views through the address given on this page before the closing date."
+INVENTED = "The board will publish every answer it receives."
+STUDY_TITLE = "A study of journalism in the example country"
+
+
+def found_line(title: str, quote: str = BOARD, kind: str = "evaluation") -> str:
+    return (
+        f'fieldbook --title "{title}" --type "{kind}" --organisation "EITI Board" --organisation-quote "{quote}" '
+        "--audience-not-stated --methodology-not-stated --results-not-stated --duration-not-stated --area-not-stated"
+    )
+
+
+FOUND_STUDY = found_line(STUDY_TITLE)
+FOUND_ACCOUNTS = found_line("Annual accounts", SEND, "annual report")
+MISQUOTED = found_line(STUDY_TITLE, INVENTED)
+NO_LINE = "The document names two reports, but I cannot tell them apart."
+NONE = "fieldbook --none"
+MISS_1 = "line 1: --organisation-quote: the sentence must be in the text word for word"
+NOTHING_READ = "the answer must hold a line beginning with fieldbook for each item; it holds none"
+# The notes of a report found with only its organisation stated.
+FOUND_NOTES = [
+    *(
+        f"{label}: empty, because the model marked it not stated"
+        for label in ("who it was for", "method", "results", "how long it ran", "where")
+    ),
+    "published: empty, because the document it was found in gives no date for it",
+]
+
+ARK_LINK = "https://data.org/stories/ark-solves/"
+
+
+def _quoted(value: str, quote: str) -> Quoted:
+    return Quoted(value=value, quote=quote, found=True)
+
+
+# A report read in full, its facts in the words of a data.org story.
+REPORT = Report(
+    title="ARK Solves: data for smallholder farmers",
+    type="research or case study",
+    organisation=_quoted("ARK Solves", "ARK Solves built the platform with farmer cooperatives."),
+    audience=_quoted("smallholder farmers", "It serves smallholder farmers across the islands."),
+    methodology=_quoted("a data platform", "The team built a data platform that links farmers to buyers."),
+    results=_quoted("4 000 farmers reached", "By June, 4 000 farmers had joined the platform."),
+    duration=_quoted("two years", "The work ran for two years."),
+    area=_quoted("the Philippines", "In the Philippines, food insecurity grips 37.8 million people."),
+    published=dt.date(2026, 9, 8),
+    topics=(Topic(name="open-data", mark="primary"),),
+    link=ARK_LINK,
+    identifier=ARK_LINK,
+    model="gemini-3.5-flash-lite",
+    instructions="reports-v1",
+)

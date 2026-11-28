@@ -44,15 +44,17 @@ down is kept even when the run does not finish.
 **Technical detail.** The rule lands with change 6 in the plan, whose daily commit saves what was
 stored even when the run stopped with an error. Test that now fails on the old behaviour: none,
 because no test in the suite can run a workflow. What can be checked instead is the commit step's
-condition in `.github/workflows/calls.yml`, which lets it run after a step has failed.
+condition in `.github/workflows/calls.yml`, which lets it run after a step has failed. The weekly
+reports run, `.github/workflows/reports.yml`, is a copy of it and keeps the same condition.
 
 ### BUG-002: every day produced a commit, even when nothing had changed
 
 **Severity:** medium. **Class:** correctness of the record. **Status:** fixed in earlier work; the
-rule it produced is carried here, with four changes: a run adds a row to the log for each source
-it finishes; each time a saved call is read it gets a row for each answer the model gave, if any,
+rule it produced is carried here, with five changes: a run adds a row to the log for each source
+it finishes; each time a saved item is read it gets a row for each answer the model gave, if any,
 then a row for the outcome; a card the feed cannot read back gets a row on every run until it is
-fixed; and a call the topic check sets aside gets one `set aside` row, once.
+fixed; an item the topic check sets aside gets one `set aside` row, once; and a call read once more
+for the reports it names gets its answers and one `read for reports` row, once.
 
 **Summary.** The daily run committed to the archive every morning whether or not anything new had
 arrived, so the history filled with changes that changed nothing.
@@ -63,9 +65,9 @@ differs on every run, so every item looked new every day.
 **Fix.** The note was changed to record the date the source published the item rather than the time
 it was collected, and the run was changed to commit only when something had changed.
 
-**Prevention.** Nothing stored is ever rewritten, and a call already saved is not stored again. The
-feed is rebuilt on every run, and comes out the same when no card was added. A run adds rows to the
-log only for the calls it tried, checked or read, one row for each source, saying how the run ended
+**Prevention.** Nothing stored is ever rewritten, and an item already saved is not stored again. The
+feed is rebuilt on every calls run, and comes out the same when no card was added. A run adds rows to
+the log only for the items it tried, checked or read, one row for each source, saying how the run ended
 for it, and one row for each card the feed could not read back. So a run with nothing new, nothing
 failing and nothing left to read adds that one row for each source and changes nothing else.
 
@@ -77,7 +79,9 @@ build records the time of collection again, in the log. Once a call is saved, ea
 it gets a row for each answer the model gave, if any, then a row for the outcome, until its card is
 written, and none after. A call the topic check sets aside gets one `set aside` row, and none after.
 This build also writes a row for each source a run finishes, so every finished run adds to the log,
-and a row for each card the feed could not read back. Test that now fails on the old behaviour: the
+and a row for each card the feed could not read back. The reports run keeps the same rule: a report
+is stored only when the log has no `report saved` row for it, and a call is read for reports only
+until it has its `read for reports` row. Test that now fails on the old behaviour: the
 command's test of a second run. It must download no page, leave every page and record as it was,
 keep every earlier row of the log, and add only the run's row.
 
@@ -108,7 +112,8 @@ collapsed, so a changed line ending cannot make it fail. Test that now fails on 
 none, because the rules file is on the `data` branch, where the tests do not run. What can be
 checked instead is that the rules file there holds the one rule, `* -text`. The store's tests check
 the writing: the record file holds exactly the expected bytes, and the log holds no Windows line
-ending.
+ending. A report's download is written as the bytes that arrived, and the record a WordPress site or
+a feed gave of it with every value as sent, under the same rules file.
 
 ## 2. Faults fixed in this build
 
@@ -139,7 +144,10 @@ carried: `--force-exclude`, so a folder the project excludes is left alone even 
 names files explicitly; the file types the published hooks named, which are Python, stub and
 notebook files; and serial execution, because ruff works in parallel by itself. Test that now fails on the
 old behaviour: none, because the fault was in the hook settings, not in the code. What can be
-checked instead is that the hook settings contain no version number at all.
+checked instead is that the hook settings contain no version number at all. The same kind of fault
+could return between the two copies of the run's workflow, which pin the versions of the actions
+they use by hand: `reports.yml` is a copy of `calls.yml` with the same pinned versions, and each file
+names the other, so a change to one is made in both.
 
 ### BUG-005: a call whose record had no description stopped the reading
 
@@ -160,8 +168,10 @@ with the code the portal gave as its title, and its row in the log carries the n
 empty, because the source's record has none".
 
 **Prevention.** A fact the source leaves empty is marked and noted, never invented and never hidden
-by refusing the call, as the decision log's entry "What happens when the reading meets a fault?"
-says.
+by refusing the item, as the decision log's entry "What happens when the reading meets a fault?"
+says. The notes for an empty fact and a sentence not found are written in the same words for every
+kind, by the reading every kind shares, each naming the text that was searched: the call, the report,
+or the document a report was found in.
 
 **Technical detail.** The reading takes the description only when the record's list of descriptions
 is not empty, and the note comes from the project's own code; the model's instructions do not

@@ -2,7 +2,8 @@ import pytest
 
 from field_monitoring_pipeline.data.extract import build, text
 from field_monitoring_pipeline.data.models import Named
-from field_monitoring_pipeline.presentation.write import card, read_card
+from field_monitoring_pipeline.data.store import read_card
+from field_monitoring_pipeline.presentation.write import card
 from tests.samples import AGAIN, FUNDER, GIVEN, LINE, REPLY, reading, stored
 
 FOUND = "Horizon Europe"
@@ -61,7 +62,7 @@ def test_a_text_with_no_letter_becomes_a_name_with_its_mark(given: str) -> None:
 @pytest.mark.parametrize("name", [FOUND, GONE])
 def test_a_card_with_a_funder_reads_back_to_the_same_record(name: str) -> None:
     call, _ = build(stored(), GIVEN, f'{LINE} --funder "{name}"')
-    assert read_card(card(call)) == call
+    assert read_card("calls", card(call)) == call
 
 
 def test_the_name_is_matched_after_the_same_tidying_as_a_sentence() -> None:

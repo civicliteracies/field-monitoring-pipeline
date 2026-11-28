@@ -1,0 +1,43 @@
+# The weekly reports run. Every Monday evening GitHub runs the one command for
+# reports and commits what it wrote to the `data` branch. The command collects
+# and stores new reports, checks each stored report not yet read against the
+# topic list, sets aside those with no topic, reads the others and writes their
+# cards, then reads each call already held, once, for the reports it names. The
+# model's key comes from the repository secret GEMINI_API_KEY. The commit step
+# runs even when the command stopped with an error, so what was already written
+# is kept. It commits only when something changed. A run adds one row to the
+# log for each source it finishes, so a week with no new report still leaves a
+# commit.
+# This file is a copy of calls.yml: a change to the steps or to an action's
+# pinned version is made in both.
+name: Weekly reports run
+on:
+  schedule:
+    - cron: "17 20 * * 1"
+  workflow_dispatch:
+jobs:
+  reports:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: data
+          path: .archive
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Run the command
+        env:
+          PYTHONUNBUFFERED: "1"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: uv run --locked --no-dev python -m field_monitoring_pipeline.calls reports .archive/data
+      - name: Commit what was stored
+        if: ${{ !cancelled() }}
+        working-directory: .archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --staged --quiet || git commit -m "chore(data): store the reports run of $(date -u +%Y-%m-%d)"
+          git push

@@ -1,8 +1,12 @@
 # The watch list: the sources Fieldbook reads, one table per source, named by its id. The id names the source's
-# folder in the archive and its rows in the log. Never change it once calls are saved. The route, how, says how the
+# folder in the archive and its rows in the log. Never change it once items are saved. The route, how, says how the
 # source is reached: eu-search asks the EU portal for the words, which can be edited freely; eiti-page reads EITI's
 # list of current calls and takes no words. A source may name topics that every one of its calls carries.
-# Each must be on the topic list, config/tags.toml, or the morning's reading stops.
+# Each must be on the topic list, config/tags.toml, or a run's reading stops.
+# A report source says kind = "reports", and only the weekly reports run reads it. Its route is one of four:
+# report-wordpress asks a WordPress site's address for its posts; report-feed reads a feed; report-page takes the
+# links one level below a path on a list page; report-links reads the links listed. The two dated routes take
+# since, the first day read: 24 months before the source's first run, and never changed after it.
 [source.eu-funding-tenders]
 name = "EU Funding and Tenders Portal"
 url = "https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA"
@@ -23,3 +27,17 @@ name = "EITI consultancy opportunities"
 url = "https://eiti.org/consultancy-opportunities"
 how = "eiti-page"
 topics = ["extractives-eiti"]
+
+[source.data-org-stories]
+name = "data.org stories"
+url = "https://data.org/wp-json/wp/v2/story"
+how = "report-wordpress"
+kind = "reports"
+since = "2024-11-30"
+
+[source.data-org-reports]
+name = "data.org reports"
+url = "https://data.org/wp-json/wp/v2/report"
+how = "report-wordpress"
+kind = "reports"
+since = "2024-11-30"

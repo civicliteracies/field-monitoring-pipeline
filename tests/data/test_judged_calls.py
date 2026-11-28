@@ -14,6 +14,7 @@ from typing import Any
 
 import pytest
 
+from field_monitoring_pipeline.data.extract import CALL_PARTS
 from field_monitoring_pipeline.data.models import Topic
 from field_monitoring_pipeline.data.tags import Kept, SetAside, Subject, check, read_topic_list
 
@@ -23,7 +24,12 @@ CALLS: list[dict[str, Any]] = json.loads((JUDGED / "calls.json").read_text(encod
 
 
 def _subject(call: dict[str, Any]) -> Subject:
-    return Subject(title=call["title"], other_titles=(call["call"],) if call["call"] else (), body=call["description"])
+    return Subject(
+        title=call["title"],
+        other_titles=(call["call"],) if call["call"] else (),
+        body=call["description"],
+        parts=CALL_PARTS,
+    )
 
 
 def test_the_judged_calls_are_all_there() -> None:

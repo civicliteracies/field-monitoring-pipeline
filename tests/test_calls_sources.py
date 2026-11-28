@@ -50,7 +50,7 @@ def test_a_failed_search_is_the_source_s_failed_run_and_the_run_carries_on(
 ) -> None:
     data = tmp_path / "data"
     with portal(answer) as client:
-        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 1
+        assert run("calls", data, watch_list, topic_list, client, FETCHED, KEY) == 1
     assert log(data) == [list(COLUMNS), ["", SOURCE, "", "", SEARCH, STAMP, "failed", reason]]
     assert sorted(files(data)) == ["feed.xml", LOG]
     assert capsys.readouterr().out == (
@@ -71,7 +71,7 @@ def test_a_search_reply_that_is_not_json_is_the_source_s_failed_run(
 ) -> None:
     data = tmp_path / "data"
     with portal(lambda request: httpx2.Response(200, content=content)) as client:
-        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 1
+        assert run("calls", data, watch_list, topic_list, client, FETCHED, KEY) == 1
     header, row = log(data)
     assert header == list(COLUMNS)
     assert row[:REASON] == [*RUN, STAMP, "failed"]
@@ -88,7 +88,7 @@ def test_a_reply_the_fetch_cannot_read_is_the_source_s_failed_run(
 
     data = tmp_path / "data"
     with portal(no_dates) as client:
-        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 1
+        assert run("calls", data, watch_list, topic_list, client, FETCHED, KEY) == 1
     [row] = log(data)[1:]
     assert row[:REASON] == [*RUN, STAMP, "failed"]
     assert row[REASON].startswith("ValueError: ")
@@ -106,7 +106,7 @@ def test_after_a_failed_search_the_next_source_is_searched_and_the_saved_calls_a
     )
     data = tmp_path / "data"
     with portal(broken) as client:
-        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 1
+        assert run("calls", data, watch_list, topic_list, client, FETCHED, KEY) == 1
     out = capsys.readouterr().out
     assert out.startswith("EU Funding and Tenders Portal: httpx2.HTTPStatusError: Server error '500 ")
     assert out.endswith(
@@ -132,7 +132,7 @@ def test_a_second_source_whose_reply_lacks_a_field_stops_the_run_after_the_first
     )
     data = tmp_path / "data"
     with portal(no_results) as client, pytest.raises(KeyError, match="results"):
-        run(data, watch_list, topic_list, client, FETCHED, KEY)
+        run("calls", data, watch_list, topic_list, client, FETCHED, KEY)
     assert [(row[1], row[STATUS]) for row in log(data)[1:] if not row[CODE]] == [(SOURCE, "successful")]
     assert "feed.xml" not in files(data)
 
@@ -148,7 +148,7 @@ def test_eiti_s_link_that_cannot_be_read_fails_only_its_call(
     topic_list.write_text(EITI_TOPICS, encoding="utf-8")
     data = tmp_path / "data"
     with portal(eiti(broken)) as client:
-        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 1
+        assert run("calls", data, watch_list, topic_list, client, FETCHED, KEY) == 1
     [failed] = [row for row in log(data) if row[CODE] and row[STATUS] == "failed"]
     assert failed[2] == STUDY + "\n"
     assert failed[REASON].startswith("httpx2.InvalidURL: ")
@@ -162,7 +162,7 @@ def test_a_page_in_place_of_eiti_s_list_is_eiti_s_failed_run(
     topic_list.write_text(EITI_TOPICS, encoding="utf-8")
     data = tmp_path / "data"
     with portal(eiti(b"<html><main><h1>Just a moment...</h1></main></html>")) as client:
-        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 1
+        assert run("calls", data, watch_list, topic_list, client, FETCHED, KEY) == 1
     assert [*EITI_RUN, "failed", "ValueError: the page must hold exactly one list of current calls; it holds 0"] in (
         log(data)
     )
@@ -181,7 +181,7 @@ def test_eiti_s_list_refused_is_eiti_s_failed_run_with_its_status(
     topic_list.write_text(EITI_TOPICS, encoding="utf-8")
     data = tmp_path / "data"
     with portal(refused) as client:
-        assert run(data, watch_list, topic_list, client, FETCHED, KEY) == 1
+        assert run("calls", data, watch_list, topic_list, client, FETCHED, KEY) == 1
     [row] = [row for row in log(data) if row[1] == "eiti"]
     assert row[:REASON] == [*EITI_RUN, "failed"]
     assert row[REASON].startswith("httpx2.HTTPStatusError: Client error '403 Forbidden'")
@@ -196,7 +196,27 @@ def test_a_topic_a_source_names_missing_from_the_topic_list_stops_the_run_after_
     data = tmp_path / "data"
     listing = (REPLIES / "eiti_list.html").read_bytes()
     with portal(eiti(listing)) as client, pytest.raises(ValueError, match="extractives-eiti"):
-        run(data, watch_list, topic_list, client, FETCHED, KEY)
+        run("calls", data, watch_list, topic_list, client, FETCHED, KEY)
     assert [row[STATUS] for row in log(data)[1:] if row[CODE]] == ["saved"] * 6
     assert not any(name.startswith("calls/") for name in files(data))
     assert "feed.xml" not in files(data)
+
+
+def test_a_calls_run_never_asks_a_report_source_and_writes_no_row_for_it(
+    tmp_path: Path, watch_list: Path, topic_list: Path
+) -> None:
+    with watch_list.open("a", encoding="utf-8") as file:
+        file.write(
+            '\n[source.reports]\nname = "Reports"\nurl = "https://example.org/"\nhow = "report-links"\n'
+            'kind = "reports"\nlinks = ["https://example.org/a.pdf"]\n'
+        )
+    seen: list[str] = []
+
+    def watching(request: httpx2.Request) -> None:
+        seen.append(request.url.host)
+
+    data = tmp_path / "data"
+    with portal(watching) as client:
+        assert run("calls", data, watch_list, topic_list, client, FETCHED, KEY) == 0
+    assert "example.org" not in seen
+    assert all(row[1] != "reports" for row in log(data)[1:])

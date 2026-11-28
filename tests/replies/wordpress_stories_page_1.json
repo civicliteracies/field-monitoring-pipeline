@@ -1,0 +1,36 @@
+[
+ {
+  "date": "2026-09-08T08:50:00",
+  "link": "https://data.org/stories/ark-solves/",
+  "title": {
+   "rendered": "ARK Solves Offers ‘Brilliant’ Illustration of SIDSA Collaboration in Action"
+  },
+  "content": {
+   "rendered": "\n<p class=\"wp-block-paragraph\">In the Philippines, food insecurity grips 37.8 million people, the worst in Southeast Asia. Ironically, smallholder farmers, who produce the country’s food supply, are trapped in a poverty cycle that prevents them from feeding their own families.</p>",
+   "protected": false
+  },
+  "_embedded": {
+   "wp:term": [
+    [
+     {
+      "name": "Capacity Accelerator Network (CAN)",
+      "taxonomy": "post_tag"
+     }
+    ],
+    [],
+    []
+   ]
+  }
+ },
+ {
+  "date": "2025-01-16T09:25:24",
+  "link": "https://data.org/stories/khushi-baby/",
+  "title": {
+   "rendered": "A University Project, Khushi Baby Becomes Critical Public Health Resource in India"
+  },
+  "content": {
+   "rendered": "\n<p class=\"wp-block-paragraph\">Sitting in a classroom at a university in 2014, a student listened to two professors lecture on the importance of human-centered design. You need to meet people where they are, they said, and deploy solutions that are technologically, economically, and regionally viable, especially in low- and middle-income countries (LMICs).&nbsp;</p>",
+   "protected": false
+  }
+ }
+]

@@ -71,15 +71,17 @@ A run takes each item through seven steps, in order. Reach the sources on the wa
 back what they published. Write down each item collected, once and whole, together with where it
 came from. Give each item a stable name of its own. Read the facts the item states: copy those the
 source gives in its own fields, give it the topics its source names and those its titles and
-description show on the topic list, setting aside an item with none, and name the rest with a
+text show on the topic list, setting aside an item with none, and name the rest with a
 language model. The model is asked once more when its answer
 cannot be used or a sentence it quotes is not found. Check what was read against what was stored.
-Write the card. Save the cards and build the feed.
+Write the card. Save the cards and, for calls, build the feed. Each kind of item, calls or reports,
+has its own run, and the command's first word names it.
 
 The code keeps these steps in two layers, with the command above both. The data layer does the first
 five: it reaches the sources, keeps what they published, each under a stable name of its own, reads
-and checks it, and holds the shape of a call. The presentation layer writes each card and builds the
-feed, and the data layer's one writer saves them.
+and checks it, and holds the shape of each kind of item. The presentation layer writes the half of
+each card for people and builds the feed, and the data layer's one writer saves them, with each
+card's record half, which it also reads back.
 
 Three things stay apart inside every step: the data, declared in files a person can read; the
 behaviour, plain functions that act on it; and the coordination, a single command that calls the
@@ -93,7 +95,7 @@ about the items themselves.
 **Situation.** Fieldbook reads only the sources named on its watch list, and each had to publish
 funding calls in a form a program can read.
 
-**Decision.** Two sources. The first is the EU Funding and Tenders Portal, reached through its public
+**Decision.** Two sources of calls. The first is the EU Funding and Tenders Portal, reached through its public
 search service, which answers in JSON. Fieldbook asks it, in English, for the grant topics that match
 each search word, open or announced, and leaves out any call whose last closing date has passed. The
 second is the consultancy opportunities page of the Extractive Industries Transparency Initiative
@@ -142,6 +144,47 @@ a list page that is not UTF-8, or a refused request is that source's failed run,
 found. An EITI call's identifier is its full address. An EITI call's deadline is the one date tag on
 its page; a page with none, or more than one, fails its reading.
 
+### Which reports are collected, and how is each source reached?
+
+**Situation.** CLI wants to see who is active in its field, on what and where, and organisations say
+that in the reports they publish about their own work. They publish them in many ways: as posts on a
+WordPress site, in a feed, as links on a list page, or as single files.
+
+**Decision.** A report source says `kind = "reports"` on the watch list, and only the weekly reports
+run reads it, every Monday evening. Its route is one of four: a WordPress site's address, which gives
+its posts with their labels and dates; a feed; a list page, whose links one level below a given path
+are each one report; or a list of single links, each one file. The two dated routes take a first day,
+and an item dated before it is left out; a link carries no date, so each new one is read once. The
+first two sources are data.org's stories and data.org's reports, both through their WordPress address,
+from 30 November 2024. A report has one of four types, named by the model: a project results report,
+an evaluation, an annual report, or a research or case study. The model names six facts, each with its
+sentence: the organisation that did the work, who it was for, the method, the results, how long it ran
+and where. The weekly run also reads each call already held, once, for the reports it names.
+
+**Rationale.** The first day is 24 months before a source's first run, the period in which the
+quarterly map counts an organisation as active, and it never changes after that run. The run is set
+for Monday evening because two runs that push to the `data` branch at once lose the work of the one
+whose push is refused, and the morning run has started as late as 16:12 UTC. Each kind looks for its
+items in every document already held as well as at its sources, so a call that names a report brings
+it in; each call is read once for reports, because a reading costs a request and a call never changes
+once saved. What it gives up: a
+report found inside a call has no date, since the call gives none for it; a report named in two calls
+can get a card from each, and each carries its call's link; and the linked PDF of a
+data.org report is not read, since the page's own text is the report. Reports are not in the feed.
+
+**Technical detail.** A downloaded file's kind is told by its first bytes, never by its address or its
+label, because the records of one publisher label 125 new Word files with the old format's name. A PDF
+is read with PDFium, which found 5 of 5 sentences in a data.org PDF where another reader found 1,
+because that PDF's font writes a space before every full stop. A Word file is read by its paragraphs
+and then its table cells, and a spreadsheet by every filled cell, as the values last saved in it. An
+old Word or Excel file is not read: reading it would need a library of its own, and each one is a
+failed row naming the format, so the log shows how often one is met. A file that cannot be read, a
+PDF with no text, which is how a scanned one reads, and a packed file that holds neither a Word
+document nor a workbook are failed rows with the reason, and the run carries on. No limit is set on a
+file's size. A single link has no title of its own, so it takes its page's or file's own title when
+it is saved, or is named by its address; a feed entry with no title and a list page's link with no
+words do the same.
+
 ## 4. Storage
 
 ### Where does everything the tool collects live?
@@ -149,22 +192,24 @@ its page; a page with none, or more than one, fails its reading.
 **Situation.** The system has to keep every item it collects, for years, on free services, and stay
 readable without specialist tools.
 
-**Decision.** Plain files in this repository. Each source has a folder, which holds every call's web
-page and, where the source gives one, its record of it, and one folder holds a card for each call
-read. One log beside the folders has a row for each call the run tried, for each answer the model
-gave while reading a call, and for each call it checked: set aside, card written or failed. It also
-has a row for each source, saying how the run ended for it, and a row for each card left out of the
-feed. No server, no database engine, no committed index. The cards are derived from the stored files
+**Decision.** Plain files in this repository. Each source has a folder, which holds every item's web
+page or file and, where the source gives one, its record of it, and each kind has one folder holding
+a card for each item read. One log beside the folders has a row for each item the run tried, for
+each answer the model gave while reading an item, and for each item it checked: set aside, card
+written or failed. A call read once more for reports has its own rows, each naming the kind, and so
+does each report found in it. It also has a row for each source, saying how the run ended for it,
+and a row for each card left out of the feed. No server, no database engine, no committed index. The cards are derived from the stored files
 and kept beside them, because a reading costs a request to the model and may not come out the same
 twice. The answer each card was made from (the second answer when it can be used, otherwise the
-first) is kept in the log, so a card can be checked against it, or made again from what was stored
+first; for a report found in a call, that call's answer for reports) is kept in the log, so a card
+can be checked against it, or made again from what was stored
 for the call and that answer while the instructions, the model, the topic list, the topics its
 source names and the way the text is made stay the same. The feed is rebuilt from the cards on every
 run that reaches its end, and kept beside them so a feed reader can fetch it. Nothing else derived
 is kept.
 
 **Rationale.** The history of the repository becomes the audit log, its permissions become the
-access control, and nothing in it can be withdrawn by a supplier. The log of calls is one table,
+access control, and nothing in it can be withdrawn by a supplier. The log is one table,
 written as it happens: where each call came from, when it was collected, whether it was saved and,
 once read, each answer the model gave and whether its card was written. It takes the place of a note
 beside each call. It is not a derived index. Each answer is a row of its own, written the moment it
@@ -213,8 +258,9 @@ really served, and once a call is saved its page is never asked for again. What 
 space, and it means the stored copy may hold contact details that a page published. Those stay in
 the copy, where they are useful for applying, and never appear on a card.
 
-**Technical detail.** A call's files are written first and its row in the log last, and a call
-counts as stored once it has a `saved` row. A run that stops partway therefore never leaves a call
+**Technical detail.** An item's files are written first and its row in the log last, and an item
+counts as stored once it has its kind's saved row, `saved` for a call and `report saved` for a
+report, so one kind's run never takes another's items. A run that stops partway therefore never leaves a call
 marked as saved with a file missing, and the next run does that call again. A run stores a call only
 when it has no `saved` row, and checks and reads it only when it has neither a card nor a
 `set aside` row. So a run with nothing new, nothing failing and nothing left to read rewrites
@@ -227,14 +273,17 @@ each saved call is stored whole, as the source served it. The record is its own 
 the EU portal, the page holds none of the call's text. It is not kept inside the log. An EITI call
 keeps its page alone, because its page holds its text. A saved call is read from what was stored for
 it: its record when it has one, otherwise its page. With one source read from its page, a page alone
-means EITI's reading; a second such source would need its route stored with each call. The records
+means EITI's reading; a second such source would need its route stored with each call. A report's
+record is stored under the name of its form, a WordPress item or a feed entry, so its reading needs
+no route. The records
 of 33 calls came to 1.2 MB, and GitHub shows a log as a table only up to 512 KB. An answer is about
 4 KB, against about 43 KB for a record, which is why the answers are kept in the log and the records
 are not. Three rare cases of an answer, none seen, show in the log this way. An answer longer than
 131,072 characters, the most the log's reader takes in one value, is written whole; its reading ends
 as usual, and every later run then stops when it reads the log, before collecting anything, until
 the code changes. A reply with no text at all leaves an empty `first answer` or `second answer` row,
-and the run stops at that call every morning, as it did before answers were kept. An answer holding
+and the run stops at that call or report every run, as it did before answers were kept; for a call read
+for reports, the next run takes the empty row as the first answer and asks once more. An answer holding
 a character that cannot be written as UTF-8 text is not written, and the reading is logged as failed
 with that error.
 
@@ -249,9 +298,11 @@ the call's topics, each with its mark, which the half for people leaves out. Bel
 people: the title, then each fact. The publisher's own sentence sits under the summary, who can
 apply and where, and the source's own line under the dates and the budget. A sentence or a funder's
 name not found has a warning under it, and an empty field says "not stated". The link and the
-model and instructions that read it come last. A card is named by the day the call was saved, its
-title made into a short name, and the first ten characters of the call's code. All cards sit in one
-folder, and a call with a card is never read again.
+model and instructions that read it come last. A report's card holds its title, its type and the
+day it was posted, then its six facts, each with its sentence. A card is named by the day the item
+was saved, its title made into a short name, and the first ten characters of the item's code; a
+report found in a call is named by the day of that reading. Each kind's cards sit in one folder,
+and an item with a card is never read again.
 
 **Rationale.** The block on top is what GitHub shows as a table and what the code reads back.
 Written in JSON, a colon or a quotation mark in a value cannot break it. The day saved puts the
@@ -270,8 +321,8 @@ card's name.
 **Situation.** A feed reader collects a feed by itself, and shows as new any entry it has not seen
 before.
 
-**Decision.** One RSS 2.0 file, `data/feed.xml`, rebuilt on each run from every card it can read
-back, with one entry per card in the order of the cards' names. Each entry holds the title and the
+**Decision.** One RSS 2.0 file, `data/feed.xml`, rebuilt on each calls run from every call's card it
+can read back, with one entry per card in the order of the cards' names. Each entry holds the title and the
 closing date, a link to the card on github.com, the summary, a category for each of the call's
 topics and for each mark they carry, primary before secondary, and the call's code as its identity.
 The feed holds no date of the build, and no entry is marked closed. A reader fetches it from its raw
@@ -300,7 +351,9 @@ allows it in the module that only writes.
 Everything else the system does is mechanical.
 
 **Decision.** One step uses a language model: the reading. It asks the model once, and once more
-when the answer cannot be used or a sentence it quotes is not in the stored text. No agent
+when the answer cannot be used or a sentence it quotes is not in the stored text. Reading a call
+already held for the reports it names is the same step: one reading, at most two requests, one
+command line for each report found. No agent
 framework, and no model anywhere else, including the tagging of cards and the quarterly reading.
 
 **Rationale.** One step with at most two requests is cheap and easy to reason about, and every other
@@ -313,8 +366,8 @@ be quicker, such as sorting items into topics, are done by rules instead.
 **Technical detail.** The first request sends one stored item as plain text under fixed
 instructions, kept in their own file and versioned, and the record notes which version and which
 model read it. A request the model service turns away is raised as it is and not sent again. A
-request that fails in the daily run is written in the log as a failed reading, and the call is read
-again the next morning. Nothing tries a failed request again within a run; that is brought back once
+request that fails in a run is written in the log as a failed reading, and the item is read
+again the next run. Nothing tries a failed request again within a run; that is brought back once
 the log shows readings lost to a dropped connection.
 
 ### When is the key for the reading step set?
@@ -327,12 +380,12 @@ topics and checks the funder's name.
 
 **Rationale.** A card is never updated, and a card without its topics or without the funder's mark
 cannot be read back, so one such card would be left out of the feed on every later run. What it
-gives up: until the secret is saved, every reading in the daily run fails and is written in the
-log, and the morning ends with a failure. Collecting and storing go on.
+gives up: until the secret is saved, every reading in a run fails and is written in the
+log, and the run ends with a failure. Collecting and storing go on.
 
-**Technical detail.** The key is never written into a file of this repository. The daily run hands
-it to the command from the secret `GEMINI_API_KEY`, in the step that runs the command, and nowhere
-else.
+**Technical detail.** The key is never written into a file of this repository. Each run's workflow
+hands it to the command from the secret `GEMINI_API_KEY`, in the step that runs the command, and
+nowhere else.
 
 ### What has to travel with a value read from a page?
 
@@ -372,8 +425,8 @@ reach the card, and nobody would see what went wrong.
 **Decision.** A fault is marked and noted, never hidden by refusing the record. A sentence not found
 after the second try stays on the record, marked as not found, and so does a funder's name not
 found. The reading writes a note for each problem in either answer and for each sentence and name
-not found. Each empty field among the funder, who can apply and where gets a note saying what the
-answer did: the model marked it not stated, did not mention it, or, for the funder, gave no
+not found. Each empty field among the funder, who can apply and where, and each empty fact of a
+report, gets a note saying what the answer did: the model marked it not stated, did not mention it, or, for the funder, gave no
 name. An opening date or a budget that the source's page has no field for gets a note saying so. A
 call whose record has no description is read from its conditions alone, and gets a note saying
 so. Three faults make no record. Two are an answer that cannot be used on either try and a request
@@ -388,7 +441,8 @@ carry a sentence the source never wrote, or a funder's name it never gave, with 
 it. The notes say only what the code saw, never why the model chose it; the model's answer, kept in
 the log, shows its own reasoning beside its choice.
 
-**Technical detail.** Each sentence, and the funder's name, carries a mark, `found`. The notes are
+**Technical detail.** Each sentence, and the funder's name, carries a mark, `found`, and a quote
+with no words is never found. The notes are
 plain lines written by the code. Each problem note names the answer it came from, first or second,
 so a fault the second answer put right reads differently from one kept on the record.
 
@@ -450,8 +504,10 @@ revenue, or secondary, one it watches for intelligence, so that the feed can be 
 The EU portal's search words bring back many calls outside CLI's field, each of which would cost a
 request to the model and add a card no one at CLI needs.
 
-**Decision.** Before any request to the model, the code checks each call against the topic list and
-gives it its topics. A call gets every topic its source names on the watch list; every topic whose
+**Decision.** Before any request to the model, the code checks each item against the topic list and
+gives it its topics, by the same rule for calls and reports. A report's titles are its title and its
+labels, and its description is its own text; a report found in a call is checked on its title and
+the sentences quoted for it. The rule for a call follows. A call gets every topic its source names on the watch list; every topic whose
 name, or one of the words listed with it, appears as a whole phrase in the call's title or the title
 of the call it belongs to; and the topics of two different phrases standing within ten words of each
 other in its description. A weak word counts in the titles only. A cancelling name, such as
@@ -479,7 +535,9 @@ different lists. "democracy" is both one of the words for civic-space and a sear
 list, so the number of calls given civic-space moves with the watch list. An EITI call is checked on
 its list's title alone, and every EITI card carries extractives-eiti because EITI is on the watch
 list, not because the call says so; counted across cards, that topic shows the watch list rather
-than movement in the sector.
+than movement in the sector. On data.org's 44 stories and 14 reports, the same rule kept 3 of the 10
+items of the last 24 months and set aside 7; a report's labels and its text added no item its title
+did not already keep.
 
 **Technical detail.** The list is `config/tags.toml`: four lists the check reads (the weak words,
 the cancelling names, the other sectors and the names not matched as phrases, such as "governance"),

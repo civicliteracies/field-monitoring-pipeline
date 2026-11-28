@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from field_monitoring_pipeline.data.models import Call, Deadline, Named, Opening, Quoted, Topic
+from field_monitoring_pipeline.data.models import Call, Deadline, Named, Opening, Quoted, Report, Topic
 
 LINK = "https://Example.org/Calls/One"
 CALL: dict[str, Any] = {
@@ -25,6 +25,22 @@ CALL: dict[str, Any] = {
 }
 OPENING: dict[str, Any] = {"date": "2019-03-01", "quote": "Opening for submission: 1 March 2019.", "found": True}
 TOPIC: dict[str, Any] = {"name": "AI-and-civic", "mark": "primary"}
+REPORT: dict[str, Any] = {
+    "title": "Data for smallholder farmers",
+    "type": "evaluation",
+    "organisation": None,
+    "audience": None,
+    "methodology": None,
+    "results": {"value": "4 000 farmers reached", "quote": "By June, 4 000 farmers had joined.", "found": True},
+    "duration": None,
+    "area": None,
+    "published": "2026-09-08",
+    "topics": [TOPIC],
+    "link": LINK,
+    "identifier": LINK,
+    "model": "gemini-3.5-flash-lite",
+    "instructions": "reports-v1",
+}
 KNOWN: list[tuple[type[BaseModel], dict[str, Any]]] = [
     (Quoted, {"value": "v", "quote": "q", "found": True}),
     (Opening, OPENING),
@@ -32,6 +48,7 @@ KNOWN: list[tuple[type[BaseModel], dict[str, Any]]] = [
     (Named, {"name": "n", "found": True}),
     (Call, CALL),
     (Topic, TOPIC),
+    (Report, REPORT),
 ]
 
 
@@ -70,6 +87,18 @@ def test_a_field_the_template_does_not_know_is_refused(shape: type[BaseModel], k
 def test_a_call_with_a_field_left_out_is_refused(field: str) -> None:
     with pytest.raises(ValidationError, match=field):
         Call.model_validate({name: value for name, value in CALL.items() if name != field})
+
+
+@pytest.mark.parametrize("field", list(REPORT))
+def test_a_report_with_a_field_left_out_is_refused(field: str) -> None:
+    with pytest.raises(ValidationError, match=field):
+        Report.model_validate({name: value for name, value in REPORT.items() if name != field})
+
+
+def test_a_report_builds_with_its_day_and_needs_a_topic() -> None:
+    assert Report.model_validate(REPORT).published == dt.date(2026, 9, 8)
+    with pytest.raises(ValidationError, match="topics"):
+        Report.model_validate(REPORT | {"topics": []})
 
 
 @pytest.mark.parametrize(("shape", "known"), KNOWN[:4])
